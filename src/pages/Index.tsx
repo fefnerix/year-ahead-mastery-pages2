@@ -3,8 +3,9 @@ import StreakBadge from "@/components/StreakBadge";
 import DailyChecklist from "@/components/DailyChecklist";
 import MiniRanking from "@/components/MiniRanking";
 import BottomNav from "@/components/BottomNav";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Link } from "react-router-dom";
 import {
   useProgress,
   useTodayTasks,
@@ -12,14 +13,8 @@ import {
   useStreak,
   useUpdateStreak,
 } from "@/hooks/useTodayData";
-
-const mockRanking = [
-  { position: 1, name: "María G.", score: 2450 },
-  { position: 2, name: "Carlos R.", score: 2380 },
-  { position: 3, name: "Ana L.", score: 2310 },
-  { position: 4, name: "Tu", score: 2280, isCurrentUser: true },
-  { position: 5, name: "Pedro M.", score: 2200 },
-];
+import { useLeaderboard, useCalculateScore } from "@/hooks/useLeaderboard";
+import { useCurrentWeekId } from "@/hooks/useRetoData";
 
 const Index = () => {
   const { user } = useAuth();
@@ -28,6 +23,9 @@ const Index = () => {
   const toggleTask = useToggleTask(progress?.day_id);
   const { data: streak } = useStreak();
   const updateStreak = useUpdateStreak();
+  const calculateScore = useCalculateScore();
+  const { data: leaderboard = [] } = useLeaderboard("week");
+  const { data: currentWeekId } = useCurrentWeekId();
 
   const completedCount = tasks.filter((t) => t.completed).length;
   const dayProgress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
@@ -40,20 +38,29 @@ const Index = () => {
 
   const handleCompleteDay = () => {
     updateStreak.mutate();
+    calculateScore.mutate();
   };
 
   const isLoading = progressLoading || tasksLoading;
 
-  // Get user initials
   const initials = user?.user_metadata?.display_name
     ? user.user_metadata.display_name.slice(0, 2).toUpperCase()
     : user?.email?.slice(0, 2).toUpperCase() ?? "??";
 
   const hasDayData = progress?.day_id != null;
 
+  // Transform leaderboard for MiniRanking
+  const rankingEntries = leaderboard.slice(0, 5).map((e) => ({
+    position: e.position,
+    name: e.display_name,
+    score: e.score,
+    isCurrentUser: e.user_id === user?.id,
+  }));
+
+  const currentUserPos = leaderboard.find((e) => e.user_id === user?.id)?.position ?? 0;
+
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
       <header className="px-5 pt-12 pb-6">
         <div className="flex items-center justify-between mb-1">
           <div>
@@ -88,6 +95,20 @@ const Index = () => {
           </div>
         </div>
 
+        {/* Link to current reto */}
+        {currentWeekId && (
+          <Link
+            to={`/reto/${currentWeekId}`}
+            className="w-full glass-card gold-border rounded-xl p-4 flex items-center justify-between"
+          >
+            <div>
+              <p className="text-sm font-semibold text-foreground">Ver Reto Actual</p>
+              <p className="text-xs text-muted-foreground">Cronograma, audio y progreso</p>
+            </div>
+            <ArrowRight className="w-5 h-5 text-primary" />
+          </Link>
+        )}
+
         {/* Streak */}
         <StreakBadge current={streak?.current_streak ?? 0} record={streak?.max_streak ?? 0} />
 
@@ -111,12 +132,7 @@ const Index = () => {
             </div>
           ) : (
             <DailyChecklist
-              tasks={tasks.map((t) => ({
-                id: t.id,
-                title: t.title,
-                category: t.category,
-                completed: t.completed,
-              }))}
+              tasks={tasks.map((t) => ({ id: t.id, title: t.title, category: t.category, completed: t.completed }))}
               onToggle={handleToggle}
             />
           )}
@@ -129,11 +145,7 @@ const Index = () => {
             disabled={updateStreak.isPending}
             className="w-full py-4 rounded-xl gold-gradient font-bold text-primary-foreground text-sm uppercase tracking-wider flex items-center justify-center gap-2 gold-glow shimmer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
           >
-            {updateStreak.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4" />
-            )}
+            {updateStreak.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             Concluir Día
           </button>
         )}
@@ -141,7 +153,13 @@ const Index = () => {
         {/* Mini Ranking */}
         <section>
           <h2 className="text-lg font-display font-bold text-foreground mb-3">Ranking</h2>
-          <MiniRanking entries={mockRanking} currentUserPosition={4} />
+          {rankingEntries.length > 0 ? (
+            <MiniRanking entries={rankingEntries} currentUserPosition={currentUserPos} />
+          ) : (
+            <div className="glass-card rounded-xl p-4 text-center">
+              <p className="text-sm text-muted-foreground">Completa tareas para aparecer en el ranking</p>
+            </div>
+          )}
         </section>
       </main>
 
