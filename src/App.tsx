@@ -12,6 +12,8 @@ import Ranking from "./pages/Ranking";
 import Perfil from "./pages/Perfil";
 import Reto from "./pages/Reto";
 import Dia from "./pages/Dia";
+import Cuaderno from "./pages/Cuaderno";
+import Deposito from "./pages/Deposito";
 import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -33,6 +35,8 @@ const App = () => (
             <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
             <Route path="/reto/:weekId" element={<ProtectedRoute><Reto /></ProtectedRoute>} />
             <Route path="/reto/:weekId/dia/:dayNumber" element={<ProtectedRoute><Dia /></ProtectedRoute>} />
+            <Route path="/cuaderno" element={<ProtectedRoute><Cuaderno /></ProtectedRoute>} />
+            <Route path="/deposito" element={<ProtectedRoute><Deposito /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

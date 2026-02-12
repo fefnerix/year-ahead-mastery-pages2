@@ -90,6 +90,9 @@ export function useCreateWeekWithDays() {
       schedule_image_url?: string;
       schedule_pdf_url?: string;
       start_date: string;
+      description_long?: string;
+      spiritual_playlist_url?: string;
+      mental_playlist_url?: string;
     }) => {
       const { start_date, ...weekData } = input;
 
