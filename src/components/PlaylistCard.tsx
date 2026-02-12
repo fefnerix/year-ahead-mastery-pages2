@@ -11,10 +11,10 @@ const PlaylistCard = ({ title, subtitle, url }: PlaylistCardProps) => {
   const openShuffle = () => window.open(url, "_blank", "noopener");
 
   return (
-    <div className="glass-card rounded-xl p-4">
+    <div className="glass-card rounded-2xl p-4">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-lg bg-[#1DB954]/15 flex items-center justify-center">
-          <Music className="w-5 h-5 text-[#1DB954]" />
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Music className="w-5 h-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground truncate">{title}</p>
@@ -24,13 +24,13 @@ const PlaylistCard = ({ title, subtitle, url }: PlaylistCardProps) => {
       <div className="flex gap-2">
         <button
           onClick={openPlaylist}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-[#1DB954]/15 text-[#1DB954] text-xs font-semibold hover:bg-[#1DB954]/25 transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl gold-gradient text-primary-foreground text-xs font-bold uppercase tracking-wider"
         >
-          <ExternalLink className="w-3.5 h-3.5" /> Abrir playlist
+          <ExternalLink className="w-3.5 h-3.5" /> Abrir
         </button>
         <button
           onClick={openShuffle}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-muted text-secondary-foreground text-xs font-semibold hover:bg-muted/80 transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-muted text-secondary-foreground text-xs font-semibold hover:bg-muted/80 transition-colors"
         >
           <Shuffle className="w-3.5 h-3.5" /> Al azar
         </button>
