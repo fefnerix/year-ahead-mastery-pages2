@@ -25,13 +25,13 @@ const AnnouncementBanner = () => {
         return (
           <div
             key={a.id}
-            className="glass-card gold-border rounded-xl p-4"
+            className="glass-card gold-border rounded-2xl p-4"
           >
             <div className="flex items-start gap-3">
               <div className="relative mt-0.5">
                 <Bell className="w-4 h-4 text-primary" />
                 {isUnread && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-destructive rounded-full" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
@@ -67,10 +67,10 @@ const AnnouncementBanner = () => {
       })}
 
       {unreadCount > 0 && pinnedAnnouncements.length === 0 && (
-        <div className="glass-card rounded-xl p-3 flex items-center gap-2">
+        <div className="glass-card rounded-2xl p-3 flex items-center gap-2">
           <Bell className="w-4 h-4 text-primary" />
           <span className="text-xs text-muted-foreground">
-            Tienes {unreadCount} comunicado{unreadCount > 1 ? "s" : ""} sin leer
+            {unreadCount} comunicado{unreadCount > 1 ? "s" : ""} nuevo{unreadCount > 1 ? "s" : ""}
           </span>
         </div>
       )}

@@ -21,6 +21,7 @@ import {
 } from "@/hooks/useTodayData";
 import { useLeaderboard, useCalculateScore } from "@/hooks/useLeaderboard";
 import { useCurrentWeekData } from "@/hooks/useCurrentWeekData";
+import { useIsAdmin } from "@/hooks/useAdmin";
 
 const Index = () => {
   const { user } = useAuth();
@@ -32,6 +33,7 @@ const Index = () => {
   const calculateScore = useCalculateScore();
   const { data: leaderboard = [] } = useLeaderboard("week");
   const { data: weekData } = useCurrentWeekData();
+  const { data: isAdmin } = useIsAdmin();
   const [descExpanded, setDescExpanded] = useState(false);
   const [scheduleFullscreen, setScheduleFullscreen] = useState(false);
 
@@ -66,66 +68,67 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* 1. Header */}
-      <header className="px-5 pt-12 pb-2">
+      {/* Header */}
+      <header className="px-5 pt-12 pb-3 border-b border-primary/15">
         <div className="flex items-center justify-between">
           <Logo variant="compact" />
-          <div className="w-10 h-10 rounded-full gold-gradient flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full gold-gradient flex items-center justify-center ring-2 ring-primary/20">
             <span className="text-sm font-bold text-primary-foreground">{initials}</span>
           </div>
         </div>
       </header>
 
-      <main className="px-5 space-y-5">
-        {/* 2. Greeting */}
+      <main className="px-5 space-y-6 pt-5">
+        {/* Greeting */}
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">
-            Hola, {displayName} 👋
+            Hola, {displayName}
           </h1>
-          {progress?.month_theme && (
-            <p className="text-sm text-muted-foreground mt-1">
-              Enfoque: <span className="text-primary font-medium">{progress.month_theme}</span>
-            </p>
-          )}
+          <p className="text-sm text-muted-foreground mt-1">Hoy avanzas un paso.</p>
         </div>
 
         {/* Announcements */}
         <AnnouncementBanner />
 
-        {/* 3. Reto Banner (Hero) */}
+        {/* Hero del Reto Activo */}
         {weekData && (
           <Link
             to={`/reto/${weekData.id}`}
-            className="block glass-card gold-border rounded-xl overflow-hidden"
+            className="block rounded-2xl overflow-hidden relative"
           >
-            {weekData.cover_url && (
-              <div className="relative h-32">
+            <div className="relative h-44">
+              {weekData.cover_url ? (
                 <img src={weekData.cover_url} alt={weekData.name} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
-              </div>
-            )}
-            <div className="p-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-primary">
-                Reto {weekData.number} — Semana {weekData.number}
-              </p>
-              <h2 className="text-lg font-display font-bold text-foreground mt-1">{weekData.name}</h2>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs font-semibold text-primary flex items-center gap-1">
-                  Continuar hoy <ArrowRight className="w-3.5 h-3.5" />
+              ) : (
+                <div className="w-full h-full gold-gradient opacity-30" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
+              <div className="absolute inset-0 flex flex-col justify-end p-5">
+                <span className="inline-flex self-start px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-card/80 text-muted-foreground backdrop-blur-sm mb-3">
+                  Día {progress?.day_number ?? "—"} de 7
                 </span>
+                <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-1">
+                  Reto {weekData.number}
+                </p>
+                <h2 className="text-xl font-display font-bold text-foreground">{weekData.name}</h2>
+                <div className="flex items-center gap-3 mt-3">
+                  <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl gold-gradient text-primary-foreground text-xs font-bold uppercase tracking-wider">
+                    Continuar <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
               </div>
             </div>
           </Link>
         )}
 
-        {/* 4. Audio Player */}
+        {/* Audio */}
         {weekData?.audio_url && (
-          <AudioPlayer src={weekData.audio_url} title="Audio de introducción" />
+          <AudioPlayer src={weekData.audio_url} title="Escucha la intro" />
         )}
 
-        {/* 5. Description (collapsible) */}
+        {/* Description */}
         {weekData?.description_long && (
-          <div className="glass-card rounded-xl p-4">
+          <div className="glass-card rounded-2xl p-4">
             <button
               onClick={() => setDescExpanded(!descExpanded)}
               className="w-full flex items-center justify-between text-left"
@@ -143,28 +146,47 @@ const Index = () => {
               </p>
             )}
             {!descExpanded && (
-              <p className="text-xs text-muted-foreground mt-1">Toca para leer más</p>
+              <p className="text-xs text-muted-foreground mt-1">Leer más</p>
             )}
           </div>
         )}
 
-        {/* 6. Daily Tasks */}
+        {/* Tareas de Hoy */}
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-display font-bold text-foreground">Tus Tareas de Hoy</h2>
-            <span className="text-xs font-semibold text-muted-foreground">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="section-title">Tus tareas de hoy</h2>
+            <span className="text-xs font-bold text-muted-foreground tabular-nums">
               {completedCount}/{tasks.length}
             </span>
           </div>
+
+          {/* Progress bar */}
+          {hasDayData && tasks.length > 0 && (
+            <div className="w-full h-1 rounded-full bg-muted mb-4 overflow-hidden">
+              <div
+                className="h-full rounded-full gold-gradient transition-all duration-700 ease-out"
+                style={{ width: `${dayProgress}%` }}
+              />
+            </div>
+          )}
 
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-6 h-6 text-primary animate-spin" />
             </div>
           ) : !hasDayData ? (
-            <div className="glass-card rounded-xl p-6 text-center">
-              <p className="text-muted-foreground text-sm">No hay tareas programadas para hoy.</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">Un admin debe crear el programa y las tareas.</p>
+            <div className="glass-card rounded-2xl p-6 text-center space-y-3">
+              <p className="text-sm font-medium text-foreground">Aún no empieza tu reto.</p>
+              {isAdmin ? (
+                <Link
+                  to="/admin"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl gold-gradient text-primary-foreground text-xs font-bold"
+                >
+                  Activar reto
+                </Link>
+              ) : (
+                <p className="text-xs text-muted-foreground">El reto será activado pronto.</p>
+              )}
             </div>
           ) : (
             <DailyChecklist
@@ -179,14 +201,14 @@ const Index = () => {
           <button
             onClick={handleCompleteDay}
             disabled={updateStreak.isPending}
-            className="w-full py-4 rounded-xl gold-gradient font-bold text-primary-foreground text-sm uppercase tracking-wider flex items-center justify-center gap-2 gold-glow shimmer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
+            className="w-full py-4 rounded-2xl gold-gradient font-bold text-primary-foreground text-sm uppercase tracking-wider flex items-center justify-center gap-2 gold-glow shimmer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
           >
             {updateStreak.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             Concluir Día
           </button>
         )}
 
-        {/* 7. Playlists */}
+        {/* Playlists */}
         {weekData?.spiritual_playlist_url && (
           <PlaylistCard title="Vibración Espiritual" subtitle={weekData.name} url={weekData.spiritual_playlist_url} />
         )}
@@ -194,12 +216,12 @@ const Index = () => {
           <PlaylistCard title="Vibración Mental" subtitle={weekData.name} url={weekData.mental_playlist_url} />
         )}
 
-        {/* 8. Schedule Image */}
+        {/* Schedule Image */}
         {weekData?.schedule_image_url && (
-          <div className="glass-card rounded-xl p-4">
+          <div className="glass-card rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-primary" /> Cronograma Semanal
+                <ImageIcon className="w-4 h-4 text-primary" /> Cronograma
               </p>
               <button
                 onClick={() => setScheduleFullscreen(true)}
@@ -211,36 +233,38 @@ const Index = () => {
             <img
               src={weekData.schedule_image_url}
               alt="Cronograma"
-              className="w-full rounded-lg cursor-pointer"
+              className="w-full rounded-xl cursor-pointer"
               onClick={() => setScheduleFullscreen(true)}
             />
           </div>
         )}
 
-        {/* Deposit Card */}
+        {/* Deposit */}
         <DepositCard />
 
         {/* Streak */}
         <StreakBadge current={streak?.current_streak ?? 0} record={streak?.max_streak ?? 0} />
 
-        {/* 9. Progress Rings */}
-        <div className="glass-card rounded-xl p-5">
-          <div className="flex items-center justify-around">
-            <ProgressRing progress={hasDayData ? dayProgress : 0} label="Hoy" size={76} strokeWidth={5} />
-            <ProgressRing progress={progress?.week_pct ?? 0} label="Semana" size={64} strokeWidth={4} />
-            <ProgressRing progress={progress?.month_pct ?? 0} label="Mes" size={64} strokeWidth={4} />
-            <ProgressRing progress={progress?.year_pct ?? 0} label="Año" size={64} strokeWidth={4} />
+        {/* Progress */}
+        <div className="glass-card rounded-2xl p-5">
+          <div className="flex flex-col items-center gap-4">
+            <ProgressRing progress={hasDayData ? dayProgress : 0} label="Hoy" size={88} strokeWidth={6} />
+            <div className="flex items-center gap-3 w-full">
+              <ProgressChip label="Semana" value={progress?.week_pct ?? 0} />
+              <ProgressChip label="Mes" value={progress?.month_pct ?? 0} />
+              <ProgressChip label="Año" value={progress?.year_pct ?? 0} />
+            </div>
           </div>
         </div>
 
-        {/* 10. Mini Ranking */}
+        {/* Ranking */}
         <section>
-          <h2 className="text-lg font-display font-bold text-foreground mb-3">Ranking Semanal</h2>
+          <h2 className="section-title mb-3">Ranking</h2>
           {rankingEntries.length > 0 ? (
             <MiniRanking entries={rankingEntries} currentUserPosition={currentUserPos} />
           ) : (
-            <div className="glass-card rounded-xl p-4 text-center">
-              <p className="text-sm text-muted-foreground">Completa tareas para aparecer en el ranking</p>
+            <div className="glass-card rounded-2xl p-5 text-center">
+              <p className="text-sm text-muted-foreground">Completa tu primer día para entrar al ranking.</p>
             </div>
           )}
         </section>
@@ -258,7 +282,7 @@ const Index = () => {
           <img
             src={weekData.schedule_image_url}
             alt="Cronograma"
-            className="max-w-full max-h-full object-contain rounded-lg"
+            className="max-w-full max-h-full object-contain rounded-xl"
           />
         </div>
       )}
@@ -267,5 +291,12 @@ const Index = () => {
     </div>
   );
 };
+
+const ProgressChip = ({ label, value }: { label: string; value: number }) => (
+  <div className="flex-1 glass-card rounded-xl py-2.5 px-3 text-center">
+    <p className="text-lg font-bold text-foreground tabular-nums">{value}%</p>
+    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+  </div>
+);
 
 export default Index;

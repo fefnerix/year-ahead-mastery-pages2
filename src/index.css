@@ -86,17 +86,22 @@
   }
 
   .glass-card {
-    background: hsl(230 40% 5% / 0.8);
-    backdrop-filter: blur(20px);
-    border: 1px solid hsl(0 0% 100% / 0.08);
+    background: hsl(230 40% 6% / 0.9);
+    backdrop-filter: blur(24px);
+    border: 1px solid hsl(0 0% 100% / 0.06);
   }
 
   .gold-border {
-    border: 1px solid hsl(43 56% 59% / 0.25);
+    border: 1px solid hsl(43 56% 59% / 0.2);
   }
 
   .gold-glow {
     box-shadow: 0 0 20px hsl(43 56% 59% / 0.15), 0 0 60px hsl(43 56% 59% / 0.05);
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    @apply text-lg font-bold text-foreground;
   }
 
   .shimmer {
