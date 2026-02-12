@@ -1,180 +1,188 @@
 
 
-# Planer 365 — Plan de Implementacion Completo
+# Implementacion Completa: Reto 1 + Admin + Ranking + Storage
 
-Este plan cubre los 6 sprints descritos en tu documento, adaptados a la stack de Lovable (React + Vite + Supabase via Lovable Cloud). A continuacion el detalle de cada fase.
-
----
-
-## Sprint 1 — Auth + Estructura + Home v0
-
-### 1.1 Activar Lovable Cloud
-- Habilitar Cloud para obtener base de datos, auth y edge functions.
-
-### 1.2 Autenticacion
-- Crear pagina `/auth` con login y registro (email/contrasena).
-- Implementar reset de contrasena.
-- Proteger todas las rutas con un componente `ProtectedRoute` que redirige a `/auth` si no hay sesion.
-- Crear tabla `profiles` con trigger automatico al registrarse (nombre, avatar_url).
-- Crear tabla `user_roles` con enum `app_role` (admin, user) y funcion `has_role()` security definer.
-
-### 1.3 Estructura de contenido (tablas)
-- **programs**: id, name, year, start_date, end_date
-- **months**: id, program_id, number, name, theme
-- **weeks** (retos): id, month_id, number, name, objective
-- **days**: id, week_id, number, date, unlock_date
-- **tasks**: id, day_id, title, category (enum: cuerpo/mente/alma/finanzas), order
-- **content_items**: id, day_id, type (pdf/audio/video/link), title, url, order
-- RLS: lectura autenticada para todo el contenido.
-
-### 1.4 Home v0 conectada
-- Consultar el dia actual del programa y mostrar las tareas reales.
-- Conectar los anillos de progreso a datos calculados.
+Este plan cubre todas las 12 secciones solicitadas, organizadas en bloques de implementacion secuencial.
 
 ---
 
-## Sprint 2 — Tareas + Checks + Progreso + Streak
+## Bloque A — Schema de Base de Datos (migracion)
 
-### 2.1 Tabla de checks
-- **task_checks**: id, user_id, task_id, day_id, checked_at (timestamp)
-- RLS: cada usuario solo lee/escribe sus propios checks.
-- Unique constraint en (user_id, task_id) para evitar duplicados.
+### A.1 Modificar tabla `weeks` para soportar materiales del reto
+Agregar columnas a la tabla existente `weeks`:
+- `cover_url` (text, nullable) — URL de la capa del reto en Storage
+- `audio_url` (text, nullable) — URL del audio de introduccion
+- `schedule_image_url` (text, nullable) — URL de la imagen del cronograma
+- `schedule_pdf_url` (text, nullable) — URL del PDF descargable
 
-### 2.2 Checklist funcional
-- Al marcar una tarea, insertar registro en `task_checks` con timestamp.
-- Al desmarcar, eliminar el registro.
-- Optimistic updates en la UI para respuesta instantanea.
+### A.2 Crear tabla `leaderboard_scores`
+- `id` (uuid, PK)
+- `user_id` (uuid, not null)
+- `period_type` (enum: 'week', 'month', 'year')
+- `period_key` (text) — ej: "2026-W07", "2026-02", "2026"
+- `score` (integer, default 0)
+- `days_completed` (integer, default 0)
+- `weeks_completed` (integer, default 0)
+- `updated_at` (timestamptz)
+- Unique constraint en (user_id, period_type, period_key)
+- RLS: usuarios pueden leer todos los scores (para ranking), solo el sistema escribe
 
-### 2.3 Calculo de progreso
-- **% del dia** = checks del dia / tareas del dia.
-- **% semana** = promedio de % de los dias desbloqueados de la semana.
-- **% mes** = promedio de semanas del mes.
-- **% ano** = promedio de meses del programa.
-- Crear una vista SQL o funcion RPC que calcule estos valores para el usuario actual.
+### A.3 Crear funcion `calculate_user_score`
+Funcion RPC que calcula puntos para un usuario en un periodo:
+- 1 punto por tarea completada
+- +2 bonus por dia completo (5/5)
+- +10 bonus por semana completa (7/7 dias)
+Upsert en `leaderboard_scores`.
 
-### 2.4 Streak
-- Calcular streak actual: dias consecutivos hacia atras donde % dia = 100%.
-- Almacenar streak record en tabla `user_streaks` (user_id, current_streak, max_streak, last_completed_date).
-- Actualizar via trigger o edge function al completar un dia.
+### A.4 Crear funcion `get_leaderboard`
+Funcion RPC que retorna el ranking para un periodo dado, incluyendo display_name del perfil, ordenado por score DESC con desempate (% anual, streak, semanas completas).
 
-### 2.5 UI "1 segundo"
-- Progreso del dia visible en el header.
-- Boton "Concluir Dia" con animacion de celebracion (confetti leve o gold pulse).
+### A.5 Storage buckets
+Crear 4 buckets publicos:
+- `covers` — capas de los retos
+- `schedules` — imagenes de cronograma
+- `audios` — audios de introduccion
+- `pdfs` — PDFs descargables
 
----
-
-## Sprint 3 — Drip + Reglas + Anti-trampa
-
-### 3.1 Drip diario
-- Columna `unlock_date` en tabla `days`.
-- La UI muestra candado en dias futuros (ya implementado visualmente en Semana.tsx).
-- Validacion server-side: RLS o edge function que impide insertar checks en dias no desbloqueados.
-
-### 3.2 Ventana retroactiva (48h)
-- Al intentar marcar una tarea, validar que `NOW() - day.date <= interval '48 hours'`.
-- Implementar como check constraint o policy RLS en `task_checks`.
-- UI: mostrar indicador de "tiempo restante" para dias anteriores dentro de la ventana.
-
-### 3.3 Logs de auditoria
-- Tabla **audit_logs**: id, user_id, action, entity_type, entity_id, metadata (jsonb), created_at.
-- Registrar cada check/uncheck con timestamp y origen.
-- Flag `suspicious` para revision manual del Top 10.
+Con RLS: lectura publica, escritura solo admin.
 
 ---
 
-## Sprint 4 — Ranking
+## Bloque B — Pagina del Reto `/reto/:weekId`
 
-### 4.1 Sistema de puntuacion
-- 1 punto por tarea completada.
-- +2 bonus al completar el dia (5/5 = 100%).
-- +10 bonus al completar semana completa (7/7 dias).
-- Edge function o database function que calcula scores.
+### B.1 Crear pagina `src/pages/Reto.tsx`
+Layout completo con:
+- **Header**: capa (imagen desde Storage), titulo del reto, progreso semanal (%), boton "Continuar hoy"
+- **Audio player**: reproductor HTML5 con play/pause, barra de progreso, selector de velocidad (1x/1.25x/1.5x)
+- **Cronograma semanal**: imagen del cronograma, boton "Ver en pantalla completa" (dialog fullscreen), boton "Descargar PDF"
+- **Cards de Dias 1-7**: cada card muestra nombre del dia (Lunes-Domingo), status (completo/pendiente/bloqueado), progreso (ej: 3/5), dias futuros con candado y "Disponible en X horas"
 
-### 4.2 Leaderboards
-- Tabla **leaderboard_scores**: user_id, period_type (week/month/year), period_key, score, rank.
-- Actualizar via cron job o trigger tras cada check.
-- Tabs ya implementados en Ranking.tsx, conectarlos a datos reales.
-
-### 4.3 Desempate
-1. Mayor % anual.
-2. Mayor streak maximo.
-3. Mas semanas al 100%.
-
-### 4.4 UI ranking mejorada
-- Mostrar "distancia para el siguiente" (puntos que faltan).
-- Destacar posicion del usuario actual.
-- Reglas publicas ya implementadas en la UI.
+### B.2 Hook `useRetoData`
+- Consulta la semana por ID con sus materiales
+- Consulta los 7 dias con sus tareas y checks del usuario
+- Calcula progreso por dia y semanal
 
 ---
 
-## Sprint 5 — Admin + Contenido
+## Bloque C — Pagina del Dia `/reto/:weekId/dia/:dayNumber`
 
-### 5.1 Panel admin
-- Rutas `/admin/*` protegidas con verificacion de role `admin`.
-- CRUD para: programas, meses, semanas, dias, tareas.
-- Upload de materiales (PDFs/audios) via Supabase Storage.
-- Links de video (YouTube/Vimeo).
+### C.1 Crear pagina `src/pages/Dia.tsx`
+- **Header**: "Dia X — [titulo del reto]", indicador "Semana Y de 50", progreso del dia (%)
+- **Checklist**: 5 tareas (Momentos 1-5) con checkbox grande, guardar/eliminar en `task_checks`
+- **Materiales**: links al cronograma semanal y audio de introduccion
+- **Boton "Concluir dia"**: habilitado solo con 5/5, al pulsar actualiza streak, calcula score y ranking
 
-### 5.2 Configuracion del ciclo
-- Interfaz para definir fechas de inicio/fin del programa.
-- Configurar ventana retroactiva (default 48h).
-- Configurar reglas de puntuacion y certificacion.
-
-### 5.3 Biblioteca mensual
-- Seccion de replay de lives (links).
-- Libros del mes con orden y justificacion ("por que").
+### C.2 Hook `useDayTasks`
+Reutiliza la logica existente de `useTodayTasks` pero parametrizado por day_id arbitrario.
 
 ---
 
-## Sprint 6 — Certificacion + Polimiento
+## Bloque D — Home (Hoy) Mejorada
 
-### 6.1 Certificacion
-- Tabla **certifications**: id, user_id, program_id, percentage_achieved, issued_at, certificate_code.
-- Regla configurable: X% minimo para certificar (default 80%).
-- Pagina de status: "Faltam Y% / Z dias".
-- Generacion de PDF via edge function con codigo unico.
+### D.1 Conectar MiniRanking a datos reales
+Reemplazar los datos mock del ranking con llamada a `get_leaderboard` para el periodo semanal actual.
 
-### 6.2 Top 10 anual
-- Pagina de resultados finales.
-- Export de logs de auditoria del Top 10 para revision.
+### D.2 Link al reto actual
+Agregar boton/link desde Home hacia `/reto/:weekId` de la semana actual.
 
-### 6.3 Polimiento
-- Verificar contraste AA+ en todo el diseno.
-- Focus visible y navegacion por teclado.
-- PWA manifest y service worker para instalacion.
-- Safe area bottom ya implementada en BottomNav.
+---
+
+## Bloque E — Ranking con Datos Reales
+
+### E.1 Actualizar `src/pages/Ranking.tsx`
+- Conectar los 3 tabs (Semana/Mes/Ano) a `get_leaderboard` con el periodo correspondiente
+- Mostrar display_name, score, posicion del usuario actual
+- Mostrar "distancia para el siguiente" (puntos que faltan)
+- Actualizar reglas mostradas con la puntuacion real (1pt/tarea, +2/dia, +10/semana)
+
+---
+
+## Bloque F — Admin Panel
+
+### F.1 Componente `AdminRoute`
+Wrapper que verifica `has_role(user_id, 'admin')` y redirige si no es admin.
+
+### F.2 Crear pagina `src/pages/Admin.tsx`
+Dashboard admin con tabs/secciones para:
+- **Programas**: listar, crear (nombre, ano, fecha inicio/fin)
+- **Meses**: listar, crear asociados a un programa
+- **Semanas/Retos**: listar, crear con uploads (capa, audio, cronograma, PDF)
+- **Dias + Tareas**: al crear un reto, generar automaticamente 7 dias con 5 tareas cada uno (Momento 1-5), edicion opcional del texto
+
+### F.3 Upload de archivos
+Componente de upload que sube a los buckets de Storage y guarda la URL en la tabla correspondiente.
+
+### F.4 Creacion automatica de dias y tareas
+Al crear una semana/reto, el sistema automaticamente:
+1. Crea 7 registros en `days` (con fechas calculadas y unlock_date)
+2. Para cada dia, crea 5 registros en `tasks` (Momento 1..5, categoria por defecto)
+
+---
+
+## Bloque G — Seed del Reto 1
+
+### G.1 Datos iniciales
+Insertar via SQL:
+- 1 programa: "Valientes 2026"
+- 1 mes: "Febrero" 
+- 1 semana: "Reto 1 — Encontrando mi proposito"
+- 7 dias con fecha actual como base
+- 35 tareas (5 por dia): Momento 1..5 con titulos basados en el cronograma
+
+---
+
+## Bloque H — Rutas y Navegacion
+
+### H.1 Actualizar `App.tsx`
+Agregar rutas:
+- `/reto/:weekId` — pagina del reto (protegida)
+- `/reto/:weekId/dia/:dayNumber` — pagina del dia (protegida)
+- `/admin` — panel admin (protegida + verificacion admin)
+
+### H.2 Actualizar BottomNav
+Mantener la navegacion existente. Agregar item "Admin" visible solo para admins (condicional).
 
 ---
 
 ## Detalles Tecnicos
 
-### Esquema de base de datos (resumen)
-
+### Archivos nuevos a crear
 ```text
-programs
-  +-- months
-       +-- weeks (retos)
-            +-- days
-                 +-- tasks (max 5 por dia)
-                 +-- content_items
-
-users (auth.users)
-  +-- profiles (trigger auto-create)
-  +-- user_roles (admin/user)
-  +-- task_checks (user_id, task_id, checked_at)
-  +-- user_streaks (current, max, last_date)
-  +-- leaderboard_scores (period_type, score, rank)
-  +-- certifications (program_id, percentage, code)
-  +-- audit_logs (action, metadata)
+src/pages/Reto.tsx              — pagina del reto
+src/pages/Dia.tsx               — pagina del dia
+src/pages/Admin.tsx             — panel admin
+src/components/AdminRoute.tsx   — proteccion de ruta admin
+src/components/AudioPlayer.tsx  — reproductor de audio
+src/components/FileUpload.tsx   — upload a Storage
+src/hooks/useRetoData.ts        — datos del reto/semana
+src/hooks/useLeaderboard.ts     — ranking real
+src/hooks/useAdmin.ts           — operaciones CRUD admin
 ```
 
-### Orden de implementacion recomendado
-1. Activar Cloud y crear tablas de contenido + auth (Sprint 1)
-2. Implementar checks y progreso (Sprint 2)
-3. Drip y validaciones (Sprint 3)
-4. Ranking con datos reales (Sprint 4)
-5. Admin panel (Sprint 5)
-6. Certificacion y polish (Sprint 6)
+### Archivos existentes a modificar
+```text
+src/App.tsx                     — agregar rutas nuevas
+src/pages/Index.tsx             — conectar ranking real, link al reto
+src/pages/Ranking.tsx           — conectar a datos reales
+src/components/BottomNav.tsx    — item admin condicional
+src/hooks/useTodayData.ts       — reutilizar logica para dia arbitrario
+```
 
-Cada sprint se puede implementar de forma incremental, probando al final de cada uno.
+### Migracion SQL (resumen)
+```text
+1. ALTER TABLE weeks ADD COLUMN cover_url, audio_url, schedule_image_url, schedule_pdf_url
+2. CREATE TABLE leaderboard_scores (...)
+3. CREATE FUNCTION calculate_user_score(...)
+4. CREATE FUNCTION get_leaderboard(...)
+5. CREATE storage buckets: covers, schedules, audios, pdfs
+6. RLS policies para leaderboard_scores y storage
+7. INSERT seed data: programa + mes + semana + 7 dias + 35 tareas
+```
+
+### Orden de ejecucion
+1. Migracion DB (schema + funciones + storage + seed)
+2. Hooks de datos (useRetoData, useLeaderboard, useAdmin)
+3. Paginas nuevas (Reto, Dia, Admin)
+4. Componentes auxiliares (AudioPlayer, FileUpload, AdminRoute)
+5. Actualizacion de paginas existentes (Home, Ranking, rutas)
 
