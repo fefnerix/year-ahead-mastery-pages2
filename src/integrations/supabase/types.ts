@@ -14,6 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
+      abundance_deposits: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          date: string
+          id: string
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          date?: string
+          id?: string
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          date?: string
+          id?: string
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      announcement_reads: {
+        Row: {
+          announcement_id: string
+          id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          id?: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_reads_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      announcements: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string
+          id: string
+          pinned: boolean
+          scope: string
+          scope_id: string | null
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by: string
+          id?: string
+          pinned?: boolean
+          scope?: string
+          scope_id?: string | null
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          pinned?: boolean
+          scope?: string
+          scope_id?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       content_items: {
         Row: {
           created_at: string
@@ -248,6 +340,51 @@ export type Database = {
           },
         ]
       }
+      task_notes: {
+        Row: {
+          content: string
+          created_at: string
+          day_id: string
+          id: string
+          task_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          day_id: string
+          id?: string
+          task_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          day_id?: string
+          id?: string
+          task_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_notes_day_id_fkey"
+            columns: ["day_id"]
+            isOneToOne: false
+            referencedRelation: "days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_notes_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           category: Database["public"]["Enums"]["task_category"]
@@ -333,37 +470,49 @@ export type Database = {
           audio_url: string | null
           cover_url: string | null
           created_at: string
+          description_long: string | null
           id: string
+          mental_playlist_url: string | null
           month_id: string
           name: string
           number: number
           objective: string | null
           schedule_image_url: string | null
           schedule_pdf_url: string | null
+          spiritual_playlist_url: string | null
+          status: string
         }
         Insert: {
           audio_url?: string | null
           cover_url?: string | null
           created_at?: string
+          description_long?: string | null
           id?: string
+          mental_playlist_url?: string | null
           month_id: string
           name: string
           number: number
           objective?: string | null
           schedule_image_url?: string | null
           schedule_pdf_url?: string | null
+          spiritual_playlist_url?: string | null
+          status?: string
         }
         Update: {
           audio_url?: string | null
           cover_url?: string | null
           created_at?: string
+          description_long?: string | null
           id?: string
+          mental_playlist_url?: string | null
           month_id?: string
           name?: string
           number?: number
           objective?: string | null
           schedule_image_url?: string | null
           schedule_pdf_url?: string | null
+          spiritual_playlist_url?: string | null
+          status?: string
         }
         Relationships: [
           {
