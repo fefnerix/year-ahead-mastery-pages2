@@ -87,6 +87,39 @@ export type Database = {
           },
         ]
       }
+      leaderboard_scores: {
+        Row: {
+          days_completed: number
+          id: string
+          period_key: string
+          period_type: Database["public"]["Enums"]["period_type"]
+          score: number
+          updated_at: string
+          user_id: string
+          weeks_completed: number
+        }
+        Insert: {
+          days_completed?: number
+          id?: string
+          period_key: string
+          period_type: Database["public"]["Enums"]["period_type"]
+          score?: number
+          updated_at?: string
+          user_id: string
+          weeks_completed?: number
+        }
+        Update: {
+          days_completed?: number
+          id?: string
+          period_key?: string
+          period_type?: Database["public"]["Enums"]["period_type"]
+          score?: number
+          updated_at?: string
+          user_id?: string
+          weeks_completed?: number
+        }
+        Relationships: []
+      }
       months: {
         Row: {
           created_at: string
@@ -297,28 +330,40 @@ export type Database = {
       }
       weeks: {
         Row: {
+          audio_url: string | null
+          cover_url: string | null
           created_at: string
           id: string
           month_id: string
           name: string
           number: number
           objective: string | null
+          schedule_image_url: string | null
+          schedule_pdf_url: string | null
         }
         Insert: {
+          audio_url?: string | null
+          cover_url?: string | null
           created_at?: string
           id?: string
           month_id: string
           name: string
           number: number
           objective?: string | null
+          schedule_image_url?: string | null
+          schedule_pdf_url?: string | null
         }
         Update: {
+          audio_url?: string | null
+          cover_url?: string | null
           created_at?: string
           id?: string
           month_id?: string
           name?: string
           number?: number
           objective?: string | null
+          schedule_image_url?: string | null
+          schedule_pdf_url?: string | null
         }
         Relationships: [
           {
@@ -335,6 +380,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_user_score: {
+        Args: {
+          p_period_key: string
+          p_period_type: Database["public"]["Enums"]["period_type"]
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      get_leaderboard: {
+        Args: {
+          p_limit?: number
+          p_period_key: string
+          p_period_type: Database["public"]["Enums"]["period_type"]
+        }
+        Returns: Json
+      }
       get_user_progress: {
         Args: { p_date?: string; p_user_id: string }
         Returns: Json
@@ -351,6 +412,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "user"
       content_type: "pdf" | "audio" | "video" | "link"
+      period_type: "week" | "month" | "year"
       task_category: "cuerpo" | "mente" | "alma" | "finanzas"
     }
     CompositeTypes: {
@@ -481,6 +543,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "user"],
       content_type: ["pdf", "audio", "video", "link"],
+      period_type: ["week", "month", "year"],
       task_category: ["cuerpo", "mente", "alma", "finanzas"],
     },
   },

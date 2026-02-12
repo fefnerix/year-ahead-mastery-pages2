@@ -1,15 +1,18 @@
-import { Home, CalendarDays, Trophy, User } from "lucide-react";
+import { Home, CalendarDays, Trophy, User, Shield } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
-
-const navItems = [
-  { icon: Home, label: "Hoy", path: "/" },
-  { icon: CalendarDays, label: "Semana", path: "/semana" },
-  { icon: Trophy, label: "Ranking", path: "/ranking" },
-  { icon: User, label: "Perfil", path: "/perfil" },
-];
+import { useIsAdmin } from "@/hooks/useAdmin";
 
 const BottomNav = () => {
   const location = useLocation();
+  const { data: isAdmin } = useIsAdmin();
+
+  const navItems = [
+    { icon: Home, label: "Hoy", path: "/" },
+    { icon: CalendarDays, label: "Semana", path: "/semana" },
+    { icon: Trophy, label: "Ranking", path: "/ranking" },
+    { icon: User, label: "Perfil", path: "/perfil" },
+    ...(isAdmin ? [{ icon: Shield, label: "Admin", path: "/admin" }] : []),
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 glass-card border-t border-border/50 safe-area-bottom">
@@ -20,10 +23,8 @@ const BottomNav = () => {
             <Link
               key={path}
               to={path}
-              className={`flex flex-col items-center gap-0.5 py-2.5 px-4 transition-all duration-200 ${
-                isActive
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+              className={`flex flex-col items-center gap-0.5 py-2.5 px-3 transition-all duration-200 ${
+                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <Icon className={`w-5 h-5 ${isActive ? "drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]" : ""}`} />

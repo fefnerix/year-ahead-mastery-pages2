@@ -5,10 +5,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminRoute from "@/components/AdminRoute";
 import Index from "./pages/Index";
 import Semana from "./pages/Semana";
 import Ranking from "./pages/Ranking";
 import Perfil from "./pages/Perfil";
+import Reto from "./pages/Reto";
+import Dia from "./pages/Dia";
+import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -27,6 +31,9 @@ const App = () => (
             <Route path="/semana" element={<ProtectedRoute><Semana /></ProtectedRoute>} />
             <Route path="/ranking" element={<ProtectedRoute><Ranking /></ProtectedRoute>} />
             <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
+            <Route path="/reto/:weekId" element={<ProtectedRoute><Reto /></ProtectedRoute>} />
+            <Route path="/reto/:weekId/dia/:dayNumber" element={<ProtectedRoute><Dia /></ProtectedRoute>} />
+            <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
