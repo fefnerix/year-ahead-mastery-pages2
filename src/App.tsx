@@ -15,6 +15,7 @@ import Dia from "./pages/Dia";
 import Cuaderno from "./pages/Cuaderno";
 import Deposito from "./pages/Deposito";
 import Admin from "./pages/Admin";
+import RetoBuilder from "./pages/RetoBuilder";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/cuaderno" element={<ProtectedRoute><Cuaderno /></ProtectedRoute>} />
             <Route path="/deposito" element={<ProtectedRoute><Deposito /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+            <Route path="/admin/retos/:weekId/builder" element={<AdminRoute><RetoBuilder /></AdminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

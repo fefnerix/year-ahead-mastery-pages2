@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import FileUpload from "@/components/FileUpload";
 import {
@@ -6,11 +7,12 @@ import {
   useCreateProgram, useCreateMonth, useCreateWeekWithDays,
 } from "@/hooks/useAdmin";
 import { useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement } from "@/hooks/useAnnouncements";
-import { Loader2, Plus, ChevronRight, Trash2, Megaphone } from "lucide-react";
+import { Loader2, Plus, ChevronRight, Trash2, Megaphone, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import Logo from "@/components/Logo";
 
 const Admin = () => {
+  const navigate = useNavigate();
   const [selectedProgram, setSelectedProgram] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"content" | "announcements">("content");
@@ -250,9 +252,17 @@ const Admin = () => {
 
                 <div className="space-y-2">
                   {weeks.map((w) => (
-                    <div key={w.id} className="glass-card rounded-xl p-3">
-                      <span className="text-sm font-semibold text-foreground">{w.name}</span>
-                      <span className="text-xs text-muted-foreground ml-2">Semana {w.number}</span>
+                    <div key={w.id} className="glass-card rounded-xl p-3 flex items-center justify-between">
+                      <div>
+                        <span className="text-sm font-semibold text-foreground">{w.name}</span>
+                        <span className="text-xs text-muted-foreground ml-2">Semana {w.number}</span>
+                      </div>
+                      <button
+                        onClick={() => navigate(`/admin/retos/${w.id}/builder`)}
+                        className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-lg hover:bg-primary/20 transition-colors"
+                      >
+                        <Wrench className="w-3.5 h-3.5" /> Constructor
+                      </button>
                     </div>
                   ))}
                 </div>
