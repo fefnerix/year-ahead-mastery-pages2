@@ -465,6 +465,50 @@ export type Database = {
         }
         Relationships: []
       }
+      week_blocks: {
+        Row: {
+          config: Json
+          created_at: string
+          id: string
+          is_visible: boolean
+          order_index: number
+          title: string | null
+          type: string
+          updated_at: string
+          week_id: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          order_index?: number
+          title?: string | null
+          type: string
+          updated_at?: string
+          week_id: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          order_index?: number
+          title?: string | null
+          type?: string
+          updated_at?: string
+          week_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "week_blocks_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "weeks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       weeks: {
         Row: {
           audio_url: string | null
