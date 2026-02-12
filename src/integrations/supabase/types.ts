@@ -176,6 +176,45 @@ export type Database = {
         }
         Relationships: []
       }
+      task_checks: {
+        Row: {
+          checked_at: string
+          day_id: string
+          id: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          checked_at?: string
+          day_id: string
+          id?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          checked_at?: string
+          day_id?: string
+          id?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_checks_day_id_fkey"
+            columns: ["day_id"]
+            isOneToOne: false
+            referencedRelation: "days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_checks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           category: Database["public"]["Enums"]["task_category"]
@@ -229,6 +268,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_streaks: {
+        Row: {
+          current_streak: number
+          id: string
+          last_completed_date: string | null
+          max_streak: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          current_streak?: number
+          id?: string
+          last_completed_date?: string | null
+          max_streak?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          current_streak?: number
+          id?: string
+          last_completed_date?: string | null
+          max_streak?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       weeks: {
         Row: {
           created_at: string
@@ -269,6 +335,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_progress: {
+        Args: { p_date?: string; p_user_id: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -276,6 +346,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      update_user_streak: { Args: { p_user_id: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "user"
