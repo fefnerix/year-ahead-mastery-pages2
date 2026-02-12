@@ -7,6 +7,7 @@ import {
 } from "@/hooks/useAdmin";
 import { Loader2, Plus, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import Logo from "@/components/Logo";
 
 const Admin = () => {
   const [selectedProgram, setSelectedProgram] = useState<string | null>(null);
@@ -86,6 +87,7 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="px-5 pt-12 pb-4">
+        <Logo variant="compact" className="mb-3" />
         <h1 className="text-3xl font-display font-bold text-foreground">Admin</h1>
         <p className="text-sm text-muted-foreground mt-1">Gestión de programas, meses y retos</p>
       </header>

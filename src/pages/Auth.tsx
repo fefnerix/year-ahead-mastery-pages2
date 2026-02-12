@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from "lucide-react";
+import Logo from "@/components/Logo";
 
 type AuthMode = "login" | "register" | "reset";
 
@@ -65,8 +66,8 @@ const Auth = () => {
       <div className="w-full max-w-sm">
         {/* Logo / Brand */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-display font-bold gold-text">Planer 365</h1>
-          <p className="text-sm text-muted-foreground mt-2">
+          <Logo variant="full" />
+          <p className="text-sm text-muted-foreground mt-4">
             {mode === "login" && "Inicia sesión para continuar tu transformación"}
             {mode === "register" && "Crea tu cuenta y comienza hoy"}
             {mode === "reset" && "Recupera el acceso a tu cuenta"}

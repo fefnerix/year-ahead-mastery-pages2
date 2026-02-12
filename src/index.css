@@ -6,55 +6,55 @@
 
 @layer base {
   :root {
-    --background: 220 20% 6%;
-    --foreground: 45 10% 92%;
+    --background: 230 38% 7%;
+    --foreground: 240 6% 96%;
 
-    --card: 220 18% 10%;
-    --card-foreground: 45 10% 92%;
+    --card: 230 40% 5%;
+    --card-foreground: 240 6% 96%;
 
-    --popover: 220 18% 10%;
-    --popover-foreground: 45 10% 92%;
+    --popover: 230 40% 5%;
+    --popover-foreground: 240 6% 96%;
 
-    --primary: 43 72% 53%;
-    --primary-foreground: 220 20% 6%;
+    --primary: 43 56% 59%;
+    --primary-foreground: 230 38% 7%;
 
-    --secondary: 220 15% 16%;
-    --secondary-foreground: 45 10% 85%;
+    --secondary: 0 0% 100% / 0.05;
+    --secondary-foreground: 228 10% 68%;
 
-    --muted: 220 15% 14%;
-    --muted-foreground: 220 10% 50%;
+    --muted: 0 0% 100% / 0.03;
+    --muted-foreground: 228 10% 68%;
 
-    --accent: 43 72% 53%;
-    --accent-foreground: 220 20% 6%;
+    --accent: 43 56% 59%;
+    --accent-foreground: 230 38% 7%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 45 10% 92%;
+    --destructive-foreground: 240 6% 96%;
 
-    --border: 220 15% 18%;
-    --input: 220 15% 18%;
-    --ring: 43 72% 53%;
+    --border: 0 0% 100% / 0.08;
+    --input: 0 0% 100% / 0.08;
+    --ring: 43 56% 59%;
 
     --radius: 0.75rem;
 
-    --gold: 43 72% 53%;
-    --gold-light: 43 60% 70%;
-    --gold-dark: 43 80% 38%;
-    --gold-glow: 43 72% 53%;
+    --gold: 43 56% 59%;
+    --gold-light: 43 60% 75%;
+    --gold-dark: 43 52% 48%;
+    --gold-glow: 43 56% 59%;
 
     --success: 142 71% 45%;
-    --success-foreground: 220 20% 6%;
+    --success-foreground: 230 38% 7%;
 
     --streak: 25 95% 53%;
-    --streak-foreground: 220 20% 6%;
+    --streak-foreground: 230 38% 7%;
 
-    --sidebar-background: 220 18% 8%;
-    --sidebar-foreground: 45 10% 92%;
-    --sidebar-primary: 43 72% 53%;
-    --sidebar-primary-foreground: 220 20% 6%;
-    --sidebar-accent: 220 15% 14%;
-    --sidebar-accent-foreground: 45 10% 92%;
-    --sidebar-border: 220 15% 18%;
-    --sidebar-ring: 43 72% 53%;
+    --sidebar-background: 230 40% 5%;
+    --sidebar-foreground: 240 6% 96%;
+    --sidebar-primary: 43 56% 59%;
+    --sidebar-primary-foreground: 230 38% 7%;
+    --sidebar-accent: 0 0% 100% / 0.05;
+    --sidebar-accent-foreground: 240 6% 96%;
+    --sidebar-border: 0 0% 100% / 0.08;
+    --sidebar-ring: 43 56% 59%;
   }
 }
 
@@ -75,28 +75,28 @@
 
 @layer utilities {
   .gold-gradient {
-    background: linear-gradient(135deg, hsl(43 72% 53%), hsl(43 60% 70%), hsl(43 80% 38%));
+    background: linear-gradient(135deg, hsl(43 56% 59%), hsl(43 60% 75%), hsl(43 52% 48%));
   }
 
   .gold-text {
-    background: linear-gradient(135deg, hsl(43 72% 53%), hsl(43 60% 70%));
+    background: linear-gradient(135deg, hsl(43 56% 59%), hsl(43 60% 75%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .glass-card {
-    background: hsl(220 18% 10% / 0.8);
+    background: hsl(230 40% 5% / 0.8);
     backdrop-filter: blur(20px);
-    border: 1px solid hsl(220 15% 18% / 0.6);
+    border: 1px solid hsl(0 0% 100% / 0.08);
   }
 
   .gold-border {
-    border: 1px solid hsl(43 72% 53% / 0.3);
+    border: 1px solid hsl(43 56% 59% / 0.25);
   }
 
   .gold-glow {
-    box-shadow: 0 0 20px hsl(43 72% 53% / 0.15), 0 0 60px hsl(43 72% 53% / 0.05);
+    box-shadow: 0 0 20px hsl(43 56% 59% / 0.15), 0 0 60px hsl(43 56% 59% / 0.05);
   }
 
   .shimmer {
@@ -111,7 +111,7 @@
     left: -100%;
     width: 50%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, hsl(43 72% 53% / 0.08), transparent);
+    background: linear-gradient(90deg, transparent, hsl(43 56% 59% / 0.08), transparent);
     animation: shimmer 3s ease-in-out infinite;
   }
 
@@ -121,8 +121,8 @@
   }
 
   @keyframes pulse-gold {
-    0%, 100% { box-shadow: 0 0 0 0 hsl(43 72% 53% / 0.4); }
-    50% { box-shadow: 0 0 0 8px hsl(43 72% 53% / 0); }
+    0%, 100% { box-shadow: 0 0 0 0 hsl(43 56% 59% / 0.4); }
+    50% { box-shadow: 0 0 0 8px hsl(43 56% 59% / 0); }
   }
 
   .pulse-gold {

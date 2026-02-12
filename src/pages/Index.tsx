@@ -4,6 +4,7 @@ import DailyChecklist from "@/components/DailyChecklist";
 import MiniRanking from "@/components/MiniRanking";
 import BottomNav from "@/components/BottomNav";
 import { Sparkles, Loader2, ArrowRight } from "lucide-react";
+import Logo from "@/components/Logo";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import {
@@ -64,8 +65,9 @@ const Index = () => {
       <header className="px-5 pt-12 pb-6">
         <div className="flex items-center justify-between mb-1">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-primary">
-              {progress?.week_name || "Cargando..."}
+            <Logo variant="compact" />
+            <p className="text-xs font-semibold uppercase tracking-widest text-primary mt-2">
+              {progress?.week_name || ""}
             </p>
             <h1 className="text-3xl font-display font-bold text-foreground mt-1">
               {hasDayData ? `Día ${progress.day_number}` : "Hoy"}
