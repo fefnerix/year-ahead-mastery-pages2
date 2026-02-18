@@ -16,13 +16,26 @@ export interface CurrentWeekData {
   status: string;
 }
 
+const WEEK_COLUMNS = "id, name, number, objective, cover_url, audio_url, schedule_image_url, schedule_pdf_url, description_long, spiritual_playlist_url, mental_playlist_url, status";
+
 export function useCurrentWeekData() {
   return useQuery({
     queryKey: ["current-week-data"],
     queryFn: async (): Promise<CurrentWeekData | null> => {
+      // 1. Try active week first
+      const { data: activeWeek, error: activeErr } = await supabase
+        .from("weeks")
+        .select(WEEK_COLUMNS)
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle();
+
+      if (activeErr) throw activeErr;
+      if (activeWeek) return activeWeek as unknown as CurrentWeekData;
+
+      // 2. Fallback: find by today's date
       const today = new Date().toISOString().split("T")[0];
 
-      // Find today's day to get the week
       const { data: dayData, error: dayError } = await supabase
         .from("days")
         .select("week_id")
@@ -36,7 +49,7 @@ export function useCurrentWeekData() {
 
       const { data: week, error: weekError } = await supabase
         .from("weeks")
-        .select("id, name, number, objective, cover_url, audio_url, schedule_image_url, schedule_pdf_url, description_long, spiritual_playlist_url, mental_playlist_url, status")
+        .select(WEEK_COLUMNS)
         .eq("id", dayData.week_id)
         .single();
 

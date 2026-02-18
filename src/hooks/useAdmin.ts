@@ -148,3 +148,96 @@ export async function uploadFile(bucket: string, file: File, path?: string) {
   const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(data.path);
   return urlData.publicUrl;
 }
+
+// Maps week field -> block type + config key
+const ASSET_BLOCK_MAP: Record<string, { type: string; configKey: string }> = {
+  cover_url: { type: "hero", configKey: "cover_image_url" },
+  audio_url: { type: "audio", configKey: "audio_url" },
+  schedule_image_url: { type: "cronograma", configKey: "schedule_image_url" },
+  schedule_pdf_url: { type: "cronograma", configKey: "schedule_pdf_url" },
+};
+
+export function useUpdateWeekAsset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ weekId, field, value }: { weekId: string; field: string; value: string }) => {
+      // 1. Update weeks table
+      const { error: wErr } = await supabase.from("weeks").update({ [field]: value } as any).eq("id", weekId);
+      if (wErr) throw wErr;
+
+      // 2. Sync corresponding week_block config
+      const mapping = ASSET_BLOCK_MAP[field];
+      if (mapping) {
+        const { data: blocks } = await supabase
+          .from("week_blocks")
+          .select("id, config")
+          .eq("week_id", weekId)
+          .eq("type", mapping.type);
+
+        if (blocks && blocks.length > 0) {
+          const block = blocks[0];
+          const newConfig = { ...(block.config as Record<string, any>), [mapping.configKey]: value };
+          await supabase.from("week_blocks").update({ config: newConfig } as any).eq("id", block.id);
+        }
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-weeks"] });
+      qc.invalidateQueries({ queryKey: ["week-blocks"] });
+      qc.invalidateQueries({ queryKey: ["current-week-data"] });
+    },
+  });
+}
+
+export function useAdjustWeekDates() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (weekId: string) => {
+      // Get Monday of current week
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0=Sun
+      const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + diffToMonday);
+
+      // Get the 7 days for this week ordered by number
+      const { data: days, error: dErr } = await supabase
+        .from("days")
+        .select("id, number")
+        .eq("week_id", weekId)
+        .order("number");
+      if (dErr) throw dErr;
+
+      for (const day of days ?? []) {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + (day.number - 1));
+        const dateStr = date.toISOString().split("T")[0];
+        const { error } = await supabase.from("days").update({ date: dateStr, unlock_date: dateStr }).eq("id", day.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-weeks"] });
+      qc.invalidateQueries({ queryKey: ["current-week-data"] });
+      qc.invalidateQueries({ queryKey: ["today-data"] });
+    },
+  });
+}
+
+export function useActivateWeek() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (weekId: string) => {
+      // Set all weeks to published
+      const { error: e1 } = await supabase.from("weeks").update({ status: "published" } as any).neq("id", weekId);
+      if (e1) throw e1;
+      // Set selected week to active
+      const { error: e2 } = await supabase.from("weeks").update({ status: "active" } as any).eq("id", weekId);
+      if (e2) throw e2;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-weeks"] });
+      qc.invalidateQueries({ queryKey: ["current-week-data"] });
+    },
+  });
+}
