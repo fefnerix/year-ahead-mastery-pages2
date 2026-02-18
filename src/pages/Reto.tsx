@@ -4,7 +4,6 @@ import { useWeekBlocks } from "@/hooks/useWeekBlocks";
 import BlockRenderer from "@/components/BlockRenderer";
 import AudioPlayer from "@/components/AudioPlayer";
 import BottomNav from "@/components/BottomNav";
-import ProgressRing from "@/components/ProgressRing";
 import { ArrowLeft, Lock, Download, Maximize2, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -51,7 +50,7 @@ const Reto = () => {
               <h1 className="text-2xl font-display font-bold text-foreground">{week.name}</h1>
               {week.objective && <p className="text-sm text-muted-foreground mt-1">{week.objective}</p>}
             </div>
-            <ProgressRing progress={weekProgress} label="Semana" size={64} strokeWidth={4} />
+            <span className="text-sm font-bold text-muted-foreground tabular-nums">{weekProgress}%</span>
           </div>
         </header>
 
@@ -108,7 +107,7 @@ const Reto = () => {
             <h1 className="text-2xl font-display font-bold text-foreground">{week.name}</h1>
             {week.objective && <p className="text-sm text-muted-foreground mt-1">{week.objective}</p>}
           </div>
-          <ProgressRing progress={weekProgress} label="Semana" size={64} strokeWidth={4} />
+          <span className="text-sm font-bold text-muted-foreground tabular-nums">{weekProgress}%</span>
         </div>
         {todayDay && (
           <button
