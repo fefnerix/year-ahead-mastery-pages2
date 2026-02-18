@@ -8,7 +8,6 @@ import { useCalculateScore } from "@/hooks/useLeaderboard";
 import BottomNav from "@/components/BottomNav";
 import DailyChecklist from "@/components/DailyChecklist";
 import PlaylistCard from "@/components/PlaylistCard";
-import ProgressRing from "@/components/ProgressRing";
 import { ArrowLeft, Sparkles, Loader2, Calendar, Headphones } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -102,7 +101,7 @@ const Dia = () => {
               Día {dayNumber} — {dayData?.week?.name}
             </h1>
           </div>
-          <ProgressRing progress={dayProgress} label="Hoy" size={64} strokeWidth={4} />
+          <span className="text-sm font-bold text-muted-foreground tabular-nums">{completedCount}/{tasks.length}</span>
         </div>
       </header>
 
