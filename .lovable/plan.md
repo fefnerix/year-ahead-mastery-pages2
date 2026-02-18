@@ -1,96 +1,90 @@
 
 
-# Seed Completo del Reto 1 — Datos Oficiales
+# Finalizar Reto 1 — Assets, Semana Activa y Limpieza
 
-Actualizar los datos existentes en la base de datos con el contenido real del Reto 1. Sin cambios de codigo, solo datos.
-
----
-
-## 1. Actualizar metadatos de la semana
-
-Actualizar la week `c0000000-0000-0000-0000-000000000001` con:
-- `description_long`: Texto oficial sobre el proposito del reto (del PDF)
-- `spiritual_playlist_url`: https://open.spotify.com/playlist/2zOZhUh6lYivxHuzH1gWhU?si=DkCwoh3RSCOoxZWKscBNRg
-- `mental_playlist_url`: https://open.spotify.com/playlist/2ddYsgu9kAwmAujfR7xpty?si=Tsh-4C0dQGqwRGb4aiBr7w
-- `objective`: "Descubrir tu proposito de vida y establecer habitos diarios"
+Todo lo necesario para que el Reto 1 funcione de verdad en el app.
 
 ---
 
-## 2. Actualizar las 35 tareas (7 dias x 5 momentos)
+## 1. Admin: Seccion "Assets del Reto" por semana
 
-Reemplazar los titulos genericos ("Momento 1 -- Despertar con intencion", etc.) con el contenido real del cronograma. Tambien corregir las categorias para reflejar el cronograma oficial.
+Agregar en `Admin.tsx`, dentro de cada card de semana (donde hoy solo aparece el boton "Constructor"), una seccion expandible "Assets" con uploads para:
 
-### Lunes (Day 1)
-| Orden | Categoria | Titulo |
-|-------|-----------|--------|
-| 1 | alma | Haz 5 padres nuestro y agradece por 5 cosas |
-| 2 | mente | Leer 5 paginas "El efecto compuesto" (25 min) |
-| 3 | cuerpo | No comer carbohidratos en el dia |
-| 4 | finanzas | Anota los gastos del dia |
-| 5 | alma | Reflexion: Que harias cuando ya no tuvieras que trabajar? Escribelo |
+- **Banner/Cover** (imagen) -> bucket `covers`, actualiza `weeks.cover_url`
+- **Audio de apertura** (mp3) -> bucket `audios`, actualiza `weeks.audio_url`
+- **Cronograma imagen** (png/jpg) -> bucket `schedules`, actualiza `weeks.schedule_image_url`
+- **Cronograma PDF** -> bucket `pdfs`, actualiza `weeks.schedule_pdf_url`
 
-### Martes (Day 2)
-| 1 | alma | Haz 5 padres nuestro y agradece por 5 cosas |
-| 2 | mente | Leer 5 paginas "El efecto compuesto" (25 min) |
-| 3 | cuerpo | Comer carbohidratos en 1 sola comida al dia |
-| 4 | finanzas | Anota los gastos del dia |
-| 5 | alma | Escribe al menos 5 cosas en las que eres bueno y puedes ayudar a los demas |
+Despues de cada upload exitoso, ejecutar un UPDATE al campo correspondiente en la tabla `weeks`.
 
-### Miercoles (Day 3)
-| 1 | alma | Haz 5 padres nuestro y agradece por 5 cosas |
-| 2 | mente | Leer 10 paginas "El efecto compuesto" (25 min) |
-| 3 | cuerpo | Comer carbohidratos en 1 sola comida al dia |
-| 4 | finanzas | Anota los gastos del dia |
-| 5 | alma | Escribe al menos 3 cosas que ames hacer incluso sin que te pagaran |
+Tambien sincronizar automaticamente los `week_blocks` existentes:
+- Bloque `audio`: actualizar `config.audio_url`
+- Bloque `cronograma`: actualizar `config.schedule_image_url` y `config.schedule_pdf_url`
+- Bloque `hero`: actualizar `config.cover_image_url` con el mismo `cover_url`
 
-### Jueves (Day 4)
-| 1 | alma | Haz 5 padres nuestro y agradece por 5 cosas |
-| 2 | mente | Leer 10 paginas "El efecto compuesto" (25 min) |
-| 3 | mente | Escribe ideas: eres bueno, ayudas a los demas, puedes ganar dinero |
-| 4 | finanzas | Anota los gastos del dia |
-| 5 | cuerpo | Ultima comida 3 horas antes de dormir sin carbohidratos |
-
-### Viernes (Day 5)
-| 1 | alma | Haz 5 padres nuestro y agradece por 5 cosas |
-| 2 | mente | Leer 10 paginas "El efecto compuesto" (25 min) |
-| 3 | cuerpo | Comer carbohidratos en 1 sola comida al dia |
-| 4 | finanzas | Pregunta a 3 personas cercanas en que eres bueno y tu talento |
-| 5 | finanzas | Anota los gastos del dia |
-
-### Sabado (Day 6)
-| 1 | alma | Haz 5 padres nuestro y agradece por 5 cosas |
-| 2 | mente | Leer 10 paginas "El efecto compuesto" (25 min) |
-| 3 | cuerpo | Comer carbohidratos en 1 sola comida al dia |
-| 4 | finanzas | Revisa cuanto gastaste y escribe gastos evitables |
-| 5 | alma | Carta "como si fueras Dios" diciendote que hacer con tu vida |
-
-### Domingo (Day 7)
-| 1 | alma | Ve a misa / iglesia / grupo de oracion |
-| 2 | mente | Leer 15 paginas "El efecto compuesto" (30 min) |
-| 3 | cuerpo | Comer carbohidratos en 1 sola comida al dia |
-| 4 | finanzas | Compra caja fuerte y deposita 25 dolares |
-| 5 | alma | Redacta tu proposito de vida claro, conciso y memorizalo |
+### Nuevo hook necesario
+`useUpdateWeekAssets` en `useAdmin.ts`: mutation que recibe `{ weekId, field, value }` y hace UPDATE en `weeks` + UPDATE en el `week_block` correspondiente.
 
 ---
 
-## 3. Seed week_blocks para Reto 1
+## 2. Ajustar fechas a la semana actual
 
-Crear los bloques de contenido configurables (ya existe 1 bloque hero, agregar los demas):
+Agregar boton en Admin (junto a cada semana): **"Ajustar a esta semana"**
 
-| Orden | Tipo | Config |
-|-------|------|--------|
-| 0 | hero | (ya existe, actualizar si necesario) |
-| 1 | audio | audio_url del campo week.audio_url, description: "Escuchar antes de empezar" |
-| 2 | text | description_long del reto, collapsed_preview_lines: 12 |
-| 3 | playlists | URLs de Spotify espiritual + mental |
-| 4 | cronograma | schedule_image_url + schedule_pdf_url del week |
-| 5 | days_map | show_days_cards: true, lock_future_days: true |
+Al hacer clic:
+- Calcula el lunes de la semana actual (2026-02-16)
+- Actualiza `days.date` y `days.unlock_date` para los 7 dias (Lun 16 -> Dom 22)
+- No toca tasks, solo fechas
+
+Esto hace que `useCurrentWeekData` detecte correctamente la semana y que "Dia X de 7" funcione en la Home.
+
+### Implementacion
+Nuevo mutation `useAdjustWeekDates` en `useAdmin.ts` que recibe `weekId` y calcula las 7 fechas desde el lunes actual.
 
 ---
 
-## 4. Detalle tecnico
+## 3. Boton "Activar semana" en Admin
 
-Todo se ejecuta como operaciones de datos (UPDATE/INSERT) usando la herramienta de insercion de datos, sin migraciones de esquema.
+Agregar boton **"Activar"** por semana que:
+- Pone `weeks.status = 'active'` en la semana seleccionada
+- Pone `weeks.status = 'published'` en todas las demas
 
-Archivos de codigo: ninguno modificado.
+Actualizar `useCurrentWeekData.ts` para:
+1. Primero buscar `weeks.status = 'active'`
+2. Si no existe, fallback por fecha (logica actual)
 
+Esto permite control manual sin depender solo de fechas.
+
+---
+
+## 4. Bloques: ocultar si asset falta
+
+Actualizar los componentes de bloque para no renderizar cuando el asset es null:
+
+- `AudioBlock.tsx`: ya tiene `if (!audio_url) return null` -- OK
+- `CronogramaBlock.tsx`: ya tiene `if (!schedule_image_url) return null` -- OK
+- `HeroBlock.tsx`: si no hay `cover_image_url`, mostrar gradiente premium (ya implementado en Index) en vez de nada
+
+No se necesitan cambios adicionales aqui, los bloques ya manejan esto correctamente.
+
+---
+
+## 5. Home: hero usa `cover_url` de weeks (no Hotmart)
+
+La Home (`Index.tsx`) ya usa `weekData.cover_url` en linea 101. Cuando el admin suba el banner real, automaticamente reemplaza la imagen Hotmart (que hoy es null, asi que muestra gradiente gold). No requiere cambios de codigo.
+
+---
+
+## Archivos a modificar
+
+```text
+src/pages/Admin.tsx        -- Seccion assets + boton ajustar fechas + boton activar
+src/hooks/useAdmin.ts      -- useUpdateWeekAssets, useAdjustWeekDates, useActivateWeek
+src/hooks/useCurrentWeekData.ts -- Priorizar status='active' antes de fallback por fecha
+```
+
+## Archivos sin cambios
+
+- Index.tsx, Reto.tsx, BlockRenderer, bloques: no requieren modificaciones
+- Base de datos: no se necesitan migraciones (weeks.status ya existe)
+- Buckets de storage: ya existen (covers, audios, schedules, pdfs)
