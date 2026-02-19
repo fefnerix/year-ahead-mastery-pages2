@@ -2,6 +2,7 @@ import DailyChecklist from "@/components/DailyChecklist";
 import BottomNav from "@/components/BottomNav";
 import DepositCard from "@/components/DepositCard";
 import Logo from "@/components/Logo";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { Sparkles, Loader2, ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
@@ -68,8 +69,8 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <header className="px-5 pt-12 pb-3 border-b border-primary/15">
+      {/* Header — clean, no border */}
+      <header className="px-5 pt-12 pb-3">
         <div className="flex items-center justify-between">
           <Logo variant="compact" />
           <Link to="/perfil" className="w-10 h-10 rounded-full gold-gradient flex items-center justify-center ring-2 ring-primary/20">
@@ -78,16 +79,15 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="px-5 space-y-6 pt-5">
-        {/* Greeting */}
+      <main className="px-5 space-y-8 pt-5">
+        {/* Greeting — simplified */}
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">
             Hola, {displayName}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Tu misión de hoy te espera.</p>
         </div>
 
-        {/* (A) Hero del Reto Activo */}
+        {/* (A) Hero del Reto Activo — premium compact */}
         {weekData ? (
           <div className="rounded-2xl overflow-hidden relative">
             <div className="relative h-44">
@@ -96,12 +96,13 @@ const Index = () => {
               ) : (
                 <div className="w-full h-full gold-gradient opacity-30" />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
               <div className="absolute inset-0 flex flex-col justify-end p-5">
-                <span className="inline-flex self-start px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-card/80 text-muted-foreground backdrop-blur-sm mb-3">
+                <span className="inline-flex self-start px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider gold-gradient text-primary-foreground backdrop-blur-sm mb-2">
                   Reto {weekData.number} · Día {progress?.day_number ?? "—"}/7
                 </span>
                 <h2 className="text-xl font-display font-bold text-foreground">{weekData.name}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Llegó tu nuevo reto</p>
                 <div className="flex items-center gap-3 mt-3">
                   {hasDayData && (
                     <Link
@@ -115,7 +116,7 @@ const Index = () => {
                     to={`/reto/${weekData.id}`}
                     className="text-xs font-semibold text-primary hover:underline"
                   >
-                    Abrir reto
+                    Ver reto
                   </Link>
                 </div>
               </div>
@@ -125,7 +126,7 @@ const Index = () => {
 
         {/* (B) Tus 5 Momentos de Hoy */}
         <section>
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-3">
             <h2 className="section-title">Tus 5 momentos de hoy</h2>
             <span className="text-xs font-bold text-muted-foreground tabular-nums">
               {completedCount}/{tasks.length}
@@ -175,7 +176,7 @@ const Index = () => {
           <button
             onClick={handleCompleteDay}
             disabled={updateStreak.isPending}
-            className="w-full py-4 rounded-2xl gold-gradient font-bold text-primary-foreground text-sm uppercase tracking-wider flex items-center justify-center gap-2 gold-glow shimmer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
+            className="w-full py-4 rounded-2xl gold-gradient font-bold text-primary-foreground text-sm uppercase tracking-wider flex items-center justify-center gap-2 gold-glow shimmer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 mt-2"
           >
             {updateStreak.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             Concluir Día
@@ -184,6 +185,9 @@ const Index = () => {
 
         {/* (C) Depósito */}
         <DepositCard />
+
+        {/* (D) Announcement opcional */}
+        <AnnouncementBanner />
       </main>
 
       <BottomNav />
