@@ -1,13 +1,19 @@
 import BottomNav from "@/components/BottomNav";
+import DepositCard from "@/components/DepositCard";
 import { ChevronRight, Settings, HelpCircle, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useDeposits } from "@/hooks/useDeposits";
+import { format } from "date-fns";
 
 const Perfil = () => {
   const { user, signOut } = useAuth();
+  const { data: deposits = [] } = useDeposits();
 
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "";
   const initials = displayName.slice(0, 2).toUpperCase();
   const email = user?.email ?? "";
+
+  const recentDeposits = deposits.slice(0, 5);
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -24,6 +30,34 @@ const Perfil = () => {
       </header>
 
       <main className="px-5 space-y-5">
+        {/* Abundancia */}
+        <DepositCard />
+
+        {/* Recent deposits */}
+        {recentDeposits.length > 0 && (
+          <div className="glass-card rounded-xl p-4 space-y-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Últimos depósitos
+            </p>
+            {recentDeposits.map((d) => (
+              <div key={d.id} className="flex items-center justify-between py-1.5 border-b border-border/20 last:border-0">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {d.note || "Sin nota"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {format(new Date(d.date), "dd MMM yyyy")}
+                  </p>
+                </div>
+                <span className="text-sm font-bold text-primary tabular-nums ml-3">
+                  +${Number(d.amount).toFixed(2)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Settings */}
         <div className="glass-card rounded-xl overflow-hidden">
           <button className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-foreground hover:bg-muted/50 transition-colors border-b border-border/30">
             <span className="flex items-center gap-3 font-medium">
