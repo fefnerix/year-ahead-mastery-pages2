@@ -113,7 +113,7 @@ const Dia = () => {
             <span className="text-xs font-semibold text-muted-foreground">{completedCount}/{tasks.length}</span>
           </div>
           <DailyChecklist
-            tasks={tasks.map((t) => ({ id: t.id, title: t.title, category: t.category, completed: t.completed }))}
+            tasks={tasks.map((t) => ({ id: t.id, title: t.title, category: t.category, completed: t.completed, order: t.order }))}
             onToggle={handleToggle}
             notes={localNotes}
             onNoteChange={handleNoteChange}

@@ -8,6 +8,7 @@ interface TaskWithCheck {
   category: "cuerpo" | "mente" | "alma" | "finanzas";
   completed: boolean;
   check_id?: string;
+  order: number;
 }
 
 interface ProgressData {
@@ -74,6 +75,7 @@ export function useTodayTasks(dayId: string | null | undefined) {
         category: t.category,
         completed: checkMap.has(t.id),
         check_id: checkMap.get(t.id),
+        order: t.order,
       }));
     },
     enabled: !!dayId && !!user,
