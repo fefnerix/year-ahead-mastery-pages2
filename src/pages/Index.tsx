@@ -5,7 +5,7 @@ import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { Sparkles, Loader2, ArrowRight, Clock, Zap, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useProgress, useUpdateStreak } from "@/hooks/useTodayData";
 import { useDayTasks, useToggleDayTask } from "@/hooks/useDayTasks";
 import { useCalculateScore } from "@/hooks/useLeaderboard";
@@ -28,8 +28,12 @@ const Index = () => {
   const { data: yesterday } = useYesterdayProgress();
 
   const [localNotes, setLocalNotes] = useState<Record<string, string>>({});
+  const prevNotesRef = useRef<string>("");
 
   useEffect(() => {
+    const serialized = JSON.stringify(notesData);
+    if (serialized === prevNotesRef.current) return;
+    prevNotesRef.current = serialized;
     const map: Record<string, string> = {};
     notesData.forEach((n) => { map[n.task_id] = n.content; });
     setLocalNotes(map);
