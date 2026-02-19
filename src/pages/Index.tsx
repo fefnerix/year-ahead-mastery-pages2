@@ -1,18 +1,13 @@
 import DailyChecklist from "@/components/DailyChecklist";
 import BottomNav from "@/components/BottomNav";
-import DepositCard from "@/components/DepositCard";
 import Logo from "@/components/Logo";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { Sparkles, Loader2, ArrowRight, Clock, Zap, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import {
-  useProgress,
-  useTodayTasks,
-  useToggleTask,
-  useUpdateStreak,
-} from "@/hooks/useTodayData";
+import { useProgress, useUpdateStreak } from "@/hooks/useTodayData";
+import { useDayTasks, useToggleDayTask } from "@/hooks/useDayTasks";
 import { useCalculateScore } from "@/hooks/useLeaderboard";
 import { useCurrentWeekData } from "@/hooks/useCurrentWeekData";
 import { useIsAdmin } from "@/hooks/useAdmin";
@@ -22,8 +17,8 @@ import { useYesterdayProgress } from "@/hooks/useYesterdayData";
 const Index = () => {
   const { user } = useAuth();
   const { data: progress, isLoading: progressLoading } = useProgress();
-  const { data: tasks = [], isLoading: tasksLoading } = useTodayTasks(progress?.day_id);
-  const toggleTask = useToggleTask(progress?.day_id);
+  const { data: tasks = [], isLoading: tasksLoading } = useDayTasks(progress?.day_id);
+  const toggleTask = useToggleDayTask(progress?.day_id);
   const updateStreak = useUpdateStreak();
   const calculateScore = useCalculateScore();
   const { data: weekData } = useCurrentWeekData();
@@ -293,10 +288,7 @@ const Index = () => {
           </div>
         )}
 
-        {/* (C) Depósito */}
-        <DepositCard />
-
-        {/* (D) Announcement opcional */}
+        {/* Announcement opcional */}
         <AnnouncementBanner />
       </main>
 
