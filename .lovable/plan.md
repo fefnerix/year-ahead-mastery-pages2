@@ -1,158 +1,97 @@
 
 
-# Atualização 80/20 — Reorganização UX Premium
+# Redesenho Premium da Home "Tu Misión Hoy"
 
-Reorganizar a jornada do usuário sem criar novas features grandes. Mover conteúdo de lugar, limpar ruído e polir UI.
-
----
-
-## Etapa 1: Home "Tu Misión Hoy" (Index.tsx)
-
-### Remover da Home
-- MiniRanking + leaderboard query
-- StreakBadge
-- ProgressRing + ProgressChip (hoy/semana/mes/año)
-- Cronograma (schedule image + fullscreen modal)
-- Texto longo colapsável (description)
-- AudioPlayer
-- PlaylistCards
-- AnnouncementBanner (mover para Reto se necessário)
-
-### Manter na Home (3 blocos apenas)
-
-**(A) Hero Minimal do Reto Ativo**
-- Banner semanal (weekData.cover_url) ou gradiente gold
-- Chip: "Reto {n} · Semana {n} · Día X/7"
-- Título do reto
-- CTA primário: "Continuar hoy" -> `/reto/{weekId}/dia/{dayNumber}`
-- Link secundário: "Abrir reto" -> `/reto/{weekId}`
-
-**(B) "Tus 5 Momentos de Hoy"**
-- Mesma lista de 5 tasks usando `useTodayTasks`
-- Mesmo `DailyChecklist` com suporte a notas (reaproveitar props notes/onNoteChange/onNoteSave)
-- Adicionar hooks de notas na Home: importar `useTaskNotes` e `useSaveNote` do `useTaskNotes.ts`
-- Barra de progresso dourada (já existe)
-- Botão "Concluir Día" quando 5/5
-
-**(C) Depósito (Wallet Card)**
-- Manter `DepositCard` como está (já premium)
-
-### Estado vazio premium
-- Sem semana ativa: "Tu reto aún no está activo."
-- Admin: botão "Activar reto" -> /admin
-- User: "Volver más tarde"
-
-### Imports a remover
-- `ProgressRing`, `StreakBadge`, `MiniRanking`, `AudioPlayer`, `PlaylistCard`, `AnnouncementBanner`
-- `useLeaderboard`, `useCalculateScore`, `useStreak`, `useUpdateStreak` (manter updateStreak e calculateScore no handleCompleteDay)
-- States: `descExpanded`, `scheduleFullscreen`
-
-### Imports a adicionar
-- `useTaskNotes`, `useSaveNote` de `@/hooks/useTaskNotes`
-- `useState`, `useEffect` para state local de notas
+A Home atual ja tem a estrutura correta (hero + 5 tasks + deposito). O foco e elevar o visual para nivel high-ticket e melhorar a interacao de notas.
 
 ---
 
-## Etapa 2: Ranking como Hub de Performance (Ranking.tsx)
+## 1. DailyChecklist Premium (DailyChecklist.tsx)
 
-### Adicionar no topo: "Mi Progreso" (hero card)
-- Importar `useProgress` e `useStreak` de `useTodayData`
-- Card com:
-  - % semana (número grande, protagonista)
-  - Streak atual e record
-  - Días completados (da leaderboard entry)
-  - Progreso anual + barra de certificação (mover do Perfil)
+Transformar de lista simples para checklist premium:
 
-### "Tu Posición" (já existe, melhorar)
-- Já tem card com posição e pontos
-- Adicionar "Faltan Z pts para subir" (já implementado com `nextAbove`)
+- Envolver toda a lista em um `glass-card rounded-2xl` com padding
+- Cada task vira um card individual com `bg-card/30 rounded-xl p-4` e borda sutil
+- Checkbox maior: `w-7 h-7` com animacao de scale ao completar
+- Adicionar numero do momento: "01", "02", etc. (receber `index` no map)
+- Categoria como badge/chip colorido (nao so texto pequeno)
+- Ao completar: animacao CSS de pulse dourado no checkbox (ja existe `.pulse-gold`)
+- Nota: trocar de textarea inline para **Dialog/modal** "Tu Cuaderno" que abre ao marcar task
+  - Modal com titulo do momento, textarea, botao "Guardar"
+  - Momento 5: nota obrigatoria (botao desabilitado se vazio)
+  - Momentos 1-4: nota opcional com placeholder "Escribe una linea sobre tu experiencia..."
+  - Ao fechar/guardar: salva nota via onNoteSave
 
-### Rankings (tabs)
-- Mudar tabs para: "Semana | Reto | General"
-- "Reto" = mesma query "week"
-- "General" = query "year"
-- Top 10 (mudar p_limit de 20 para 10 na query, ou filtrar no render)
-- Sempre mostrar usuário mesmo fora do top 10 (adicionar lógica: se currentUser não está nos primeiros 10, adicionar ao final com separador)
-
----
-
-## Etapa 3: Perfil Minimalista (Perfil.tsx)
-
-### Remover
-- Stats grid (días completados, streak, progreso anual)
-- Card "Certificación Anual"
-
-### Manter / Adicionar
-- Header com avatar e nome (conectar dados reais do user via `useAuth`)
-- Menu: Configuración, Soporte/Ayuda, Cerrar sesión
-- Logout funcional (importar `useAuth` e chamar `signOut`)
+### Props novas
+- Adicionar `onTaskComplete?: (taskId: string) => void` para separar toggle de celebracao
+- O modal abre automaticamente quando `completed` muda de false para true
 
 ---
 
-## Etapa 4: Reto com Seções Colapsáveis (Reto.tsx)
+## 2. Hero Compacto Premium (Index.tsx)
 
-### Melhorar o layout com blocos (branch hasBlocks)
-- Hero block: já renderiza via BlockRenderer
-- Áudio: já oculta se null
-- Texto longo: trocar `TextBlock` para usar accordion com seções (se o texto contiver marcadores como "Descripción", "Cronograma", etc., quebrar; senão, manter colapsável simples)
-- Cronograma: renderizar como botão "Ver cronograma" que abre modal (não inline)
-- Playlists: já renderiza via PlaylistsBlock
-- Days map: já renderiza via DaysMapBlock
+Ajustes no hero atual:
 
-### Atualizar `CronogramaBlock.tsx`
-- Em vez de mostrar imagem inline, mostrar botão "Ver cronograma"
-- Clicar abre modal fullscreen com imagem + botão download PDF
+- Adicionar subtexto: "Llego tu nuevo reto" abaixo do titulo
+- Chip com fundo `gold-gradient` sutil em vez de `bg-card/80`
+- Altura do hero: manter `h-44` (compacto)
+- Gradiente overlay mais forte na base para legibilidade
+- Sem mudancas estruturais (ja esta correto)
 
 ---
 
-## Etapa 5: Dia consistente com Home (Dia.tsx)
+## 3. Greeting Simplificado (Index.tsx)
 
-Página do Dia já está bem estruturada:
-- Usa DailyChecklist com notas
-- Tem botão "Concluir Día"
-- Tem playlists e materiais
-
-### Pequenos ajustes
-- Remover ProgressRing do header (sem gamificação aqui)
-- Manter apenas progresso inline "3/5" no header
-- Adicionar link "Ver mi progreso" -> /ranking após completar dia (opcional)
+- Remover subtexto "Tu mision de hoy te espera" (redundante com o hero)
+- Manter so "Hola, {displayName}" como ancora visual
 
 ---
 
-## Etapa 6: Cuaderno (sem mudanças estruturais)
+## 4. Announcement Card Opcional (Index.tsx)
 
-Já funciona bem:
-- Agrupado por semana
-- Busca por texto
-- Chips de categoria
-
-Nenhuma mudança necessária nesta etapa.
+- Adicionar `AnnouncementBanner` entre Deposito e BottomNav
+- Importar de `@/components/AnnouncementBanner`
+- Se nao houver announcements, nao renderiza nada (ja implementado no componente)
 
 ---
 
-## Etapa 7: Admin (já implementado na iteração anterior)
+## 5. Barra de Progresso e Botao "Concluir Dia" (Index.tsx)
 
-Os hooks `useActivateWeek`, `useAdjustWeekDates`, `useUpdateWeekAsset` já existem em `useAdmin.ts`. O Admin.tsx já tem seção de assets e botões de ativar/ajustar. Sem mudanças adicionais.
+- Barra de progresso: manter como esta (gold gradient, sutil)
+- Botao "Concluir Dia": manter como esta (ja premium com shimmer + gold-glow)
+- Adicionar margem superior ao botao para separacao visual
+
+---
+
+## 6. Espacamento e Acabamento (Index.tsx)
+
+- Aumentar `space-y-6` para `space-y-8` no main
+- Header: remover `border-b` (mais limpo)
+- Section "Tus 5 momentos": titulo em Playfair (ja usa `.section-title`)
 
 ---
 
 ## Arquivos a modificar
 
 ```text
-src/pages/Index.tsx       -- Limpar para 3 blocos + adicionar notas
-src/pages/Ranking.tsx     -- Adicionar "Mi Progreso" hero + melhorar tabs
-src/pages/Perfil.tsx      -- Minimalizar (remover stats, adicionar logout real)
-src/pages/Reto.tsx        -- Cronograma como modal em vez de inline
-src/pages/Dia.tsx         -- Remover ProgressRing, simplificar header
-src/components/blocks/CronogramaBlock.tsx -- Botão + modal em vez de imagem inline
+src/components/DailyChecklist.tsx  -- UI premium + modal de notas
+src/pages/Index.tsx                -- Hero tweaks + announcement + espacamento
 ```
 
-### Arquivos sem mudanças
-- DailyChecklist.tsx (já suporta notas)
-- DepositCard.tsx (já premium)
-- BottomNav.tsx (já está bom)
-- Cuaderno.tsx (já funcional)
-- Admin.tsx (já atualizado)
-- Hooks (reutilizar os existentes)
-- Banco de dados (sem migrações)
+### Detalhes tecnicos
 
+**DailyChecklist.tsx** mudancas principais:
+- Importar `Dialog` de `@/components/ui/dialog`
+- State: `noteModalTask` (task id do modal aberto)
+- Ao toggle de false->true: abrir modal automaticamente
+- Modal: titulo do momento, textarea, botao Guardar
+- Momento 5 (index 4): validar nota nao vazia
+- Cada task item: glass card individual com padding, numero, badge de categoria
+
+**Index.tsx** mudancas:
+- Importar `AnnouncementBanner`
+- Adicionar subtexto no hero
+- Chip com estilo gold
+- Remover subtexto do greeting
+- Aumentar espacamento
+- Remover border do header
