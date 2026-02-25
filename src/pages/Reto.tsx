@@ -1,12 +1,14 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useRetoData } from "@/hooks/useRetoData";
 import { useWeekBlocks } from "@/hooks/useWeekBlocks";
 import BlockRenderer from "@/components/BlockRenderer";
 import AudioPlayer from "@/components/AudioPlayer";
 import BottomNav from "@/components/BottomNav";
-import { ArrowLeft, Lock, Download, Maximize2, Loader2 } from "lucide-react";
+import { ArrowLeft, Lock, Download, Maximize2, Loader2, FileText, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const dayLabels = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
@@ -37,6 +39,32 @@ const Reto = () => {
   const todayDay = days.find((d) => d.is_today) ?? days.find((d) => d.is_unlocked);
   const hasBlocks = blocks.length > 0;
 
+  // Lecturas (content_items) for this week's days
+  const dayIds = days.map((d) => d.id);
+  const { data: lecturas = [] } = useQuery({
+    queryKey: ["lecturas-week", weekId],
+    queryFn: async () => {
+      if (dayIds.length === 0) return [];
+      const { data: items, error } = await supabase
+        .from("content_items")
+        .select("id, title, url, type, day_id")
+        .in("day_id", dayIds)
+        .order("order", { ascending: true });
+      if (error) throw error;
+      // Deduplicate by url
+      const seen = new Set<string>();
+      return (items ?? []).filter((item) => {
+        if (seen.has(item.url)) return false;
+        seen.add(item.url);
+        return true;
+      });
+    },
+    enabled: dayIds.length > 0,
+  });
+
+  const lecturasPreview = lecturas.slice(0, 3);
+  const hasLecturas = lecturas.length > 0;
+
   // If blocks exist, render dynamically; otherwise fallback to legacy layout
   if (hasBlocks) {
     return (
@@ -64,6 +92,33 @@ const Reto = () => {
               weekProgress={weekProgress}
             />
           ))}
+
+          {/* Lecturas */}
+          {hasLecturas && (
+            <section className="glass-card rounded-xl p-4 border border-primary/10">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Lecturas</p>
+                <Link to={`/lecturas?weekId=${weekId}`} className="text-[10px] font-bold text-primary flex items-center gap-0.5">
+                  Ver todo <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+              <div className="space-y-2">
+                {lecturasPreview.map((item) => (
+                  <a
+                    key={item.id}
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 py-2 px-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <FileText className="w-4 h-4 text-primary shrink-0" />
+                    <span className="text-sm text-foreground truncate">{item.title}</span>
+                    <span className="text-[9px] text-muted-foreground uppercase shrink-0">{item.type}</span>
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
         </main>
 
         {/* Fixed CTA */}
@@ -187,6 +242,33 @@ const Reto = () => {
             })}
           </div>
         </section>
+
+        {/* Lecturas */}
+        {hasLecturas && (
+          <section className="glass-card rounded-xl p-4 border border-primary/10">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Lecturas</p>
+              <Link to={`/lecturas?weekId=${weekId}`} className="text-[10px] font-bold text-primary flex items-center gap-0.5">
+                Ver todo <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {lecturasPreview.map((item) => (
+                <a
+                  key={item.id}
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 py-2 px-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                >
+                  <FileText className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-sm text-foreground truncate">{item.title}</span>
+                  <span className="text-[9px] text-muted-foreground uppercase shrink-0">{item.type}</span>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       <BottomNav />

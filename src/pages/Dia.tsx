@@ -8,7 +8,7 @@ import { useCalculateScore } from "@/hooks/useLeaderboard";
 import BottomNav from "@/components/BottomNav";
 import DailyChecklist from "@/components/DailyChecklist";
 import PlaylistCard from "@/components/PlaylistCard";
-import { ArrowLeft, Sparkles, Loader2, Calendar, Headphones } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2, Calendar, Headphones, FileText, ArrowRight } from "lucide-react";
 import { useState, useEffect } from "react";
 
 const Dia = () => {
@@ -44,6 +44,29 @@ const Dia = () => {
   const { data: notesData = [] } = useTaskNotes(dayId);
   const saveNote = useSaveNote();
   const toggleTask = useToggleDayTask(dayId);
+
+  // Lecturas for this day
+  const { data: lecturas = [] } = useQuery({
+    queryKey: ["lecturas-day", dayId],
+    queryFn: async () => {
+      const { data: items, error } = await supabase
+        .from("content_items")
+        .select("id, title, url, type")
+        .eq("day_id", dayId!)
+        .order("order", { ascending: true });
+      if (error) throw error;
+      const seen = new Set<string>();
+      return (items ?? []).filter((item) => {
+        if (seen.has(item.url)) return false;
+        seen.add(item.url);
+        return true;
+      });
+    },
+    enabled: !!dayId,
+  });
+
+  const lecturasPreview = lecturas.slice(0, 3);
+  const hasLecturas = lecturas.length > 0;
 
   // Local notes state
   const [localNotes, setLocalNotes] = useState<Record<string, string>>({});
@@ -148,6 +171,33 @@ const Dia = () => {
         )}
         {dayData?.week?.mental_playlist_url && (
           <PlaylistCard title="Vibración Mental" url={dayData.week.mental_playlist_url} />
+        )}
+
+        {/* Lecturas */}
+        {hasLecturas && (
+          <section className="glass-card rounded-xl p-4 border border-primary/10">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Lecturas</p>
+              <Link to={`/lecturas?dayId=${dayId}`} className="text-[10px] font-bold text-primary flex items-center gap-0.5">
+                Ver todo <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {lecturasPreview.map((item) => (
+                <a
+                  key={item.id}
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 py-2 px-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                >
+                  <FileText className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-sm text-foreground truncate">{item.title}</span>
+                  <span className="text-[9px] text-muted-foreground uppercase shrink-0">{item.type}</span>
+                </a>
+              ))}
+            </div>
+          </section>
         )}
 
         {/* Materials */}
