@@ -72,7 +72,7 @@ const CalendarioAno = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {months.map((m) => (
+            {months.filter((m) => m.month_number >= 3 && m.month_number <= 12).map((m) => (
               <Link
                 key={m.month_id}
                 to={`/calendario/${currentYear}/${m.month_number}`}

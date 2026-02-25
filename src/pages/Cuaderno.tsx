@@ -20,7 +20,7 @@ const Cuaderno = () => {
   const { data: journalEntries = [], isLoading: journalLoading } = useAllJournalEntries();
   const [search, setSearch] = useState("");
   const [monthFilter, setMonthFilter] = useState<string>("all");
-  const [view, setView] = useState<ViewMode>("notas");
+  const [view, setView] = useState<ViewMode>("diario");
 
   const isLoading = view === "notas" ? notesLoading : journalLoading;
 
@@ -135,24 +135,24 @@ const Cuaderno = () => {
           <ArrowLeft className="w-4 h-4" /> Volver
         </button>
         <div className="flex items-center gap-2">
-          <BookOpen className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-display font-bold text-foreground">Mi Cuaderno</h1>
+          <PenLine className="w-6 h-6 text-primary" />
+          <h1 className="text-2xl font-display font-bold text-foreground">Mi Diario</h1>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">Todas tus notas y reflexiones</p>
+        <p className="text-sm text-muted-foreground mt-1">Tus reflexiones y notas</p>
 
         {/* Toggle Notas / Diario */}
         <div className="flex gap-1 mt-4 p-1 rounded-xl bg-card border border-border">
-          <button
-            onClick={() => setView("notas")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-colors ${view === "notas" ? "bg-primary/15 text-primary" : "text-muted-foreground"}`}
-          >
-            <BookOpen className="w-3.5 h-3.5" /> Notas de tareas
-          </button>
           <button
             onClick={() => setView("diario")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-colors ${view === "diario" ? "bg-primary/15 text-primary" : "text-muted-foreground"}`}
           >
             <PenLine className="w-3.5 h-3.5" /> Diario
+          </button>
+          <button
+            onClick={() => setView("notas")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-colors ${view === "notas" ? "bg-primary/15 text-primary" : "text-muted-foreground"}`}
+          >
+            <BookOpen className="w-3.5 h-3.5" /> Notas de tareas
           </button>
         </div>
 
