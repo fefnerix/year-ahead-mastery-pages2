@@ -2,13 +2,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
-interface TaskWithCheck {
+export interface TaskWithCheck {
   id: string;
   title: string;
   category: "cuerpo" | "mente" | "alma" | "finanzas";
   completed: boolean;
   check_id?: string;
   order: number;
+  task_kind: "prayer" | "activity";
+  description?: string | null;
 }
 
 export function useDayTasks(dayId: string | null | undefined) {
@@ -19,10 +21,13 @@ export function useDayTasks(dayId: string | null | undefined) {
     queryFn: async (): Promise<TaskWithCheck[]> => {
       const { data: tasks, error: tasksError } = await supabase
         .from("tasks")
-        .select("id, title, category, order")
+        .select("id, title, category, order, task_kind, description, is_active")
         .eq("day_id", dayId!)
         .order("order");
       if (tasksError) throw tasksError;
+
+      // Filter active tasks client-side (is_active may not exist in types yet)
+      const activeTasks = (tasks ?? []).filter((t: any) => t.is_active !== false);
 
       const { data: checks, error: checksError } = await supabase
         .from("task_checks")
@@ -33,13 +38,15 @@ export function useDayTasks(dayId: string | null | undefined) {
 
       const checkMap = new Map(checks?.map((c) => [c.task_id, c.id]) ?? []);
 
-      return (tasks ?? []).map((t) => ({
+      return activeTasks.map((t: any) => ({
         id: t.id,
         title: t.title,
         category: t.category,
         completed: checkMap.has(t.id),
         check_id: checkMap.get(t.id),
         order: t.order,
+        task_kind: t.task_kind ?? "activity",
+        description: t.description ?? null,
       }));
     },
     enabled: !!dayId && !!user,
@@ -81,6 +88,8 @@ export function useToggleDayTask(dayId: string | null | undefined) {
       queryClient.invalidateQueries({ queryKey: ["reto"] });
       queryClient.invalidateQueries({ queryKey: ["progress"] });
       queryClient.invalidateQueries({ queryKey: ["today-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["month_calendar"] });
+      queryClient.invalidateQueries({ queryKey: ["year_calendar"] });
     },
   });
 }

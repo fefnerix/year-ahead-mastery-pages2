@@ -1,7 +1,7 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useDayTasks, useToggleDayTask } from "@/hooks/useDayTasks";
+import { useDayTasks, useToggleDayTask, TaskWithCheck } from "@/hooks/useDayTasks";
 import { useTaskNotes, useSaveNote } from "@/hooks/useTaskNotes";
 import { useUpdateStreak } from "@/hooks/useTodayData";
 import { useCalculateScore } from "@/hooks/useLeaderboard";
@@ -9,7 +9,7 @@ import BottomNav from "@/components/BottomNav";
 import DailyChecklist from "@/components/DailyChecklist";
 import PlaylistCard from "@/components/PlaylistCard";
 import JournalInput from "@/components/JournalInput";
-import { ArrowLeft, Sparkles, Loader2, Calendar, Headphones, FileText, ArrowRight } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2, Calendar, Headphones, FileText, ArrowRight, BookOpen, Target, Check } from "lucide-react";
 import { useState, useEffect } from "react";
 
 const Dia = () => {
@@ -78,15 +78,13 @@ const Dia = () => {
     setLocalNotes(map);
   }, [notesData]);
 
-  const TOTAL_TASKS_PER_DAY = 5;
-
+  const totalTasks = tasks.length || 2;
   const completedCount = tasks.filter((t) => t.completed).length;
-  const dayProgress = Math.min(100, Math.max(0, Math.round((completedCount / TOTAL_TASKS_PER_DAY) * 100)));
-  const allCompleted = completedCount >= TOTAL_TASKS_PER_DAY;
+  const dayProgress = Math.min(100, Math.max(0, Math.round((completedCount / totalTasks) * 100)));
+  const allCompleted = tasks.length > 0 && completedCount >= totalTasks;
 
-  if (tasks.length > 0 && tasks.length !== TOTAL_TASKS_PER_DAY) {
-    console.warn('[Admin] Day has tasks.length != 5', { dayId, tasksLength: tasks.length });
-  }
+  const prayerTask = tasks.find((t) => t.task_kind === "prayer");
+  const activityTask = tasks.find((t) => t.task_kind === "activity");
 
   const handleToggle = (id: string) => {
     const task = tasks.find((t) => t.id === id);
@@ -131,28 +129,71 @@ const Dia = () => {
               Día {dayNumber} — {dayData?.week?.name}
             </h1>
           </div>
-          <span className="text-sm font-bold text-muted-foreground tabular-nums">{completedCount}/{TOTAL_TASKS_PER_DAY}</span>
-          {import.meta.env.DEV && tasks.length > 0 && tasks.length !== TOTAL_TASKS_PER_DAY && (
-            <span className="text-[9px] text-muted-foreground/40 ml-1">⚠ {tasks.length} cfg</span>
-          )}
+          <span className="text-sm font-bold text-muted-foreground tabular-nums">{completedCount}/{totalTasks}</span>
         </div>
       </header>
 
       <main className="px-5 space-y-5">
-        {/* Checklist with notes */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-display font-bold text-foreground">Momentos del Día</h2>
-            <span className="text-xs font-semibold text-muted-foreground">{completedCount}/{TOTAL_TASKS_PER_DAY}</span>
-          </div>
-          <DailyChecklist
-            tasks={tasks.map((t) => ({ id: t.id, title: t.title, category: t.category, completed: t.completed, order: t.order }))}
-            onToggle={handleToggle}
-            notes={localNotes}
-            onNoteChange={handleNoteChange}
-            onNoteSave={handleNoteSave}
-          />
-        </section>
+        {/* Oración del día */}
+        {prayerTask ? (
+          <section className="glass-card rounded-2xl p-4 border border-primary/10 space-y-3">
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-primary" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Oración del día</p>
+            </div>
+            <p className="text-sm font-semibold text-foreground">{prayerTask.title}</p>
+            {prayerTask.description && (
+              <p className="text-xs text-muted-foreground leading-relaxed">{prayerTask.description}</p>
+            )}
+            <button
+              onClick={() => handleToggle(prayerTask.id)}
+              className={`w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
+                prayerTask.completed
+                  ? "bg-primary/15 text-primary border border-primary/30"
+                  : "bg-card border border-border text-muted-foreground hover:border-primary/30"
+              }`}
+            >
+              <Check className={`w-4 h-4 ${prayerTask.completed ? "opacity-100" : "opacity-30"}`} />
+              {prayerTask.completed ? "Completada" : "Marcar como hecha"}
+            </button>
+          </section>
+        ) : (
+          <section className="glass-card rounded-2xl p-4 border border-muted/30 text-center">
+            <p className="text-xs text-muted-foreground">Oración del día — No disponible</p>
+          </section>
+        )}
+
+        {/* Tarea del día */}
+        {activityTask ? (
+          <section className="glass-card rounded-2xl p-4 border border-primary/10 space-y-3">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-primary" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Tarea del día</p>
+              <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize">
+                {activityTask.category}
+              </span>
+            </div>
+            <p className="text-sm font-semibold text-foreground">{activityTask.title}</p>
+            {activityTask.description && (
+              <p className="text-xs text-muted-foreground leading-relaxed">{activityTask.description}</p>
+            )}
+            <button
+              onClick={() => handleToggle(activityTask.id)}
+              className={`w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
+                activityTask.completed
+                  ? "bg-primary/15 text-primary border border-primary/30"
+                  : "bg-card border border-border text-muted-foreground hover:border-primary/30"
+              }`}
+            >
+              <Check className={`w-4 h-4 ${activityTask.completed ? "opacity-100" : "opacity-30"}`} />
+              {activityTask.completed ? "Completada" : "Marcar como hecha"}
+            </button>
+          </section>
+        ) : (
+          <section className="glass-card rounded-2xl p-4 border border-muted/30 text-center">
+            <p className="text-xs text-muted-foreground">Tarea del día — No disponible</p>
+          </section>
+        )}
 
         {/* Complete Day */}
         {allCompleted && (
