@@ -8,7 +8,7 @@ import {
   useUpdateWeekAsset, useAdjustWeekDates, useActivateWeek,
 } from "@/hooks/useAdmin";
 import { useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement } from "@/hooks/useAnnouncements";
-import { Loader2, Plus, ChevronRight, Trash2, Megaphone, Wrench, Calendar, Zap, ChevronDown } from "lucide-react";
+import { Loader2, Plus, ChevronRight, Trash2, Megaphone, Wrench, Calendar, Zap, ChevronDown, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import Logo from "@/components/Logo";
 
@@ -268,6 +268,12 @@ const Admin = () => {
                           )}
                         </div>
                         <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => navigate(`/admin/retos/${w.id}/tareas`)}
+                            className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2 py-1.5 rounded-lg hover:bg-primary/20 transition-colors"
+                          >
+                            <BookOpen className="w-3.5 h-3.5" />
+                          </button>
                           <button
                             onClick={() => navigate(`/admin/retos/${w.id}/builder`)}
                             className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2 py-1.5 rounded-lg hover:bg-primary/20 transition-colors"
