@@ -1,30 +1,39 @@
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2 } from "lucide-react";
 
 const MONTH_NAMES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
 
+interface YearMonth {
+  month_id: string;
+  month_number: number;
+  month_name: string;
+  month_theme: string;
+  month_pct: number;
+}
+
 const CalendarioAno = () => {
-  const navigate = useNavigate();
-  const currentYear = new Date().getFullYear();
+  const currentYear = 2026;
+  const { user } = useAuth();
 
-  const { data: months = [], isLoading } = useQuery({
-    queryKey: ["calendar-months", currentYear],
+  const { data: months = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ["year_calendar", currentYear, user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("months")
-        .select("id, number, name, theme, program_id")
-        .order("number", { ascending: true });
-
+      const { data, error } = await supabase.rpc("get_year_calendar", {
+        p_user_id: user!.id,
+        p_year: currentYear,
+      });
       if (error) throw error;
-      return data ?? [];
+      return (data as unknown as YearMonth[]) ?? [];
     },
+    enabled: !!user,
   });
 
   return (
@@ -44,8 +53,18 @@ const CalendarioAno = () => {
         {isLoading ? (
           <div className="grid grid-cols-2 gap-3">
             {[...Array(12)].map((_, i) => (
-              <div key={i} className="glass-card rounded-2xl p-5 h-24 animate-pulse bg-muted" />
+              <div key={i} className="glass-card rounded-2xl p-5 h-28 animate-pulse bg-muted" />
             ))}
+          </div>
+        ) : isError ? (
+          <div className="glass-card rounded-2xl p-6 text-center space-y-3">
+            <p className="text-sm text-muted-foreground">Error al cargar el calendario.</p>
+            <button
+              onClick={() => refetch()}
+              className="px-4 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-colors"
+            >
+              Reintentar
+            </button>
           </div>
         ) : months.length === 0 ? (
           <div className="glass-card rounded-2xl p-6 text-center">
@@ -55,15 +74,20 @@ const CalendarioAno = () => {
           <div className="grid grid-cols-2 gap-3">
             {months.map((m) => (
               <Link
-                key={m.id}
-                to={`/calendario/${currentYear}/${m.number}`}
-                className="glass-card rounded-2xl p-5 border border-primary/10 hover:border-primary/30 transition-colors"
+                key={m.month_id}
+                to={`/calendario/${currentYear}/${m.month_number}`}
+                className="glass-card rounded-2xl p-4 border border-primary/10 hover:border-primary/30 transition-colors"
               >
-                <p className="text-xs text-muted-foreground">{MONTH_NAMES[m.number - 1] ?? `Mes ${m.number}`}</p>
-                <p className="text-lg font-bold text-foreground mt-1">{m.name}</p>
-                {m.theme && (
-                  <p className="text-[10px] text-primary mt-1 truncate">{m.theme}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  {MONTH_NAMES[m.month_number - 1] ?? `Mes ${m.month_number}`}
+                </p>
+                <p className="text-sm font-bold text-foreground mt-1 truncate">
+                  {m.month_name}
+                </p>
+                {m.month_theme && (
+                  <p className="text-[10px] text-primary mt-0.5 truncate">{m.month_theme}</p>
                 )}
+                <p className="text-2xl font-bold text-primary mt-2">{m.month_pct}%</p>
               </Link>
             ))}
           </div>
