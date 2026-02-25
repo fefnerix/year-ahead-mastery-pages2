@@ -113,6 +113,34 @@ const Index = () => {
           </h1>
         </div>
 
+        {/* Progreso */}
+        <section>
+          <h2 className="section-title mb-3">Progreso</h2>
+          {progressLoading ? (
+            <div className="grid grid-cols-2 gap-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="glass-card rounded-2xl p-4 h-20 animate-pulse bg-muted" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {([
+                { label: "Hoy", value: progress?.day_pct },
+                { label: "Semana", value: progress?.week_pct },
+                { label: "Mes", value: progress?.month_pct },
+                { label: "Total", value: progress?.year_pct },
+              ] as const).map((item) => (
+                <div key={item.label} className="glass-card rounded-2xl p-4 border border-primary/10">
+                  <p className="text-xs text-muted-foreground">{item.label}</p>
+                  <p className="text-2xl font-bold text-primary mt-1">
+                    {Math.min(100, Math.max(0, Math.round(item.value ?? 0)))}%
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
         {/* (A) Hero del Reto Activo */}
         {weekData ? (
           <div className="rounded-2xl overflow-hidden relative">
