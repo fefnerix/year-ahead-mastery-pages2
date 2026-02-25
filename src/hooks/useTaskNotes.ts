@@ -59,14 +59,14 @@ export function useAllNotes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("task_notes")
-        .select("*, tasks(title, category), days(number, date, week_id, weeks(name, number))")
+        .select("*, tasks(title, category), days(number, date, week_id, weeks(name, number, month_id, months(name, number)))")
         .eq("user_id", user!.id)
         .neq("content", "")
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return data as unknown as Array<TaskNote & {
         tasks: { title: string; category: string };
-        days: { number: number; date: string; week_id: string; weeks: { name: string; number: number } };
+        days: { number: number; date: string; week_id: string; weeks: { name: string; number: number; month_id: string; months: { name: string; number: number } } };
       }>;
     },
     enabled: !!user,
