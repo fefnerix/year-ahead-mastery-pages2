@@ -272,28 +272,37 @@ export type Database = {
       }
       months: {
         Row: {
+          audio_url: string | null
           created_at: string
           id: string
+          macro_text: string | null
           name: string
           number: number
           program_id: string
           theme: string | null
+          video_url: string | null
         }
         Insert: {
+          audio_url?: string | null
           created_at?: string
           id?: string
+          macro_text?: string | null
           name: string
           number: number
           program_id: string
           theme?: string | null
+          video_url?: string | null
         }
         Update: {
+          audio_url?: string | null
           created_at?: string
           id?: string
+          macro_text?: string | null
           name?: string
           number?: number
           program_id?: string
           theme?: string | null
+          video_url?: string | null
         }
         Relationships: [
           {

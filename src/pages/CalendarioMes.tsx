@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Headphones, Play } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,7 +41,7 @@ const CalendarioMes = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("months")
-        .select("id, name, theme, number")
+        .select("id, name, theme, number, macro_text, audio_url, video_url")
         .eq("number", monthNum)
         .limit(1)
         .maybeSingle();
@@ -108,6 +108,39 @@ const CalendarioMes = () => {
       </header>
 
       <main className="px-5 space-y-5 pt-3">
+        {/* Month Macro Card */}
+        {monthRecord && (monthRecord as any).macro_text ? (
+          <div className="glass-card rounded-2xl p-4 border border-primary/10 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-primary">Macro del mes</p>
+            <p className="text-sm text-foreground leading-relaxed">{(monthRecord as any).macro_text}</p>
+            <div className="flex gap-2">
+              {(monthRecord as any).audio_url && (
+                <a
+                  href={(monthRecord as any).audio_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
+                >
+                  <Headphones className="w-3.5 h-3.5" /> Audio
+                </a>
+              )}
+              {(monthRecord as any).video_url && (
+                <a
+                  href={(monthRecord as any).video_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
+                >
+                  <Play className="w-3.5 h-3.5" /> Video
+                </a>
+              )}
+            </div>
+          </div>
+        ) : monthRecord && !isLoading ? (
+          <div className="glass-card rounded-2xl p-4 border border-muted/30 text-center">
+            <p className="text-xs text-muted-foreground">Macro del mes — Próximamente</p>
+          </div>
+        ) : null}
         {isLoading ? (
           <div className="space-y-4">
             {[...Array(4)].map((_, i) => (
