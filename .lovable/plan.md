@@ -1,85 +1,103 @@
 
 
-# Secao "Progreso" no Home/Hoy
+# Regra "5 tarefas por dia" para calculo de progresso
 
-## O que muda
+## Problema
 
-Adicionar uma secao fixa "Progreso" com 4 cards compactos no Home, entre o greeting e o hero do reto. Os dados vem do hook `useProgress()` que ja existe e ja retorna percentuais 0-100.
+O app calcula `day_pct` e "Perfect Day" usando `tasks.length` como denominador. Se um dia tiver 4 ou 6 tarefas (seed incompleto/incorreto), o calculo fica errado: 4/4 = 100% quando deveria ser 4/5 = 80%.
 
-## Arquivo alterado
+## Solucao
 
-**Apenas** `src/pages/Index.tsx` — nenhum outro arquivo precisa ser tocado.
+Introduzir constante `TOTAL_TASKS_PER_DAY = 5` e usar como denominador fixo em todos os calculos de progresso e Perfect Day.
 
-## Por que so 1 arquivo
+---
 
-- `useProgress()` ja retorna `day_pct`, `week_pct`, `month_pct`, `year_pct` (0-100, inteiros)
-- `useToggleDayTask` ja invalida `["progress"]` no `onSettled` (linha 82 de `useDayTasks.ts`), entao os cards atualizam automaticamente ao marcar/desmarcar tarefas
-- Nao precisa de novo hook, novo estado global, nem nova query
+## Arquivos a alterar
 
-## Detalhes da implementacao
+### 1. `src/pages/Index.tsx`
 
-### 1. Helper de clamp/format
+Mudancas pontuais nas linhas de calculo (linhas 42-51) e nos contadores exibidos na UI:
 
-Funcao inline no componente:
-
+**Calculos (substituir linhas 42-51):**
 ```typescript
-const clampPct = (v: number | null | undefined) =>
-  Math.min(100, Math.max(0, Math.round(v ?? 0)));
+const TOTAL_TASKS_PER_DAY = 5;
+
+const completedCount = tasks.filter((t) => t.completed).length;
+const dayProgress = Math.min(100, Math.max(0, Math.round((completedCount / TOTAL_TASKS_PER_DAY) * 100)));
+const allCompleted = completedCount >= TOTAL_TASKS_PER_DAY;
+
+// Warn if tasks count is unexpected (dev/admin only)
+if (tasks.length > 0 && tasks.length !== TOTAL_TASKS_PER_DAY) {
+  console.warn('[Admin] Day has tasks.length != 5', { dayId: progress?.day_id, tasksLength: tasks.length });
+}
+
+const softComplete = completedCount >= 3;
+const momento5Task = tasks.find((t) => t.order === 5);
+const momento5HasNote = momento5Task ? !!localNotes[momento5Task.id]?.trim() : false;
+const isPerfectDay = completedCount >= TOTAL_TASKS_PER_DAY && momento5HasNote;
 ```
 
-### 2. Secao "Progreso"
+**Contadores na UI:**
+- Linha 104 (header): `{completedCount}/{tasks.length}` -> `{completedCount}/{TOTAL_TASKS_PER_DAY}`
+- Linha 210-212 (secao titulo): manter `{completedCount}/{TOTAL_TASKS_PER_DAY}`
 
-Posicao: logo apos o greeting (linha 109), antes do hero do reto.
-
-Estrutura:
-- Titulo: `<h2 className="section-title">Progreso</h2>`
-- Grid 2x2 mobile (`grid grid-cols-2 gap-3`)
-- 4 cards: Hoy (`day_pct`), Semana (`week_pct`), Mes (`month_pct`), Total (`year_pct`)
-
-### 3. Card individual
-
-Cada card usa o padrao `glass-card` ja existente no app:
-
-```text
-+------------------+
-| Hoy              |  <- label (text-xs, muted)
-| 72%              |  <- valor (text-2xl, bold, primary)
-+------------------+
+**Fallback discreto (dev only):**
+Apos o contador da secao de momentos, adicionar:
+```typescript
+{import.meta.env.DEV && tasks.length > 0 && tasks.length !== TOTAL_TASKS_PER_DAY && (
+  <span className="text-[9px] text-muted-foreground/40 ml-2">⚠ {tasks.length} cfg</span>
+)}
 ```
 
-Classes: `glass-card rounded-2xl p-4 border border-primary/10`
+### 2. `src/pages/Dia.tsx`
 
-### 4. Loading state
+Mesma logica, aplicada nas linhas 57-59:
 
-Quando `progressLoading` e true, mostra 4 skeletons com `animate-pulse rounded-2xl bg-muted h-20` no mesmo grid, sem pular layout.
+**Calculos:**
+```typescript
+const TOTAL_TASKS_PER_DAY = 5;
 
-### 5. Atualizacao imediata
+const completedCount = tasks.filter((t) => t.completed).length;
+const dayProgress = Math.min(100, Math.max(0, Math.round((completedCount / TOTAL_TASKS_PER_DAY) * 100)));
+const allCompleted = completedCount >= TOTAL_TASKS_PER_DAY;
 
-Ja funciona: `useToggleDayTask.onSettled` invalida `["progress"]`, que e a query key de `useProgress()`. Nada a fazer aqui.
-
-## Resultado visual (mobile)
-
-```text
-Hola, {name}
-
-Progreso
-+--------+  +--------+
-|  Hoy   |  | Semana |
-|  60%   |  |  45%   |
-+--------+  +--------+
-+--------+  +--------+
-|  Mes   |  | Total  |
-|  30%   |  |  12%   |
-+--------+  +--------+
-
-[Hero do reto]
-...
+if (tasks.length > 0 && tasks.length !== TOTAL_TASKS_PER_DAY) {
+  console.warn('[Admin] Day has tasks.length != 5', { dayId, tasksLength: tasks.length });
+}
 ```
 
-## Definition of Done
+**Contadores na UI:**
+- Linha 104: `{completedCount}/{tasks.length}` -> `{completedCount}/{TOTAL_TASKS_PER_DAY}`
+- Linha 113: idem
 
-- 4 cards sempre visiveis no Home com percentuais 0-100%
-- Clamp e arredondamento aplicados
-- Loading skeleton sem layout shift
-- Atualiza ao marcar/desmarcar tarefa (ja coberto pela invalidation existente)
-- Dark premium, mobile-first, sem textos redundantes
+**Botao "Concluir Dia" (linha 125):**
+- Mudar condicao de `allCompleted` para `completedCount >= TOTAL_TASKS_PER_DAY` (ja coberto pela nova definicao de `allCompleted`)
+
+**Fallback dev (ao lado do contador no header):**
+```typescript
+{import.meta.env.DEV && tasks.length > 0 && tasks.length !== TOTAL_TASKS_PER_DAY && (
+  <span className="text-[9px] text-muted-foreground/40 ml-1">⚠ {tasks.length} cfg</span>
+)}
+```
+
+---
+
+## O que NAO muda
+
+- Nenhuma tabela nova
+- Nenhuma RLS alterada
+- Nenhum hook novo ou estado global
+- `DailyChecklist.tsx` continua renderizando as tasks que recebe (sem mudanca)
+- Invalidacoes React Query ja existentes (`useToggleDayTask.onSettled` ja invalida `["progress"]`) -- nada a fazer
+- O RPC `get_user_progress` no backend continua calculando com base nas tasks reais do banco -- a normalizacao aqui e apenas no frontend para UI/Perfect Day
+
+## Resumo de impacto
+
+| Ponto | Antes | Depois |
+|---|---|---|
+| Dia com 4 tasks, 4 feitas | 100%, Perfect Day possivel | 80%, Perfect Day impossivel |
+| Dia com 5 tasks, 5 feitas | 100%, Perfect Day se nota | 100%, Perfect Day se nota |
+| Dia com 6 tasks, 5 feitas | 83%, nao Perfect | 100%, Perfect Day se nota |
+| Contador UI | "4/4" | "4/5" |
+| Console warn | nenhum | warn em dev |
+| Badge UI | nenhum | "⚠ 4 cfg" em dev only |
