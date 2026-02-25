@@ -34,7 +34,6 @@ export function useRetoData(weekId: string | undefined) {
   return useQuery({
     queryKey: ["reto", weekId, user?.id],
     queryFn: async (): Promise<RetoData> => {
-      // Fetch week
       const { data: week, error: weekError } = await supabase
         .from("weeks")
         .select("id, name, number, objective, cover_url, audio_url, schedule_image_url, schedule_pdf_url")
@@ -43,46 +42,20 @@ export function useRetoData(weekId: string | undefined) {
 
       if (weekError) throw weekError;
 
-      // Fetch days
-      const { data: days, error: daysError } = await supabase
-        .from("days")
-        .select("id, number, date, unlock_date")
-        .eq("week_id", weekId!)
-        .order("number");
+      const { data: daysData, error: daysError } = await supabase.rpc("get_week_days_progress", {
+        p_user_id: user!.id,
+        p_week_id: weekId!,
+      });
 
       if (daysError) throw daysError;
 
-      const today = new Date().toISOString().split("T")[0];
+      const days = (daysData as unknown as DayWithProgress[]) ?? [];
 
-      // For each day, count tasks and checks
-      const daysWithProgress: DayWithProgress[] = await Promise.all(
-        (days ?? []).map(async (day) => {
-          const { data: tasks } = await supabase
-            .from("tasks")
-            .select("id")
-            .eq("day_id", day.id);
-
-          const { data: checks } = await supabase
-            .from("task_checks")
-            .select("id")
-            .eq("day_id", day.id)
-            .eq("user_id", user!.id);
-
-          return {
-            ...day,
-            tasks_total: tasks?.length ?? 0,
-            tasks_completed: checks?.length ?? 0,
-            is_unlocked: day.unlock_date <= today,
-            is_today: day.date === today,
-          };
-        })
-      );
-
-      const totalTasks = daysWithProgress.reduce((s, d) => s + d.tasks_total, 0);
-      const totalCompleted = daysWithProgress.reduce((s, d) => s + d.tasks_completed, 0);
+      const totalTasks = days.reduce((s, d) => s + d.tasks_total, 0);
+      const totalCompleted = days.reduce((s, d) => s + d.tasks_completed, 0);
       const weekProgress = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
 
-      return { week, days: daysWithProgress, weekProgress };
+      return { week, days, weekProgress };
     },
     enabled: !!weekId && !!user,
   });

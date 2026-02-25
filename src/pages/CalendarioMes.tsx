@@ -76,6 +76,7 @@ const CalendarioMes = () => {
     }
     weekMap.get(d.week_number)!.days.push(d);
   });
+  weekMap.forEach((w) => w.days.sort((a, b) => a.date.localeCompare(b.date)));
   const weeks = Array.from(weekMap.entries()).sort(([a], [b]) => a - b);
 
   if (!isValid) {
@@ -197,7 +198,7 @@ const CalendarioMes = () => {
 
                       const content = (
                         <div className={`rounded-xl p-2 text-center border transition-colors ${style} ${!isFuture ? "hover:border-primary/40" : "cursor-default"}`}>
-                          <p className="text-[9px] font-medium">D{d.day_number}</p>
+                          <p className="text-[9px] font-medium">{new Date(d.date + 'T12:00:00').getDate()}</p>
                           <p className="text-xs font-bold mt-0.5">
                             {isFuture ? "—" : `${d.day_pct}%`}
                           </p>

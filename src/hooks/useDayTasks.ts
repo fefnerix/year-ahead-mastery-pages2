@@ -68,7 +68,7 @@ export function useToggleDayTask(dayId: string | null | undefined) {
           task_id: task.id,
           day_id: dayId!,
         });
-        if (error) throw error;
+        if (error && error.code !== '23505') throw error;
       }
     },
     onMutate: async (task) => {

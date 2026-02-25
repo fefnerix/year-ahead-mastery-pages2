@@ -2,8 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
-const TOTAL_TASKS_PER_DAY = 5;
-
 const getTodaySP = (): string =>
   new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
@@ -29,7 +27,6 @@ export function useYesterdayProgress() {
     queryFn: async (): Promise<YesterdayData | null> => {
       const todaySP = getTodaySP();
 
-      // 1) Semana ativa
       const { data: activeWeek, error: weekErr } = await supabase
         .from("weeks")
         .select("id, name")
@@ -40,7 +37,6 @@ export function useYesterdayProgress() {
       if (weekErr) throw weekErr;
       if (!activeWeek) return null;
 
-      // 2) Ultimo dia desbloqueado ANTES de hoje
       const { data: day, error: dayErr } = await supabase
         .from("days")
         .select("id, number, week_id")
@@ -53,9 +49,8 @@ export function useYesterdayProgress() {
       if (dayErr) throw dayErr;
       if (!day) return null;
 
-      // 3) Tasks e checks
       const [{ data: tasks }, { data: checks }] = await Promise.all([
-        supabase.from("tasks").select("id").eq("day_id", day.id),
+        supabase.from("tasks").select("id").eq("day_id", day.id).eq("is_active", true),
         supabase
           .from("task_checks")
           .select("id")
@@ -66,9 +61,7 @@ export function useYesterdayProgress() {
       const total = tasks?.length ?? 0;
       const completed = checks?.length ?? 0;
 
-      // Ocultar se completo (regra 5/5) ou sem tasks
-      if (completed >= TOTAL_TASKS_PER_DAY) return null;
-      if (total === 0) return null;
+      if (total === 0 || completed >= total) return null;
 
       return {
         day_id: day.id,
