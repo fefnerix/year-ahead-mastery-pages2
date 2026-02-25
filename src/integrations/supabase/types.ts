@@ -457,24 +457,33 @@ export type Database = {
           category: Database["public"]["Enums"]["task_category"]
           created_at: string
           day_id: string
+          description: string | null
           id: string
+          is_active: boolean
           order: number
+          task_kind: string
           title: string
         }
         Insert: {
           category: Database["public"]["Enums"]["task_category"]
           created_at?: string
           day_id: string
+          description?: string | null
           id?: string
+          is_active?: boolean
           order?: number
+          task_kind?: string
           title: string
         }
         Update: {
           category?: Database["public"]["Enums"]["task_category"]
           created_at?: string
           day_id?: string
+          description?: string | null
           id?: string
+          is_active?: boolean
           order?: number
+          task_kind?: string
           title?: string
         }
         Relationships: [
