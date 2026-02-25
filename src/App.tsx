@@ -12,6 +12,7 @@ import Ranking from "./pages/Ranking";
 import Perfil from "./pages/Perfil";
 import Reto from "./pages/Reto";
 import Dia from "./pages/Dia";
+import DayDetail from "./pages/DayDetail";
 import Cuaderno from "./pages/Cuaderno";
 import Deposito from "./pages/Deposito";
 import Admin from "./pages/Admin";
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
             <Route path="/reto/:weekId" element={<ProtectedRoute><Reto /></ProtectedRoute>} />
             <Route path="/reto/:weekId/dia/:dayNumber" element={<ProtectedRoute><Dia /></ProtectedRoute>} />
+            <Route path="/day/:dayId" element={<ProtectedRoute><DayDetail /></ProtectedRoute>} />
             <Route path="/cuaderno" element={<ProtectedRoute><Cuaderno /></ProtectedRoute>} />
             <Route path="/deposito" element={<ProtectedRoute><Deposito /></ProtectedRoute>} />
             <Route path="/calendario" element={<ProtectedRoute><CalendarioAno /></ProtectedRoute>} />

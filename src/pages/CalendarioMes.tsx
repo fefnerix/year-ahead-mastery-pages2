@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Headphones, Play } from "lucide-react";
+import { ArrowLeft, Headphones, Play, ArrowRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -141,6 +141,7 @@ const CalendarioMes = () => {
             <p className="text-xs text-muted-foreground">Macro del mes — Próximamente</p>
           </div>
         ) : null}
+
         {isLoading ? (
           <div className="space-y-4">
             {[...Array(4)].map((_, i) => (
@@ -162,47 +163,60 @@ const CalendarioMes = () => {
             <p className="text-sm text-muted-foreground">No hay días configurados para este mes.</p>
           </div>
         ) : (
-          weeks.map(([weekNum, w]) => (
-            <div key={weekNum} className="glass-card rounded-2xl p-4 border border-primary/10">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-sm font-bold text-foreground">{w.week_name}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+          <>
+            {/* Retos de este mes */}
+            <section className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Retos de este mes</p>
+              {weeks.map(([weekNum, w]) => (
+                <Link
+                  key={`reto-${weekNum}`}
+                  to={`/reto/${w.week_id}`}
+                  className="glass-card rounded-xl p-3 border border-primary/10 flex items-center justify-between hover:border-primary/30 transition-colors"
+                >
+                  <div>
+                    <p className="text-sm font-bold text-foreground">{w.week_name}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Semana {weekNum}</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-primary" />
+                </Link>
+              ))}
+            </section>
+
+            {/* Day grid by week */}
+            <section className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Días del mes</p>
+              {weeks.map(([weekNum, w]) => (
+                <div key={`days-${weekNum}`}>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
                     Semana {weekNum}
                   </p>
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {w.days.map((d) => {
+                      const isFuture = d.status === "future";
+                      const style = STATUS_STYLES[d.status] ?? STATUS_STYLES.pending;
+
+                      const content = (
+                        <div className={`rounded-xl p-2 text-center border transition-colors ${style} ${!isFuture ? "hover:border-primary/40" : "cursor-default"}`}>
+                          <p className="text-[9px] font-medium">D{d.day_number}</p>
+                          <p className="text-xs font-bold mt-0.5">
+                            {isFuture ? "—" : `${d.day_pct}%`}
+                          </p>
+                        </div>
+                      );
+
+                      if (isFuture) return <div key={d.day_id}>{content}</div>;
+
+                      return (
+                        <Link key={d.day_id} to={`/day/${d.day_id}`}>
+                          {content}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
-                <Link
-                  to={`/reto/${w.week_id}`}
-                  className="text-xs font-semibold text-primary hover:underline"
-                >
-                  Ver reto
-                </Link>
-              </div>
-              <div className="grid grid-cols-7 gap-1.5">
-                {w.days.map((d) => {
-                  const isFuture = d.status === "future";
-                  const style = STATUS_STYLES[d.status] ?? STATUS_STYLES.pending;
-
-                  const content = (
-                    <div className={`rounded-xl p-2 text-center border transition-colors ${style} ${!isFuture ? "hover:border-primary/40" : "cursor-default"}`}>
-                      <p className="text-[9px] font-medium">D{d.day_number}</p>
-                      <p className="text-xs font-bold mt-0.5">
-                        {isFuture ? "—" : `${d.day_pct}%`}
-                      </p>
-                    </div>
-                  );
-
-                  if (isFuture || !d.week_id) return <div key={d.day_id}>{content}</div>;
-
-                  return (
-                    <Link key={d.day_id} to={`/reto/${d.week_id}/dia/${d.day_number}`}>
-                      {content}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))
+              ))}
+            </section>
+          </>
         )}
       </main>
 
