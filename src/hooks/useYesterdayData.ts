@@ -2,6 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
+const TOTAL_TASKS_PER_DAY = 5;
+
+const getTodaySP = (): string =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
 interface YesterdayData {
   day_id: string;
   day_number: number;
@@ -17,52 +27,54 @@ export function useYesterdayProgress() {
   return useQuery({
     queryKey: ["yesterday-progress", user?.id],
     queryFn: async (): Promise<YesterdayData | null> => {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const dateStr = yesterday.toISOString().split("T")[0];
+      const todaySP = getTodaySP();
 
-      // Find yesterday's day
+      // 1) Semana ativa
+      const { data: activeWeek, error: weekErr } = await supabase
+        .from("weeks")
+        .select("id, name")
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle();
+
+      if (weekErr) throw weekErr;
+      if (!activeWeek) return null;
+
+      // 2) Ultimo dia desbloqueado ANTES de hoje
       const { data: day, error: dayErr } = await supabase
         .from("days")
         .select("id, number, week_id")
-        .eq("date", dateStr)
+        .eq("week_id", activeWeek.id)
+        .lt("unlock_date", todaySP)
+        .order("number", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (dayErr) throw dayErr;
       if (!day) return null;
 
-      // Get week name
-      const { data: week } = await supabase
-        .from("weeks")
-        .select("name")
-        .eq("id", day.week_id)
-        .single();
-
-      // Count tasks and checks
-      const { data: tasks } = await supabase
-        .from("tasks")
-        .select("id")
-        .eq("day_id", day.id);
-
-      const { data: checks } = await supabase
-        .from("task_checks")
-        .select("id")
-        .eq("day_id", day.id)
-        .eq("user_id", user!.id);
+      // 3) Tasks e checks
+      const [{ data: tasks }, { data: checks }] = await Promise.all([
+        supabase.from("tasks").select("id").eq("day_id", day.id),
+        supabase
+          .from("task_checks")
+          .select("id")
+          .eq("day_id", day.id)
+          .eq("user_id", user!.id),
+      ]);
 
       const total = tasks?.length ?? 0;
       const completed = checks?.length ?? 0;
 
-      // If already complete, don't show
-      if (total > 0 && completed >= total) return null;
-      // If no tasks, don't show
+      // Ocultar se completo (regra 5/5) ou sem tasks
+      if (completed >= TOTAL_TASKS_PER_DAY) return null;
       if (total === 0) return null;
 
       return {
         day_id: day.id,
         day_number: day.number,
         week_id: day.week_id,
-        week_name: week?.name ?? "",
+        week_name: activeWeek.name ?? "",
         completed_count: completed,
         total_count: total,
       };
