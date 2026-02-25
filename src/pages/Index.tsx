@@ -39,16 +39,21 @@ const Index = () => {
     setLocalNotes(map);
   }, [notesData]);
 
-  const completedCount = tasks.filter((t) => t.completed).length;
-  const dayProgress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
-  const allCompleted = tasks.length > 0 && completedCount === tasks.length;
+  const TOTAL_TASKS_PER_DAY = 5;
 
-  // Soft complete: ≥ 3/5
-  const softComplete = tasks.length > 0 && completedCount >= 3;
-  // Perfect Day: 5/5 + Momento 5 has a note
+  const completedCount = tasks.filter((t) => t.completed).length;
+  const dayProgress = Math.min(100, Math.max(0, Math.round((completedCount / TOTAL_TASKS_PER_DAY) * 100)));
+  const allCompleted = completedCount >= TOTAL_TASKS_PER_DAY;
+
+  // Warn if tasks count is unexpected (dev/admin only)
+  if (tasks.length > 0 && tasks.length !== TOTAL_TASKS_PER_DAY) {
+    console.warn('[Admin] Day has tasks.length != 5', { dayId: progress?.day_id, tasksLength: tasks.length });
+  }
+
+  const softComplete = completedCount >= 3;
   const momento5Task = tasks.find((t) => t.order === 5);
   const momento5HasNote = momento5Task ? !!localNotes[momento5Task.id]?.trim() : false;
-  const isPerfectDay = allCompleted && momento5HasNote;
+  const isPerfectDay = completedCount >= TOTAL_TASKS_PER_DAY && momento5HasNote;
 
   // Next Best Action: first incomplete task sorted by order
   const sortedTasks = [...tasks].sort((a, b) => a.order - b.order);
@@ -208,8 +213,11 @@ const Index = () => {
           <div className="flex items-center justify-between mb-3">
             <h2 className="section-title">Tus 5 momentos de hoy</h2>
             <span className="text-xs font-bold text-muted-foreground tabular-nums">
-              {completedCount}/{tasks.length}
+              {completedCount}/{TOTAL_TASKS_PER_DAY}
             </span>
+            {import.meta.env.DEV && tasks.length > 0 && tasks.length !== TOTAL_TASKS_PER_DAY && (
+              <span className="text-[9px] text-muted-foreground/40 ml-2">⚠ {tasks.length} cfg</span>
+            )}
           </div>
 
           {/* Progress bar + micro-incentive message */}
