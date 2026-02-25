@@ -593,6 +593,10 @@ export type Database = {
         Args: { p_date?: string; p_user_id: string }
         Returns: Json
       }
+      get_year_calendar: {
+        Args: { p_user_id: string; p_year: number }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
