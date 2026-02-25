@@ -589,6 +589,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_month_calendar: {
+        Args: { p_month_id: string; p_user_id: string }
+        Returns: Json
+      }
       get_user_progress: {
         Args: { p_date?: string; p_user_id: string }
         Returns: Json
