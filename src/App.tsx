@@ -17,6 +17,8 @@ import Deposito from "./pages/Deposito";
 import Admin from "./pages/Admin";
 import RetoBuilder from "./pages/RetoBuilder";
 import Auth from "./pages/Auth";
+import CalendarioAno from "./pages/CalendarioAno";
+import CalendarioMes from "./pages/CalendarioMes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +40,8 @@ const App = () => (
             <Route path="/reto/:weekId/dia/:dayNumber" element={<ProtectedRoute><Dia /></ProtectedRoute>} />
             <Route path="/cuaderno" element={<ProtectedRoute><Cuaderno /></ProtectedRoute>} />
             <Route path="/deposito" element={<ProtectedRoute><Deposito /></ProtectedRoute>} />
+            <Route path="/calendario" element={<ProtectedRoute><CalendarioAno /></ProtectedRoute>} />
+            <Route path="/calendario/:year/:month" element={<ProtectedRoute><CalendarioMes /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
             <Route path="/admin/retos/:weekId/builder" element={<AdminRoute><RetoBuilder /></AdminRoute>} />
             <Route path="*" element={<NotFound />} />
