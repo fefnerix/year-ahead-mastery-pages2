@@ -19,6 +19,33 @@ const Reto = () => {
   const { data: blocks = [] } = useWeekBlocks(weekId);
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
+  const days = data?.days ?? [];
+  const dayIds = days.map((d) => d.id);
+
+  // Must be before any early return to avoid hooks order issue
+  const { data: lecturas = [] } = useQuery({
+    queryKey: ["lecturas-week", weekId],
+    queryFn: async () => {
+      if (dayIds.length === 0) return [];
+      const { data: items, error } = await supabase
+        .from("content_items")
+        .select("id, title, url, type, day_id")
+        .in("day_id", dayIds)
+        .order("order", { ascending: true });
+      if (error) throw error;
+      const seen = new Set<string>();
+      return (items ?? []).filter((item) => {
+        if (seen.has(item.url)) return false;
+        seen.add(item.url);
+        return true;
+      });
+    },
+    enabled: dayIds.length > 0,
+  });
+
+  const lecturasPreview = lecturas.slice(0, 3);
+  const hasLecturas = lecturas.length > 0;
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -35,35 +62,9 @@ const Reto = () => {
     );
   }
 
-  const { week, days, weekProgress } = data;
+  const { week, weekProgress } = data;
   const todayDay = days.find((d) => d.is_today) ?? days.find((d) => d.is_unlocked);
   const hasBlocks = blocks.length > 0;
-
-  // Lecturas (content_items) for this week's days
-  const dayIds = days.map((d) => d.id);
-  const { data: lecturas = [] } = useQuery({
-    queryKey: ["lecturas-week", weekId],
-    queryFn: async () => {
-      if (dayIds.length === 0) return [];
-      const { data: items, error } = await supabase
-        .from("content_items")
-        .select("id, title, url, type, day_id")
-        .in("day_id", dayIds)
-        .order("order", { ascending: true });
-      if (error) throw error;
-      // Deduplicate by url
-      const seen = new Set<string>();
-      return (items ?? []).filter((item) => {
-        if (seen.has(item.url)) return false;
-        seen.add(item.url);
-        return true;
-      });
-    },
-    enabled: dayIds.length > 0,
-  });
-
-  const lecturasPreview = lecturas.slice(0, 3);
-  const hasLecturas = lecturas.length > 0;
 
   // If blocks exist, render dynamically; otherwise fallback to legacy layout
   if (hasBlocks) {
