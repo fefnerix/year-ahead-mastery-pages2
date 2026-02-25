@@ -8,6 +8,7 @@ import { useCalculateScore } from "@/hooks/useLeaderboard";
 import BottomNav from "@/components/BottomNav";
 import DailyChecklist from "@/components/DailyChecklist";
 import PlaylistCard from "@/components/PlaylistCard";
+import JournalInput from "@/components/JournalInput";
 import { ArrowLeft, Sparkles, Loader2, Calendar, Headphones, FileText, ArrowRight } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -163,6 +164,15 @@ const Dia = () => {
             {updateStreak.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             Concluir Día
           </button>
+        )}
+
+        {/* Reflexión del día */}
+        {dayData?.day?.date && (
+          <JournalInput
+            date={dayData.day.date}
+            dayId={dayId}
+            weekId={weekId}
+          />
         )}
 
         {/* Playlists */}
