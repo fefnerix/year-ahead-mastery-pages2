@@ -73,7 +73,25 @@
   }
 }
 
+@layer base {
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary/70 ring-offset-1 ring-offset-background;
+  }
+}
+
 @layer utilities {
+  .safe-area-bottom {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .safe-area-top {
+    padding-top: max(3rem, env(safe-area-inset-top));
+  }
+
+  .press-scale {
+    @apply active:scale-[0.97] transition-transform duration-100;
+  }
+
   .gold-gradient {
     background: linear-gradient(135deg, hsl(43 56% 59%), hsl(43 60% 75%), hsl(43 52% 48%));
   }
