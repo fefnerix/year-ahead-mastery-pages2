@@ -43,12 +43,20 @@ const JournalInput = ({ date, dayId, weekId, monthId }: JournalInputProps) => {
   };
 
   return (
-    <section className="glass-card rounded-xl p-4 border border-primary/10">
-      <div className="flex items-center gap-2 mb-2">
-        <PenLine className="w-4 h-4 text-primary" />
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reflexión del día</p>
-        {saveJournal.isPending && <Loader2 className="w-3 h-3 text-muted-foreground animate-spin ml-auto" />}
-        {saved && !saveJournal.isPending && <Check className="w-3 h-3 text-emerald-400 ml-auto" />}
+    <section className="glass-card rounded-xl border border-primary/10 focus-within:border-primary/30 transition-colors duration-200 overflow-hidden">
+      <div className="flex items-center gap-2 px-4 pt-4 pb-2">
+        <PenLine className="w-4 h-4 text-primary shrink-0" />
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex-1">
+          Reflexión del día
+        </p>
+        {saveJournal.isPending && (
+          <Loader2 className="w-3 h-3 text-muted-foreground animate-spin" />
+        )}
+        {saved && !saveJournal.isPending && (
+          <span className="flex items-center gap-1 text-[10px] text-success font-semibold">
+            <Check className="w-3 h-3" /> Guardado
+          </span>
+        )}
       </div>
       <textarea
         value={content}
@@ -56,7 +64,7 @@ const JournalInput = ({ date, dayId, weekId, monthId }: JournalInputProps) => {
         onBlur={handleBlur}
         placeholder="¿Qué aprendiste hoy? ¿Qué te movió?"
         rows={3}
-        className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none"
+        className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none px-4 pb-4 min-h-[80px]"
       />
     </section>
   );
