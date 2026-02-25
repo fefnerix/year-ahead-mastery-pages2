@@ -54,9 +54,15 @@ const Dia = () => {
     setLocalNotes(map);
   }, [notesData]);
 
+  const TOTAL_TASKS_PER_DAY = 5;
+
   const completedCount = tasks.filter((t) => t.completed).length;
-  const dayProgress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
-  const allCompleted = tasks.length > 0 && completedCount === tasks.length;
+  const dayProgress = Math.min(100, Math.max(0, Math.round((completedCount / TOTAL_TASKS_PER_DAY) * 100)));
+  const allCompleted = completedCount >= TOTAL_TASKS_PER_DAY;
+
+  if (tasks.length > 0 && tasks.length !== TOTAL_TASKS_PER_DAY) {
+    console.warn('[Admin] Day has tasks.length != 5', { dayId, tasksLength: tasks.length });
+  }
 
   const handleToggle = (id: string) => {
     const task = tasks.find((t) => t.id === id);
@@ -101,7 +107,10 @@ const Dia = () => {
               Día {dayNumber} — {dayData?.week?.name}
             </h1>
           </div>
-          <span className="text-sm font-bold text-muted-foreground tabular-nums">{completedCount}/{tasks.length}</span>
+          <span className="text-sm font-bold text-muted-foreground tabular-nums">{completedCount}/{TOTAL_TASKS_PER_DAY}</span>
+          {import.meta.env.DEV && tasks.length > 0 && tasks.length !== TOTAL_TASKS_PER_DAY && (
+            <span className="text-[9px] text-muted-foreground/40 ml-1">⚠ {tasks.length} cfg</span>
+          )}
         </div>
       </header>
 
@@ -110,7 +119,7 @@ const Dia = () => {
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-display font-bold text-foreground">Momentos del Día</h2>
-            <span className="text-xs font-semibold text-muted-foreground">{completedCount}/{tasks.length}</span>
+            <span className="text-xs font-semibold text-muted-foreground">{completedCount}/{TOTAL_TASKS_PER_DAY}</span>
           </div>
           <DailyChecklist
             tasks={tasks.map((t) => ({ id: t.id, title: t.title, category: t.category, completed: t.completed, order: t.order }))}
