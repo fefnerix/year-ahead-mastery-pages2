@@ -17,6 +17,7 @@ import Cuaderno from "./pages/Cuaderno";
 import Deposito from "./pages/Deposito";
 import Admin from "./pages/Admin";
 import RetoBuilder from "./pages/RetoBuilder";
+import AdminDayTasks from "./pages/AdminDayTasks";
 import Auth from "./pages/Auth";
 import CalendarioAno from "./pages/CalendarioAno";
 import CalendarioMes from "./pages/CalendarioMes";
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/calendario/:year/:month" element={<ProtectedRoute><CalendarioMes /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
             <Route path="/admin/retos/:weekId/builder" element={<AdminRoute><RetoBuilder /></AdminRoute>} />
+            <Route path="/admin/retos/:weekId/tareas" element={<AdminRoute><AdminDayTasks /></AdminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
