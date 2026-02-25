@@ -1,97 +1,85 @@
 
 
-# Redesenho Premium da Home "Tu Misión Hoy"
+# Secao "Progreso" no Home/Hoy
 
-A Home atual ja tem a estrutura correta (hero + 5 tasks + deposito). O foco e elevar o visual para nivel high-ticket e melhorar a interacao de notas.
+## O que muda
 
----
+Adicionar uma secao fixa "Progreso" com 4 cards compactos no Home, entre o greeting e o hero do reto. Os dados vem do hook `useProgress()` que ja existe e ja retorna percentuais 0-100.
 
-## 1. DailyChecklist Premium (DailyChecklist.tsx)
+## Arquivo alterado
 
-Transformar de lista simples para checklist premium:
+**Apenas** `src/pages/Index.tsx` — nenhum outro arquivo precisa ser tocado.
 
-- Envolver toda a lista em um `glass-card rounded-2xl` com padding
-- Cada task vira um card individual com `bg-card/30 rounded-xl p-4` e borda sutil
-- Checkbox maior: `w-7 h-7` com animacao de scale ao completar
-- Adicionar numero do momento: "01", "02", etc. (receber `index` no map)
-- Categoria como badge/chip colorido (nao so texto pequeno)
-- Ao completar: animacao CSS de pulse dourado no checkbox (ja existe `.pulse-gold`)
-- Nota: trocar de textarea inline para **Dialog/modal** "Tu Cuaderno" que abre ao marcar task
-  - Modal com titulo do momento, textarea, botao "Guardar"
-  - Momento 5: nota obrigatoria (botao desabilitado se vazio)
-  - Momentos 1-4: nota opcional com placeholder "Escribe una linea sobre tu experiencia..."
-  - Ao fechar/guardar: salva nota via onNoteSave
+## Por que so 1 arquivo
 
-### Props novas
-- Adicionar `onTaskComplete?: (taskId: string) => void` para separar toggle de celebracao
-- O modal abre automaticamente quando `completed` muda de false para true
+- `useProgress()` ja retorna `day_pct`, `week_pct`, `month_pct`, `year_pct` (0-100, inteiros)
+- `useToggleDayTask` ja invalida `["progress"]` no `onSettled` (linha 82 de `useDayTasks.ts`), entao os cards atualizam automaticamente ao marcar/desmarcar tarefas
+- Nao precisa de novo hook, novo estado global, nem nova query
 
----
+## Detalhes da implementacao
 
-## 2. Hero Compacto Premium (Index.tsx)
+### 1. Helper de clamp/format
 
-Ajustes no hero atual:
+Funcao inline no componente:
 
-- Adicionar subtexto: "Llego tu nuevo reto" abaixo do titulo
-- Chip com fundo `gold-gradient` sutil em vez de `bg-card/80`
-- Altura do hero: manter `h-44` (compacto)
-- Gradiente overlay mais forte na base para legibilidade
-- Sem mudancas estruturais (ja esta correto)
-
----
-
-## 3. Greeting Simplificado (Index.tsx)
-
-- Remover subtexto "Tu mision de hoy te espera" (redundante com o hero)
-- Manter so "Hola, {displayName}" como ancora visual
-
----
-
-## 4. Announcement Card Opcional (Index.tsx)
-
-- Adicionar `AnnouncementBanner` entre Deposito e BottomNav
-- Importar de `@/components/AnnouncementBanner`
-- Se nao houver announcements, nao renderiza nada (ja implementado no componente)
-
----
-
-## 5. Barra de Progresso e Botao "Concluir Dia" (Index.tsx)
-
-- Barra de progresso: manter como esta (gold gradient, sutil)
-- Botao "Concluir Dia": manter como esta (ja premium com shimmer + gold-glow)
-- Adicionar margem superior ao botao para separacao visual
-
----
-
-## 6. Espacamento e Acabamento (Index.tsx)
-
-- Aumentar `space-y-6` para `space-y-8` no main
-- Header: remover `border-b` (mais limpo)
-- Section "Tus 5 momentos": titulo em Playfair (ja usa `.section-title`)
-
----
-
-## Arquivos a modificar
-
-```text
-src/components/DailyChecklist.tsx  -- UI premium + modal de notas
-src/pages/Index.tsx                -- Hero tweaks + announcement + espacamento
+```typescript
+const clampPct = (v: number | null | undefined) =>
+  Math.min(100, Math.max(0, Math.round(v ?? 0)));
 ```
 
-### Detalhes tecnicos
+### 2. Secao "Progreso"
 
-**DailyChecklist.tsx** mudancas principais:
-- Importar `Dialog` de `@/components/ui/dialog`
-- State: `noteModalTask` (task id do modal aberto)
-- Ao toggle de false->true: abrir modal automaticamente
-- Modal: titulo do momento, textarea, botao Guardar
-- Momento 5 (index 4): validar nota nao vazia
-- Cada task item: glass card individual com padding, numero, badge de categoria
+Posicao: logo apos o greeting (linha 109), antes do hero do reto.
 
-**Index.tsx** mudancas:
-- Importar `AnnouncementBanner`
-- Adicionar subtexto no hero
-- Chip com estilo gold
-- Remover subtexto do greeting
-- Aumentar espacamento
-- Remover border do header
+Estrutura:
+- Titulo: `<h2 className="section-title">Progreso</h2>`
+- Grid 2x2 mobile (`grid grid-cols-2 gap-3`)
+- 4 cards: Hoy (`day_pct`), Semana (`week_pct`), Mes (`month_pct`), Total (`year_pct`)
+
+### 3. Card individual
+
+Cada card usa o padrao `glass-card` ja existente no app:
+
+```text
++------------------+
+| Hoy              |  <- label (text-xs, muted)
+| 72%              |  <- valor (text-2xl, bold, primary)
++------------------+
+```
+
+Classes: `glass-card rounded-2xl p-4 border border-primary/10`
+
+### 4. Loading state
+
+Quando `progressLoading` e true, mostra 4 skeletons com `animate-pulse rounded-2xl bg-muted h-20` no mesmo grid, sem pular layout.
+
+### 5. Atualizacao imediata
+
+Ja funciona: `useToggleDayTask.onSettled` invalida `["progress"]`, que e a query key de `useProgress()`. Nada a fazer aqui.
+
+## Resultado visual (mobile)
+
+```text
+Hola, {name}
+
+Progreso
++--------+  +--------+
+|  Hoy   |  | Semana |
+|  60%   |  |  45%   |
++--------+  +--------+
++--------+  +--------+
+|  Mes   |  | Total  |
+|  30%   |  |  12%   |
++--------+  +--------+
+
+[Hero do reto]
+...
+```
+
+## Definition of Done
+
+- 4 cards sempre visiveis no Home com percentuais 0-100%
+- Clamp e arredondamento aplicados
+- Loading skeleton sem layout shift
+- Atualiza ao marcar/desmarcar tarefa (ja coberto pela invalidation existente)
+- Dark premium, mobile-first, sem textos redundantes
