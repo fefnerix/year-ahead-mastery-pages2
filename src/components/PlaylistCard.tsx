@@ -6,9 +6,29 @@ interface PlaylistCardProps {
   url: string;
 }
 
+const isValidUrl = (url: string): boolean => {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    console.warn("[PlaylistCard] Invalid URL:", url);
+    return false;
+  }
+};
+
 const PlaylistCard = ({ title, subtitle, url }: PlaylistCardProps) => {
+  const valid = isValidUrl(url);
+
+  if (!valid) return null;
+
   const openPlaylist = () => window.open(url, "_blank", "noopener");
-  const openShuffle = () => window.open(url, "_blank", "noopener");
+
+  // Build shuffle URL for Spotify
+  const isSpotify = url.includes("spotify.com") || url.includes("spotify:");
+  const shuffleUrl = isSpotify && url.includes("playlist")
+    ? `${url}${url.includes("?") ? "&" : "?"}go=1&nd=1`
+    : url;
+  const openShuffle = () => window.open(shuffleUrl, "_blank", "noopener");
 
   return (
     <div className="glass-card rounded-2xl p-4">
@@ -26,7 +46,7 @@ const PlaylistCard = ({ title, subtitle, url }: PlaylistCardProps) => {
           onClick={openPlaylist}
           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl gold-gradient text-primary-foreground text-xs font-bold uppercase tracking-wider"
         >
-          <ExternalLink className="w-3.5 h-3.5" /> Abrir
+          <ExternalLink className="w-3.5 h-3.5" /> Abrir playlist
         </button>
         <button
           onClick={openShuffle}
