@@ -10,92 +10,73 @@ const MONTH_NAMES = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
 
+interface CalendarDay {
+  day_id: string;
+  date: string;
+  week_id: string;
+  day_number: number;
+  week_name: string;
+  week_number: number;
+  day_pct: number;
+  status: "complete" | "partial" | "pending" | "future";
+}
+
+const STATUS_STYLES: Record<string, string> = {
+  complete: "border-primary/40 bg-primary/15 text-primary",
+  partial: "border-primary/20 bg-primary/5 text-foreground",
+  pending: "border-muted bg-card text-muted-foreground",
+  future: "border-muted/50 bg-muted/20 text-muted-foreground/50",
+};
+
 const CalendarioMes = () => {
   const { year, month } = useParams<{ year: string; month: string }>();
   const { user } = useAuth();
   const monthNum = Number(month);
   const yearNum = Number(year);
-
   const isValid = monthNum >= 1 && monthNum <= 12 && !isNaN(yearNum);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["calendar-month-detail", yearNum, monthNum, user?.id],
+  // 1) Resolve month_id from year + monthNum
+  const { data: monthRecord, isLoading: monthLoading } = useQuery({
+    queryKey: ["calendar-month-id", yearNum, monthNum],
     queryFn: async () => {
-      // Get the month record
-      const { data: monthData, error: monthErr } = await supabase
+      const { data, error } = await supabase
         .from("months")
         .select("id, name, theme, number")
         .eq("number", monthNum)
         .limit(1)
         .maybeSingle();
-
-      if (monthErr) throw monthErr;
-      if (!monthData) return null;
-
-      // Get weeks for this month
-      const { data: weeks, error: weeksErr } = await supabase
-        .from("weeks")
-        .select("id, name, number, status")
-        .eq("month_id", monthData.id)
-        .order("number", { ascending: true });
-
-      if (weeksErr) throw weeksErr;
-
-      // Get days for all weeks
-      const weekIds = (weeks ?? []).map((w) => w.id);
-      const { data: days } = weekIds.length > 0
-        ? await supabase
-            .from("days")
-            .select("id, number, date, unlock_date, week_id")
-            .in("week_id", weekIds)
-            .order("number", { ascending: true })
-        : { data: [] };
-
-      // Get user's checks for these days
-      const dayIds = (days ?? []).map((d) => d.id);
-      const { data: checks } = dayIds.length > 0 && user
-        ? await supabase
-            .from("task_checks")
-            .select("id, day_id")
-            .in("day_id", dayIds)
-            .eq("user_id", user.id)
-        : { data: [] };
-
-      // Get tasks count per day
-      const { data: tasks } = dayIds.length > 0
-        ? await supabase
-            .from("tasks")
-            .select("id, day_id")
-            .in("day_id", dayIds)
-        : { data: [] };
-
-      // Aggregate
-      const checksByDay: Record<string, number> = {};
-      const tasksByDay: Record<string, number> = {};
-
-      (checks ?? []).forEach((c) => {
-        checksByDay[c.day_id] = (checksByDay[c.day_id] ?? 0) + 1;
-      });
-      (tasks ?? []).forEach((t) => {
-        tasksByDay[t.day_id] = (tasksByDay[t.day_id] ?? 0) + 1;
-      });
-
-      return {
-        month: monthData,
-        weeks: (weeks ?? []).map((w) => ({
-          ...w,
-          days: (days ?? [])
-            .filter((d) => d.week_id === w.id)
-            .map((d) => ({
-              ...d,
-              completed: checksByDay[d.id] ?? 0,
-              total: tasksByDay[d.id] ?? 0,
-            })),
-        })),
-      };
+      if (error) throw error;
+      return data;
     },
-    enabled: isValid && !!user,
+    enabled: isValid,
   });
+
+  // 2) Load days via RPC
+  const { data: days = [], isLoading: daysLoading, isError, refetch } = useQuery({
+    queryKey: ["month_calendar", monthRecord?.id, user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_month_calendar", {
+        p_user_id: user!.id,
+        p_month_id: monthRecord!.id,
+      });
+      if (error) throw error;
+      return (data as unknown as CalendarDay[]) ?? [];
+    },
+    enabled: !!user && !!monthRecord?.id,
+  });
+
+  const isLoading = monthLoading || daysLoading;
+  const monthName = MONTH_NAMES[monthNum - 1] ?? `Mes ${monthNum}`;
+
+  // Group days by week
+  const weekMap = new Map<number, { week_id: string; week_name: string; days: CalendarDay[] }>();
+  days.forEach((d) => {
+    if (!weekMap.has(d.week_number)) {
+      weekMap.set(d.week_number, { week_id: d.week_id, week_name: d.week_name, days: [] });
+    }
+    weekMap.get(d.week_number)!.days.push(d);
+  });
+  const weeks = Array.from(weekMap.entries()).sort(([a], [b]) => a - b);
 
   if (!isValid) {
     return (
@@ -110,9 +91,6 @@ const CalendarioMes = () => {
     );
   }
 
-  const TOTAL_TASKS_PER_DAY = 5;
-  const monthName = MONTH_NAMES[monthNum - 1] ?? `Mes ${monthNum}`;
-
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="px-5 pt-12 pb-3">
@@ -122,68 +100,76 @@ const CalendarioMes = () => {
           </Link>
           <div>
             <h1 className="text-xl font-display font-bold text-foreground">{monthName}</h1>
-            {data?.month?.theme && (
-              <p className="text-xs text-primary">{data.month.theme}</p>
+            {monthRecord?.theme && (
+              <p className="text-xs text-primary">{monthRecord.theme}</p>
             )}
           </div>
         </div>
       </header>
 
-      <main className="px-5 space-y-6 pt-3">
+      <main className="px-5 space-y-5 pt-3">
         {isLoading ? (
           <div className="space-y-4">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="glass-card rounded-2xl p-4 h-28 animate-pulse bg-muted" />
             ))}
           </div>
-        ) : !data ? (
+        ) : isError ? (
+          <div className="glass-card rounded-2xl p-6 text-center space-y-3">
+            <p className="text-sm text-muted-foreground">Error al cargar el mes.</p>
+            <button
+              onClick={() => refetch()}
+              className="px-4 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
+        ) : days.length === 0 ? (
           <div className="glass-card rounded-2xl p-6 text-center">
-            <p className="text-sm text-muted-foreground">No hay datos para este mes.</p>
+            <p className="text-sm text-muted-foreground">No hay días configurados para este mes.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {data.weeks.map((w) => (
-              <div key={w.id} className="glass-card rounded-2xl p-4 border border-primary/10">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <p className="text-sm font-bold text-foreground">{w.name}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                      Semana {w.number} · {w.status}
-                    </p>
-                  </div>
-                  <Link
-                    to={`/reto/${w.id}`}
-                    className="text-xs font-semibold text-primary hover:underline"
-                  >
-                    Ver reto
-                  </Link>
+          weeks.map(([weekNum, w]) => (
+            <div key={weekNum} className="glass-card rounded-2xl p-4 border border-primary/10">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm font-bold text-foreground">{w.week_name}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    Semana {weekNum}
+                  </p>
                 </div>
-                <div className="flex gap-2">
-                  {w.days.map((d) => {
-                    const pct = Math.min(100, Math.round((d.completed / TOTAL_TASKS_PER_DAY) * 100));
-                    const isComplete = d.completed >= TOTAL_TASKS_PER_DAY;
-                    return (
-                      <div
-                        key={d.id}
-                        className={`flex-1 rounded-xl p-2 text-center border transition-colors ${
-                          isComplete
-                            ? "border-primary/40 bg-primary/10"
-                            : d.total > 0
-                            ? "border-primary/10 bg-card"
-                            : "border-muted bg-muted/30"
-                        }`}
-                      >
-                        <p className="text-[10px] text-muted-foreground">D{d.number}</p>
-                        <p className={`text-sm font-bold ${isComplete ? "text-primary" : "text-foreground"}`}>
-                          {d.total > 0 ? `${pct}%` : "—"}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
+                <Link
+                  to={`/reto/${w.week_id}`}
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  Ver reto
+                </Link>
               </div>
-            ))}
-          </div>
+              <div className="grid grid-cols-7 gap-1.5">
+                {w.days.map((d) => {
+                  const isFuture = d.status === "future";
+                  const style = STATUS_STYLES[d.status] ?? STATUS_STYLES.pending;
+
+                  const content = (
+                    <div className={`rounded-xl p-2 text-center border transition-colors ${style} ${!isFuture ? "hover:border-primary/40" : "cursor-default"}`}>
+                      <p className="text-[9px] font-medium">D{d.day_number}</p>
+                      <p className="text-xs font-bold mt-0.5">
+                        {isFuture ? "—" : `${d.day_pct}%`}
+                      </p>
+                    </div>
+                  );
+
+                  if (isFuture || !d.week_id) return <div key={d.day_id}>{content}</div>;
+
+                  return (
+                    <Link key={d.day_id} to={`/reto/${d.week_id}/dia/${d.day_number}`}>
+                      {content}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))
         )}
       </main>
 
