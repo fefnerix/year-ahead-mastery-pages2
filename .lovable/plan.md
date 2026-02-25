@@ -1,103 +1,162 @@
 
 
-# Regra "5 tarefas por dia" para calculo de progresso
+# Fix "Recuperar Ayer" — Timezone-safe + Context-aware
 
 ## Problema
 
-O app calcula `day_pct` e "Perfect Day" usando `tasks.length` como denominador. Se um dia tiver 4 ou 6 tarefas (seed incompleto/incorreto), o calculo fica errado: 4/4 = 100% quando deveria ser 4/5 = 80%.
+O hook `useYesterdayProgress` tem dois bugs:
+
+1. Usa `toISOString().split("T")[0]` que converte para UTC, causando off-by-one em America/Sao_Paulo (ex: 23h SP = dia seguinte UTC)
+2. Faz `.eq("date", dateStr)` buscando exatamente "ontem UTC" sem considerar a semana ativa nem `unlock_date`
 
 ## Solucao
 
-Introduzir constante `TOTAL_TASKS_PER_DAY = 5` e usar como denominador fixo em todos os calculos de progresso e Perfect Day.
+Reescrever a query do hook para:
+- Usar `Intl.DateTimeFormat` com timezone America/Sao_Paulo para obter a data local correta
+- Buscar o ultimo dia desbloqueado ANTES de hoje, dentro da semana ativa
+- Manter a mesma interface de retorno e o mesmo comportamento de ocultar quando completo
 
----
+## Arquivo alterado
 
-## Arquivos a alterar
+**Apenas** `src/hooks/useYesterdayData.ts`
 
-### 1. `src/pages/Index.tsx`
+O render em `Index.tsx` ja faz `{yesterday && (...)}`, entao nao precisa mudar.
 
-Mudancas pontuais nas linhas de calculo (linhas 42-51) e nos contadores exibidos na UI:
+## Implementacao
 
-**Calculos (substituir linhas 42-51):**
+### 1. Helper de data local
+
 ```typescript
+const getTodaySP = (): string =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+```
+
+`en-CA` retorna formato `YYYY-MM-DD` nativamente.
+
+### 2. Query reescrita
+
+Em vez de `.eq("date", dateStr)` com data UTC:
+
+1. Buscar a semana ativa: `weeks.status = 'active'`
+2. Buscar o ultimo dia desbloqueado antes de hoje:
+   - `.eq("week_id", activeWeekId)`
+   - `.lt("unlock_date", todaySP)` (estritamente antes de hoje)
+   - `.order("number", { ascending: false })`
+   - `.limit(1)`
+3. Buscar tasks e checks como ja faz
+4. Se completo (checks >= total) ou sem tasks: retornar `null`
+
+### 3. Logica de "completude" usa TOTAL_TASKS_PER_DAY = 5
+
+Consistente com a regra global: so oculta "Ayer" se `completed >= 5` (nao `tasks.length`).
+
+## Codigo final do hook
+
+```typescript
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./useAuth";
+
 const TOTAL_TASKS_PER_DAY = 5;
 
-const completedCount = tasks.filter((t) => t.completed).length;
-const dayProgress = Math.min(100, Math.max(0, Math.round((completedCount / TOTAL_TASKS_PER_DAY) * 100)));
-const allCompleted = completedCount >= TOTAL_TASKS_PER_DAY;
+const getTodaySP = (): string =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 
-// Warn if tasks count is unexpected (dev/admin only)
-if (tasks.length > 0 && tasks.length !== TOTAL_TASKS_PER_DAY) {
-  console.warn('[Admin] Day has tasks.length != 5', { dayId: progress?.day_id, tasksLength: tasks.length });
+interface YesterdayData {
+  day_id: string;
+  day_number: number;
+  week_id: string;
+  week_name: string;
+  completed_count: number;
+  total_count: number;
 }
 
-const softComplete = completedCount >= 3;
-const momento5Task = tasks.find((t) => t.order === 5);
-const momento5HasNote = momento5Task ? !!localNotes[momento5Task.id]?.trim() : false;
-const isPerfectDay = completedCount >= TOTAL_TASKS_PER_DAY && momento5HasNote;
-```
+export function useYesterdayProgress() {
+  const { user } = useAuth();
 
-**Contadores na UI:**
-- Linha 104 (header): `{completedCount}/{tasks.length}` -> `{completedCount}/{TOTAL_TASKS_PER_DAY}`
-- Linha 210-212 (secao titulo): manter `{completedCount}/{TOTAL_TASKS_PER_DAY}`
+  return useQuery({
+    queryKey: ["yesterday-progress", user?.id],
+    queryFn: async (): Promise<YesterdayData | null> => {
+      const todaySP = getTodaySP();
 
-**Fallback discreto (dev only):**
-Apos o contador da secao de momentos, adicionar:
-```typescript
-{import.meta.env.DEV && tasks.length > 0 && tasks.length !== TOTAL_TASKS_PER_DAY && (
-  <span className="text-[9px] text-muted-foreground/40 ml-2">⚠ {tasks.length} cfg</span>
-)}
-```
+      // 1) Semana ativa
+      const { data: activeWeek, error: weekErr } = await supabase
+        .from("weeks")
+        .select("id, name")
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle();
 
-### 2. `src/pages/Dia.tsx`
+      if (weekErr) throw weekErr;
+      if (!activeWeek) return null;
 
-Mesma logica, aplicada nas linhas 57-59:
+      // 2) Ultimo dia desbloqueado ANTES de hoje
+      const { data: day, error: dayErr } = await supabase
+        .from("days")
+        .select("id, number, week_id")
+        .eq("week_id", activeWeek.id)
+        .lt("unlock_date", todaySP)
+        .order("number", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-**Calculos:**
-```typescript
-const TOTAL_TASKS_PER_DAY = 5;
+      if (dayErr) throw dayErr;
+      if (!day) return null;
 
-const completedCount = tasks.filter((t) => t.completed).length;
-const dayProgress = Math.min(100, Math.max(0, Math.round((completedCount / TOTAL_TASKS_PER_DAY) * 100)));
-const allCompleted = completedCount >= TOTAL_TASKS_PER_DAY;
+      // 3) Tasks e checks
+      const [{ data: tasks }, { data: checks }] = await Promise.all([
+        supabase.from("tasks").select("id").eq("day_id", day.id),
+        supabase
+          .from("task_checks")
+          .select("id")
+          .eq("day_id", day.id)
+          .eq("user_id", user!.id),
+      ]);
 
-if (tasks.length > 0 && tasks.length !== TOTAL_TASKS_PER_DAY) {
-  console.warn('[Admin] Day has tasks.length != 5', { dayId, tasksLength: tasks.length });
+      const total = tasks?.length ?? 0;
+      const completed = checks?.length ?? 0;
+
+      // Ocultar se completo (regra 5/5) ou sem tasks
+      if (completed >= TOTAL_TASKS_PER_DAY) return null;
+      if (total === 0) return null;
+
+      return {
+        day_id: day.id,
+        day_number: day.number,
+        week_id: day.week_id,
+        week_name: activeWeek.name ?? "",
+        completed_count: completed,
+        total_count: total,
+      };
+    },
+    enabled: !!user,
+  });
 }
 ```
-
-**Contadores na UI:**
-- Linha 104: `{completedCount}/{tasks.length}` -> `{completedCount}/{TOTAL_TASKS_PER_DAY}`
-- Linha 113: idem
-
-**Botao "Concluir Dia" (linha 125):**
-- Mudar condicao de `allCompleted` para `completedCount >= TOTAL_TASKS_PER_DAY` (ja coberto pela nova definicao de `allCompleted`)
-
-**Fallback dev (ao lado do contador no header):**
-```typescript
-{import.meta.env.DEV && tasks.length > 0 && tasks.length !== TOTAL_TASKS_PER_DAY && (
-  <span className="text-[9px] text-muted-foreground/40 ml-1">⚠ {tasks.length} cfg</span>
-)}
-```
-
----
 
 ## O que NAO muda
 
-- Nenhuma tabela nova
-- Nenhuma RLS alterada
-- Nenhum hook novo ou estado global
-- `DailyChecklist.tsx` continua renderizando as tasks que recebe (sem mudanca)
-- Invalidacoes React Query ja existentes (`useToggleDayTask.onSettled` ja invalida `["progress"]`) -- nada a fazer
-- O RPC `get_user_progress` no backend continua calculando com base nas tasks reais do banco -- a normalizacao aqui e apenas no frontend para UI/Perfect Day
+- `Index.tsx` — ja renderiza condicionalmente com `{yesterday && (...)}`
+- Nenhuma tabela/RLS/RPC nova
+- Nenhum estado global novo
+- Query key permanece `["yesterday-progress", userId]`
 
 ## Resumo de impacto
 
-| Ponto | Antes | Depois |
+| Aspecto | Antes | Depois |
 |---|---|---|
-| Dia com 4 tasks, 4 feitas | 100%, Perfect Day possivel | 80%, Perfect Day impossivel |
-| Dia com 5 tasks, 5 feitas | 100%, Perfect Day se nota | 100%, Perfect Day se nota |
-| Dia com 6 tasks, 5 feitas | 83%, nao Perfect | 100%, Perfect Day se nota |
-| Contador UI | "4/4" | "4/5" |
-| Console warn | nenhum | warn em dev |
-| Badge UI | nenhum | "⚠ 4 cfg" em dev only |
+| Timezone | UTC (off-by-one) | America/Sao_Paulo |
+| Contexto | Qualquer dia no banco | Semana ativa apenas |
+| Filtro | `.eq("date", ontemUTC)` | `.lt("unlock_date", hojeSP)` ordenado desc |
+| Completude | `completed >= tasks.length` | `completed >= 5` (regra global) |
+| Queries | 4 sequenciais | 2 seq + 2 paralelas |
