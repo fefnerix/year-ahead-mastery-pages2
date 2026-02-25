@@ -1,4 +1,4 @@
-import { Home, CalendarDays, Calendar, Trophy, User, Shield, BookOpen } from "lucide-react";
+import { Home, CalendarDays, Calendar, Trophy, User, Shield, PenLine } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import { useIsAdmin } from "@/hooks/useAdmin";
 
@@ -9,7 +9,7 @@ const BottomNav = () => {
   const navItems = [
     { icon: Home, label: "Hoy", path: "/" },
     { icon: Calendar, label: "Calendario", path: "/calendario" },
-    { icon: BookOpen, label: "Cuaderno", path: "/cuaderno" },
+    { icon: PenLine, label: "Diario", path: "/cuaderno" },
     { icon: Trophy, label: "Ranking", path: "/ranking" },
     { icon: User, label: "Perfil", path: "/perfil" },
     ...(isAdmin ? [{ icon: Shield, label: "Admin", path: "/admin" }] : []),

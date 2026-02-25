@@ -33,7 +33,7 @@ const CalendarioMes = () => {
   const { user } = useAuth();
   const monthNum = Number(month);
   const yearNum = Number(year);
-  const isValid = monthNum >= 1 && monthNum <= 12 && !isNaN(yearNum);
+  const isValid = monthNum >= 3 && monthNum <= 12 && !isNaN(yearNum);
 
   // 1) Resolve month_id from year + monthNum
   const { data: monthRecord, isLoading: monthLoading } = useQuery({
@@ -81,8 +81,8 @@ const CalendarioMes = () => {
   if (!isValid) {
     return (
       <div className="min-h-screen bg-background pb-24 flex flex-col items-center justify-center px-5">
-        <p className="text-lg font-bold text-foreground">Mes no válido</p>
-        <p className="text-sm text-muted-foreground mt-2">El mes debe estar entre 1 y 12.</p>
+        <p className="text-lg font-bold text-foreground">Mes no disponible</p>
+        <p className="text-sm text-muted-foreground mt-2">Este mes no está habilitado.</p>
         <Link to="/calendario" className="mt-4 text-primary text-sm font-semibold hover:underline">
           ← Volver al calendario
         </Link>
