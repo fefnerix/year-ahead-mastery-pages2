@@ -179,6 +179,64 @@ export type Database = {
           },
         ]
       }
+      journal_entries: {
+        Row: {
+          content: string
+          created_at: string
+          date: string
+          day_id: string | null
+          id: string
+          month_id: string | null
+          updated_at: string
+          user_id: string
+          week_id: string | null
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          date?: string
+          day_id?: string | null
+          id?: string
+          month_id?: string | null
+          updated_at?: string
+          user_id: string
+          week_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          date?: string
+          day_id?: string | null
+          id?: string
+          month_id?: string | null
+          updated_at?: string
+          user_id?: string
+          week_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_day_id_fkey"
+            columns: ["day_id"]
+            isOneToOne: false
+            referencedRelation: "days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_month_id_fkey"
+            columns: ["month_id"]
+            isOneToOne: false
+            referencedRelation: "months"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "weeks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leaderboard_scores: {
         Row: {
           days_completed: number

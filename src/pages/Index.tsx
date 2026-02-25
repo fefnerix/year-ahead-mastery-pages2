@@ -1,10 +1,13 @@
 import DailyChecklist from "@/components/DailyChecklist";
+import JournalInput from "@/components/JournalInput";
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { Sparkles, Loader2, ArrowRight, Clock, Zap, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import { useProgress, useUpdateStreak } from "@/hooks/useTodayData";
 import { useDayTasks, useToggleDayTask } from "@/hooks/useDayTasks";
@@ -26,6 +29,20 @@ const Index = () => {
   const { data: notesData = [] } = useTaskNotes(progress?.day_id);
   const saveNote = useSaveNote();
   const { data: yesterday } = useYesterdayProgress();
+
+  // Fetch current day's date for journal
+  const { data: currentDayDate } = useQuery({
+    queryKey: ["day-date", progress?.day_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("days")
+        .select("date")
+        .eq("id", progress!.day_id!)
+        .single();
+      return data?.date as string;
+    },
+    enabled: !!progress?.day_id,
+  });
 
   const [localNotes, setLocalNotes] = useState<Record<string, string>>({});
   const prevNotesRef = useRef<string>("");
@@ -290,6 +307,15 @@ const Index = () => {
             />
           )}
         </section>
+
+        {/* Reflexión del día */}
+        {hasDayData && currentDayDate && (
+          <JournalInput
+            date={currentDayDate}
+            dayId={progress?.day_id}
+            weekId={weekData?.id}
+          />
+        )}
 
         {/* Soft/Hard Complete Day Buttons */}
         {softComplete && (
