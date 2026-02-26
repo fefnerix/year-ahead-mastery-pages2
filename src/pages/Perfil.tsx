@@ -1,12 +1,14 @@
 import BottomNav from "@/components/BottomNav";
 import DepositCard from "@/components/DepositCard";
 import { ChevronRight, Settings, HelpCircle, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeposits } from "@/hooks/useDeposits";
 
 
 const Perfil = () => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const { data: deposits = [] } = useDeposits();
 
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "";
@@ -59,13 +61,13 @@ const Perfil = () => {
 
         {/* Settings */}
         <div className="glass-card rounded-xl overflow-hidden">
-          <button className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-foreground hover:bg-muted/50 transition-colors border-b border-border/30">
+          <button onClick={() => navigate("/settings")} className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-foreground hover:bg-muted/50 transition-colors border-b border-border/30">
             <span className="flex items-center gap-3 font-medium">
               <Settings className="w-4 h-4 text-muted-foreground" /> Configuración
             </span>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
-          <button className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-foreground hover:bg-muted/50 transition-colors border-b border-border/30">
+          <button onClick={() => navigate("/support")} className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-foreground hover:bg-muted/50 transition-colors border-b border-border/30">
             <span className="flex items-center gap-3 font-medium">
               <HelpCircle className="w-4 h-4 text-muted-foreground" /> Soporte y Ayuda
             </span>
