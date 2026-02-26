@@ -40,7 +40,7 @@ const DepositModal = ({ open, onClose }: DepositModalProps) => {
         date,
         note: note.trim() || undefined,
       });
-      toast.success("Depósito salvo ✅");
+      toast.success("Depósito registrado ✅");
       setAmount("");
       setNote("");
       setDate(new Date().toISOString().split("T")[0]);
@@ -61,7 +61,7 @@ const DepositModal = ({ open, onClose }: DepositModalProps) => {
           <div>
             <h3 className="text-lg font-display font-bold text-foreground">Registrar depósito</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Anota um valor e o motivo. Fica salvo no seu histórico.
+              Anota un valor y el motivo. Quedará guardado en tu historial.
             </p>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-1">
@@ -93,7 +93,7 @@ const DepositModal = ({ open, onClose }: DepositModalProps) => {
           {/* Data */}
           <div>
             <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 block">
-              Data
+              Fecha
             </label>
             <input
               type="date"
@@ -109,7 +109,7 @@ const DepositModal = ({ open, onClose }: DepositModalProps) => {
               Nota <span className="text-muted-foreground/50 normal-case">(opcional)</span>
             </label>
             <textarea
-              placeholder="O que esse depósito significa pra você?"
+              placeholder="¿Qué significa este depósito para ti?"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={3}
@@ -134,7 +134,7 @@ const DepositModal = ({ open, onClose }: DepositModalProps) => {
               disabled={createDeposit.isPending}
               className="flex-1 py-3 rounded-xl gold-gradient font-bold text-primary-foreground text-sm uppercase tracking-wider flex items-center justify-center gap-2"
             >
-              {createDeposit.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+              {createDeposit.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Guardar"}
             </button>
           </div>
         </form>
