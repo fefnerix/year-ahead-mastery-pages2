@@ -119,9 +119,9 @@ const Index = () => {
                   <h2 className="text-lg font-display font-bold text-foreground leading-tight">
                     {monthTheme || "—"}
                   </h2>
-                  {hasDayData && weekData && (
+                  {hasDayData && progress?.day_id && (
                     <Link
-                      to={`/reto/${weekData.id}/dia/${progress?.day_number}`}
+                      to={`/day/${progress.day_id}`}
                       className="mt-2.5 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl gold-gradient text-primary-foreground text-[11px] font-bold uppercase tracking-wider self-start press-scale"
                     >
                       Continuar hoy <ArrowRight className="w-3 h-3" />
