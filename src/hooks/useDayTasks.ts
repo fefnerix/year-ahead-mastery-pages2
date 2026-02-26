@@ -11,6 +11,9 @@ export interface TaskWithCheck {
   order: number;
   task_kind: "prayer" | "activity";
   description?: string | null;
+  media_image_url?: string | null;
+  media_video_url?: string | null;
+  media_audio_url?: string | null;
 }
 
 export function useDayTasks(dayId: string | null | undefined) {
@@ -21,7 +24,7 @@ export function useDayTasks(dayId: string | null | undefined) {
     queryFn: async (): Promise<TaskWithCheck[]> => {
       const { data: tasks, error: tasksError } = await supabase
         .from("tasks")
-        .select("id, title, category, order, task_kind, description, is_active")
+        .select("id, title, category, order, task_kind, description, is_active, media_image_url, media_video_url, media_audio_url")
         .eq("day_id", dayId!)
         .order("order");
       if (tasksError) throw tasksError;
@@ -47,6 +50,9 @@ export function useDayTasks(dayId: string | null | undefined) {
         order: t.order,
         task_kind: t.task_kind ?? "activity",
         description: t.description ?? null,
+        media_image_url: t.media_image_url ?? null,
+        media_video_url: t.media_video_url ?? null,
+        media_audio_url: t.media_audio_url ?? null,
       }));
     },
     enabled: !!dayId && !!user,

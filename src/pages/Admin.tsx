@@ -3,14 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
-import FileUpload from "@/components/FileUpload";
 import {
-  usePrograms, useMonths, useWeeks,
-  useCreateProgram, useCreateMonth, useCreateWeekWithDays,
-  useUpdateWeekAsset, useAdjustWeekDates, useActivateWeek,
+  usePrograms, useMonths,
+  useCreateProgram, useCreateMonth,
 } from "@/hooks/useAdmin";
 import { useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement } from "@/hooks/useAnnouncements";
-import { Loader2, Plus, ChevronRight, Trash2, Megaphone, Wrench, Calendar, Zap, ChevronDown, BookOpen, Save } from "lucide-react";
+import { Loader2, Plus, ChevronRight, Trash2, Megaphone, BookOpen, Save } from "lucide-react";
 import { toast } from "sonner";
 import Logo from "@/components/Logo";
 
@@ -23,24 +21,16 @@ const Admin = () => {
   // Forms
   const [showProgramForm, setShowProgramForm] = useState(false);
   const [showMonthForm, setShowMonthForm] = useState(false);
-  const [showWeekForm, setShowWeekForm] = useState(false);
   const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
 
   const { data: programs = [], isLoading: progLoading } = usePrograms();
   const { data: months = [] } = useMonths(selectedProgram);
-  const { data: weeks = [] } = useWeeks(selectedMonth);
   const { data: announcements = [] } = useAnnouncements();
 
   const createProgram = useCreateProgram();
   const createMonth = useCreateMonth();
-  const createWeek = useCreateWeekWithDays();
   const createAnnouncement = useCreateAnnouncement();
   const deleteAnnouncement = useDeleteAnnouncement();
-  const updateAsset = useUpdateWeekAsset();
-  const adjustDates = useAdjustWeekDates();
-  const activateWeek = useActivateWeek();
-
-  const [expandedWeek, setExpandedWeek] = useState<string | null>(null);
 
   // Program form state
   const [pName, setPName] = useState("");
@@ -52,19 +42,6 @@ const Admin = () => {
   const [mName, setMName] = useState("");
   const [mNumber, setMNumber] = useState(1);
   const [mTheme, setMTheme] = useState("");
-
-  // Week form state
-  const [wName, setWName] = useState("");
-  const [wNumber, setWNumber] = useState(1);
-  const [wObjective, setWObjective] = useState("");
-  const [wStartDate, setWStartDate] = useState("");
-  const [wCover, setWCover] = useState("");
-  const [wAudio, setWAudio] = useState("");
-  const [wScheduleImg, setWScheduleImg] = useState("");
-  const [wSchedulePdf, setWSchedulePdf] = useState("");
-  const [wDescLong, setWDescLong] = useState("");
-  const [wSpiritualPlaylist, setWSpiritualPlaylist] = useState("");
-  const [wMentalPlaylist, setWMentalPlaylist] = useState("");
 
   // Announcement form state
   const [aTitle, setATitle] = useState("");
@@ -90,26 +67,6 @@ const Admin = () => {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  const handleCreateWeek = async () => {
-    if (!selectedMonth) return;
-    try {
-      await createWeek.mutateAsync({
-        name: wName, number: wNumber, month_id: selectedMonth, objective: wObjective || undefined,
-        start_date: wStartDate,
-        cover_url: wCover || undefined, audio_url: wAudio || undefined,
-        schedule_image_url: wScheduleImg || undefined, schedule_pdf_url: wSchedulePdf || undefined,
-        description_long: wDescLong || undefined,
-        spiritual_playlist_url: wSpiritualPlaylist || undefined,
-        mental_playlist_url: wMentalPlaylist || undefined,
-      });
-      toast.success("Reto creado con 7 días y 14 tareas (2 por día)");
-      setShowWeekForm(false);
-      setWName(""); setWObjective(""); setWStartDate("");
-      setWCover(""); setWAudio(""); setWScheduleImg(""); setWSchedulePdf("");
-      setWDescLong(""); setWSpiritualPlaylist(""); setWMentalPlaylist("");
-    } catch (e: any) { toast.error(e.message); }
-  };
-
   const handleCreateAnnouncement = async () => {
     try {
       await createAnnouncement.mutateAsync({ title: aTitle, body: aBody, pinned: aPinned });
@@ -126,7 +83,7 @@ const Admin = () => {
       <header className="px-5 pt-12 pb-4">
         <Logo variant="compact" className="mb-3" />
         <h1 className="text-3xl font-display font-bold text-foreground">Admin</h1>
-        <p className="text-sm text-muted-foreground mt-1">Gestión de programas, meses, retos y comunicados</p>
+        <p className="text-sm text-muted-foreground mt-1">Gestión de programas, meses y comunicados</p>
 
         {/* Tabs */}
         <div className="flex gap-2 mt-4">
@@ -214,173 +171,26 @@ const Admin = () => {
                 <div className="space-y-2">
                   {months.map((m) => (
                     <div key={m.id} className="glass-card rounded-xl p-3 space-y-2">
-                      <button
-                        onClick={() => setSelectedMonth(m.id)}
-                        className={`w-full flex items-center justify-between text-left ${selectedMonth === m.id ? "gold-border rounded-lg p-1" : ""}`}
-                      >
-                        <div>
-                          <span className="text-sm font-semibold text-foreground">{m.name}</span>
-                          {m.theme && <span className="text-xs text-muted-foreground ml-2">{m.theme}</span>}
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                      </button>
+                      <div className="flex items-center justify-between">
+                        <button
+                          onClick={() => setSelectedMonth(selectedMonth === m.id ? null : m.id)}
+                          className="flex-1 text-left"
+                        >
+                          <div>
+                            <span className="text-sm font-semibold text-foreground">{m.name}</span>
+                            {m.theme && <span className="text-xs text-muted-foreground ml-2">{m.theme}</span>}
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => navigate(`/admin/months/${m.id}/days`)}
+                          className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1.5 rounded-lg hover:bg-primary/20 transition-colors"
+                        >
+                          <BookOpen className="w-3.5 h-3.5" /> Editar días
+                        </button>
+                      </div>
 
                       {selectedMonth === m.id && (
                         <MonthMacroEditor month={m} />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Weeks/Retos */}
-            {selectedMonth && (
-              <section>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-lg font-display font-bold text-foreground">Retos / Semanas</h2>
-                  <button onClick={() => setShowWeekForm(!showWeekForm)} className="text-primary text-sm font-semibold flex items-center gap-1">
-                    <Plus className="w-4 h-4" /> Nuevo
-                  </button>
-                </div>
-
-                {showWeekForm && (
-                  <div className="glass-card rounded-xl p-4 space-y-3 mb-3">
-                    <input placeholder="Nombre del reto" value={wName} onChange={(e) => setWName(e.target.value)} className={inputClass} />
-                    <input type="number" placeholder="Número de semana" value={wNumber} onChange={(e) => setWNumber(Number(e.target.value))} className={inputClass} />
-                    <input placeholder="Objetivo (opcional)" value={wObjective} onChange={(e) => setWObjective(e.target.value)} className={inputClass} />
-                    <input type="date" placeholder="Fecha inicio (lunes)" value={wStartDate} onChange={(e) => setWStartDate(e.target.value)} className={inputClass} />
-                    <textarea placeholder="Descripción extendida del reto" value={wDescLong} onChange={(e) => setWDescLong(e.target.value)} rows={3} className={inputClass} />
-                    <input placeholder="URL playlist espiritual (Spotify)" value={wSpiritualPlaylist} onChange={(e) => setWSpiritualPlaylist(e.target.value)} className={inputClass} />
-                    <input placeholder="URL playlist mental (Spotify)" value={wMentalPlaylist} onChange={(e) => setWMentalPlaylist(e.target.value)} className={inputClass} />
-                    <FileUpload bucket="covers" accept="image/*" label="Subir capa" onUploaded={setWCover} />
-                    <FileUpload bucket="audios" accept="audio/*" label="Subir audio" onUploaded={setWAudio} />
-                    <FileUpload bucket="schedules" accept="image/*" label="Subir cronograma (imagen)" onUploaded={setWScheduleImg} />
-                    <FileUpload bucket="pdfs" accept=".pdf" label="Subir cronograma (PDF)" onUploaded={setWSchedulePdf} />
-                    <button onClick={handleCreateWeek} disabled={createWeek.isPending} className="w-full py-2 rounded-lg gold-gradient font-bold text-primary-foreground text-sm">
-                      {createWeek.isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Crear Reto (+ 7 días + 14 tareas)"}
-                    </button>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  {weeks.map((w) => (
-                    <div key={w.id} className="glass-card rounded-xl p-3 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-foreground">{w.name}</span>
-                          <span className="text-xs text-muted-foreground">Semana {w.number}</span>
-                          {w.status === "active" && (
-                            <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-primary/20 text-primary">Activa</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => navigate(`/admin/retos/${w.id}/tareas`)}
-                            className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2 py-1.5 rounded-lg hover:bg-primary/20 transition-colors"
-                          >
-                            <BookOpen className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => navigate(`/admin/retos/${w.id}/builder`)}
-                            className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2 py-1.5 rounded-lg hover:bg-primary/20 transition-colors"
-                          >
-                            <Wrench className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => setExpandedWeek(expandedWeek === w.id ? null : w.id)}
-                            className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1.5 rounded-lg hover:bg-muted/80 transition-colors"
-                          >
-                            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expandedWeek === w.id ? "rotate-180" : ""}`} />
-                          </button>
-                        </div>
-                      </div>
-
-                      {expandedWeek === w.id && (
-                        <div className="space-y-3 pt-2 border-t border-border">
-                          {/* Actions */}
-                          <div className="flex gap-2">
-                            <button
-                              onClick={async () => {
-                                try {
-                                  await activateWeek.mutateAsync(w.id);
-                                  toast.success("Semana activada");
-                                } catch (e: any) { toast.error(e.message); }
-                              }}
-                              disabled={activateWeek.isPending || w.status === "active"}
-                              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-primary/10 text-primary text-xs font-semibold disabled:opacity-40"
-                            >
-                              <Zap className="w-3.5 h-3.5" /> {w.status === "active" ? "Activa" : "Activar"}
-                            </button>
-                            <button
-                              onClick={async () => {
-                                try {
-                                  await adjustDates.mutateAsync(w.id);
-                                  toast.success("Fechas ajustadas a esta semana");
-                                } catch (e: any) { toast.error(e.message); }
-                              }}
-                              disabled={adjustDates.isPending}
-                              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-muted text-foreground text-xs font-semibold"
-                            >
-                              <Calendar className="w-3.5 h-3.5" /> Ajustar fechas
-                            </button>
-                          </div>
-
-                          {/* Asset uploads */}
-                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Assets</p>
-                          <div className="grid grid-cols-2 gap-2">
-                            <FileUpload
-                              bucket="covers"
-                              accept="image/*"
-                              label="Banner/Cover"
-                              onUploaded={async (url) => {
-                                try {
-                                  await updateAsset.mutateAsync({ weekId: w.id, field: "cover_url", value: url });
-                                  toast.success("Cover actualizado");
-                                } catch (e: any) { toast.error(e.message); }
-                              }}
-                            />
-                            <FileUpload
-                              bucket="audios"
-                              accept="audio/*"
-                              label="Audio apertura"
-                              onUploaded={async (url) => {
-                                try {
-                                  await updateAsset.mutateAsync({ weekId: w.id, field: "audio_url", value: url });
-                                  toast.success("Audio actualizado");
-                                } catch (e: any) { toast.error(e.message); }
-                              }}
-                            />
-                            <FileUpload
-                              bucket="schedules"
-                              accept="image/*"
-                              label="Cronograma img"
-                              onUploaded={async (url) => {
-                                try {
-                                  await updateAsset.mutateAsync({ weekId: w.id, field: "schedule_image_url", value: url });
-                                  toast.success("Cronograma imagen actualizado");
-                                } catch (e: any) { toast.error(e.message); }
-                              }}
-                            />
-                            <FileUpload
-                              bucket="pdfs"
-                              accept=".pdf"
-                              label="Cronograma PDF"
-                              onUploaded={async (url) => {
-                                try {
-                                  await updateAsset.mutateAsync({ weekId: w.id, field: "schedule_pdf_url", value: url });
-                                  toast.success("PDF actualizado");
-                                } catch (e: any) { toast.error(e.message); }
-                              }}
-                            />
-                          </div>
-
-                          {/* Current assets status */}
-                          <div className="text-[10px] text-muted-foreground/60 space-y-0.5">
-                            <p>Cover: {w.cover_url ? "✅" : "❌"} | Audio: {w.audio_url ? "✅" : "❌"}</p>
-                            <p>Cronograma: {w.schedule_image_url ? "✅" : "❌"} | PDF: {w.schedule_pdf_url ? "✅" : "❌"}</p>
-                          </div>
-                        </div>
                       )}
                     </div>
                   ))}

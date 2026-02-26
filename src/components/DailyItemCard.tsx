@@ -126,6 +126,22 @@ const DailyItemCard = ({ task, type, onToggle }: DailyItemCardProps) => {
             {task.description && (
               <p className="text-sm text-muted-foreground leading-relaxed">{task.description}</p>
             )}
+            {task.media_image_url && (
+              <img src={task.media_image_url} alt="" className="w-full rounded-xl" loading="lazy" />
+            )}
+            {task.media_video_url && (() => {
+              const ytMatch = task.media_video_url!.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?#]+)/);
+              return ytMatch ? (
+                <div className="aspect-video rounded-xl overflow-hidden">
+                  <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}`} title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full" />
+                </div>
+              ) : (
+                <video src={task.media_video_url!} controls className="w-full rounded-xl" />
+              );
+            })()}
+            {task.media_audio_url && (
+              <audio src={task.media_audio_url} controls className="w-full" />
+            )}
           </div>
           <DrawerFooter>
             <button
