@@ -10,9 +10,9 @@ import {
   DrawerFooter,
   DrawerClose,
 } from "@/components/ui/drawer";
-import CustomVideoPlayer from "@/components/CustomVideoPlayer";
+import YouTubeProgressPlayer from "@/components/YouTubeProgressPlayer";
 import AudioPlayer from "@/components/AudioPlayer";
-import { isYouTubeUrl, getYouTubeId } from "@/lib/media-utils";
+import { getYouTubeId } from "@/lib/media-utils";
 
 interface DailyItemCardProps {
   task: TaskWithCheck | null;
@@ -136,24 +136,8 @@ const DailyItemCard = ({ task, type, onToggle }: DailyItemCardProps) => {
             {/* 3. Video */}
             {task.media_video_url && (() => {
               const ytId = getYouTubeId(task.media_video_url!);
-              return ytId ? (
-                <div className="space-y-1">
-                  <div className="aspect-video rounded-xl overflow-hidden">
-                    <iframe
-                      src={`https://www.youtube.com/embed/${ytId}?modestbranding=1&rel=0&showinfo=0`}
-                      title="Video"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="w-full h-full"
-                    />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground/50 text-center">
-                    Video via YouTube
-                  </p>
-                </div>
-              ) : (
-                <CustomVideoPlayer src={task.media_video_url!} />
-              );
+              if (ytId) return <YouTubeProgressPlayer videoId={ytId} />;
+              return null;
             })()}
 
             {/* 4. Audio */}

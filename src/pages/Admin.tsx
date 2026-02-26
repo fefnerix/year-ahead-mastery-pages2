@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import FileUpload from "@/components/FileUpload";
+import AudioRecorder from "@/components/AudioRecorder";
 import {
   usePrograms, useMonths,
   useCreateProgram, useCreateMonth,
@@ -298,6 +299,7 @@ const MonthMacroEditor = ({ month }: { month: MonthData }) => {
 
   const saveMacro = useMutation({
     mutationFn: async () => {
+      if (videoUrl && !isYouTubeUrl(videoUrl)) throw new Error("Solo se aceptan URLs de YouTube para video.");
       const { error } = await supabase
         .from("months")
         .update({
@@ -318,8 +320,7 @@ const MonthMacroEditor = ({ month }: { month: MonthData }) => {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const videoWarning = getMediaWarning(videoUrl, "video");
-  const audioWarning = getMediaWarning(audioUrl, "audio");
+  const videoWarning = videoUrl && !isYouTubeUrl(videoUrl) ? "Solo se aceptan URLs de YouTube" : null;
 
   const inputClass = "w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary";
 
@@ -333,55 +334,43 @@ const MonthMacroEditor = ({ month }: { month: MonthData }) => {
         <input value={theme} onChange={(e) => setTheme(e.target.value)} placeholder="Ej: Encontrando mi propósito" className={inputClass} />
       </div>
 
-      {/* 2. Imagen */}
+      {/* 2. Imagen — upload only */}
       <div>
         <label className="text-[10px] text-muted-foreground font-semibold uppercase">Imagen</label>
         <div className="space-y-2">
-          <FileUpload bucket="task_media" accept="image/*" label={imageUrl ? "Imagen ✓" : "Subir imagen"} onUploaded={setImageUrl} />
-          <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="O pegar URL de imagen..." className={inputClass} />
+          <FileUpload bucket="task_media" accept="image/*" label={imageUrl ? "Imagen ✓" : "Subir foto"} onUploaded={setImageUrl} />
           {imageUrl && (
             <img src={imageUrl} alt="Preview" className="w-full max-h-32 object-cover rounded-lg" />
           )}
         </div>
       </div>
 
-      {/* 3. Video */}
+      {/* 3. Video — YouTube URL only */}
       <div>
-        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Video</label>
+        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Video (YouTube)</label>
         <div className="space-y-2">
-          <FileUpload bucket="task_media" accept="video/mp4" label={videoUrl && !isYouTubeUrl(videoUrl) ? "Video ✓" : "Subir MP4"} onUploaded={setVideoUrl} />
-          <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="O pegar URL (MP4 o YouTube)..." className={inputClass} />
+          <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="URL del video (YouTube)" className={inputClass} />
           {videoWarning && (
-            <div className="flex items-start gap-1.5 text-[10px] text-amber-400 bg-amber-400/10 rounded-lg px-2.5 py-1.5">
+            <div className="flex items-start gap-1.5 text-[10px] text-destructive bg-destructive/10 rounded-lg px-2.5 py-1.5">
               <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
               <span>{videoWarning}</span>
             </div>
           )}
-          {videoUrl && !isYouTubeUrl(videoUrl) && (
-            <video src={videoUrl} controls className="w-full max-h-32 rounded-lg" />
-          )}
           {videoUrl && isYouTubeUrl(videoUrl) && (
-            <p className="text-[10px] text-muted-foreground">Preview YouTube no disponible aquí.</p>
+            <p className="text-[10px] text-muted-foreground">✓ YouTube URL válida</p>
           )}
         </div>
       </div>
 
-      {/* 4. Audio */}
+      {/* 4. Audio — record or upload */}
       <div>
         <label className="text-[10px] text-muted-foreground font-semibold uppercase">Audio</label>
-        <div className="space-y-2">
-          <FileUpload bucket="task_media" accept="audio/*" label={audioUrl ? "Audio ✓" : "Subir audio"} onUploaded={setAudioUrl} />
-          <input value={audioUrl} onChange={(e) => setAudioUrl(e.target.value)} placeholder="O pegar URL (MP3/M4A/WAV)..." className={inputClass} />
-          {audioWarning && (
-            <div className="flex items-start gap-1.5 text-[10px] text-amber-400 bg-amber-400/10 rounded-lg px-2.5 py-1.5">
-              <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
-              <span>{audioWarning}</span>
-            </div>
-          )}
-          {audioUrl && (
-            <audio src={audioUrl} controls className="w-full" />
-          )}
-        </div>
+        <AudioRecorder
+          bucket="task_media"
+          pathPrefix={`months/${month.id}/audio`}
+          currentUrl={audioUrl || undefined}
+          onUploaded={setAudioUrl}
+        />
       </div>
 
       {/* 5. Macro Text */}
