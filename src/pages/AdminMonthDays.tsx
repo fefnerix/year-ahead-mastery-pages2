@@ -6,9 +6,9 @@ import BottomNav from "@/components/BottomNav";
 import FileUpload from "@/components/FileUpload";
 import AudioRecorder from "@/components/AudioRecorder";
 import { ArrowLeft, Loader2, BookOpen, Target, Save, Trash2, Check, Minus, Circle, AlertTriangle, X } from "lucide-react";
-import { deleteStorageFile } from "@/lib/storage-utils";
 import { toast } from "sonner";
 import { isYouTubeUrl, getMediaWarning } from "@/lib/media-utils";
+import { deleteStorageFile } from "@/lib/storage-utils";
 
 const CATEGORIES = ["cuerpo", "mente", "alma", "finanzas"] as const;
 
@@ -34,7 +34,9 @@ interface TaskRow {
 const AdminMonthDays = () => {
   const { monthId } = useParams<{ monthId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+  const [creatingDay, setCreatingDay] = useState(false);
 
   // Fetch month info + program year
   const { data: monthInfo } = useQuery({
@@ -42,7 +44,7 @@ const AdminMonthDays = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("months")
-        .select("name, theme, number, program_id, programs(year)")
+        .select("name, theme, number, program_id, programs(year, start_date)")
         .eq("id", monthId!)
         .single();
       if (error) throw error;
@@ -51,17 +53,26 @@ const AdminMonthDays = () => {
     enabled: !!monthId,
   });
 
+  // Fetch weeks for this month (needed to create days)
+  const { data: weeks = [] } = useQuery({
+    queryKey: ["admin-month-weeks", monthId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("weeks")
+        .select("id, number")
+        .eq("month_id", monthId!)
+        .order("number");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!monthId,
+  });
+
   // Fetch days for this month (via weeks join)
   const { data: days = [], isLoading: daysLoading } = useQuery({
     queryKey: ["admin-month-days", monthId],
     queryFn: async () => {
-      const { data: weeks, error: wErr } = await supabase
-        .from("weeks")
-        .select("id")
-        .eq("month_id", monthId!);
-      if (wErr) throw wErr;
-      if (!weeks || weeks.length === 0) return [];
-
+      if (weeks.length === 0) return [];
       const weekIds = weeks.map((w) => w.id);
       const { data, error } = await supabase
         .from("days")
@@ -71,7 +82,7 @@ const AdminMonthDays = () => {
       if (error) throw error;
       return data as DayRow[];
     },
-    enabled: !!monthId,
+    enabled: weeks.length > 0,
   });
 
   // Fetch task counts per day (bulk)
@@ -114,36 +125,38 @@ const AdminMonthDays = () => {
   const activeActivity = dayTasks.find((t) => t.task_kind === "activity" && t.is_active);
   const legacyActiveTasks = dayTasks.filter((t) => t.is_active && t.task_kind !== "prayer" && t.task_kind !== "activity");
 
-  // Build calendar grid
+  // Build calendar grid — shows ALL days of the calendar month, not just DB days
   const calendarGrid = useMemo(() => {
     if (!monthInfo) return null;
 
-    const monthNumber = monthInfo.number; // 1-based month number in program
+    const monthNumber = monthInfo.number; // 1-based month number
     const programYear = monthInfo.programs?.year || new Date().getFullYear();
 
-    // Try to determine actual calendar month from first day's date, or from month number
-    let calendarMonth: number;
+    // Determine the actual calendar month/year
+    // Program cycle: month 3..12 = Mar..Dec of programYear, month 1..2 = Jan..Feb of programYear+1
+    let calendarMonth: number; // 0-based for Date constructor
     let calendarYear: number;
 
     if (days.length > 0) {
-      const firstDate = new Date(days[0].date + "T12:00:00");
-      calendarMonth = firstDate.getMonth(); // 0-based
-      calendarYear = firstDate.getFullYear();
+      // Use the first day's date to determine the calendar month
+      const parts = days[0].date.split("-");
+      calendarYear = parseInt(parts[0]);
+      calendarMonth = parseInt(parts[1]) - 1; // 0-based
     } else {
-      // Fallback: program starts March (month 2, 0-based), month 1 = March, month 2 = April, etc.
-      calendarMonth = (2 + monthNumber - 1) % 12;
-      calendarYear = programYear;
+      // Fallback: derive from month number
+      calendarMonth = monthNumber - 1; // 0-based
+      calendarYear = monthNumber >= 3 ? programYear : programYear + 1;
     }
 
     const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
     const firstDayOfWeek = new Date(calendarYear, calendarMonth, 1).getDay(); // 0=Sun
-    // Convert to Mon=0 based
-    const startOffset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+    const startOffset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1; // Mon=0 based
 
     // Map day-of-month to DayRow
     const dayByDate = new Map<number, DayRow>();
     days.forEach((d) => {
-      const dom = new Date(d.date + "T12:00:00").getDate();
+      const parts = d.date.split("-");
+      const dom = parseInt(parts[2]);
       dayByDate.set(dom, d);
     });
 
@@ -154,11 +167,12 @@ const AdminMonthDays = () => {
       cells.push({ dayOfMonth: null, dayRow: null });
     }
 
+    // ALL days of the month — admin can click any of them
     for (let d = 1; d <= daysInMonth; d++) {
       cells.push({ dayOfMonth: d, dayRow: dayByDate.get(d) || null });
     }
 
-    return cells;
+    return { cells, calendarYear, calendarMonth, daysInMonth };
   }, [monthInfo, days]);
 
   const getDayStatus = (dayRow: DayRow | null): "complete" | "partial" | "empty" | "none" => {
@@ -167,6 +181,67 @@ const AdminMonthDays = () => {
     if (count >= 2) return "complete";
     if (count === 1) return "partial";
     return "empty";
+  };
+
+  // Upsert a day + 2 empty tasks when admin clicks a day that doesn't exist yet
+  const ensureDayExists = async (dayOfMonth: number): Promise<string> => {
+    if (!calendarGrid || !monthInfo) throw new Error("No month info");
+
+    const { calendarYear, calendarMonth } = calendarGrid;
+    const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, "0")}-${String(dayOfMonth).padStart(2, "0")}`;
+
+    // Need a week to attach the day to — use first week, or create one
+    let weekId = weeks[0]?.id;
+    if (!weekId) {
+      const { data: newWeek, error: wErr } = await supabase
+        .from("weeks")
+        .insert({ month_id: monthId!, number: 1, name: `Semana 1`, status: "published" })
+        .select("id")
+        .single();
+      if (wErr) throw wErr;
+      weekId = newWeek.id;
+      queryClient.invalidateQueries({ queryKey: ["admin-month-weeks", monthId] });
+    }
+
+    // Insert the day
+    const { data: newDay, error: dErr } = await supabase
+      .from("days")
+      .insert({ week_id: weekId, number: dayOfMonth, date: dateStr, unlock_date: dateStr })
+      .select("id")
+      .single();
+    if (dErr) throw dErr;
+
+    // Create 2 empty draft tasks
+    await supabase.from("tasks").insert([
+      { day_id: newDay.id, title: "Oración del día", task_kind: "prayer", category: "alma" as const, order: 0, is_active: true },
+      { day_id: newDay.id, title: "Actividad del día", task_kind: "activity", category: "cuerpo" as const, order: 1, is_active: true },
+    ]);
+
+    queryClient.invalidateQueries({ queryKey: ["admin-month-days", monthId] });
+    queryClient.invalidateQueries({ queryKey: ["admin-day-task-counts"] });
+
+    return newDay.id;
+  };
+
+  const handleDayClick = async (cell: { dayOfMonth: number | null; dayRow: DayRow | null }) => {
+    if (cell.dayOfMonth === null) return;
+
+    if (cell.dayRow) {
+      setSelectedDayId(cell.dayRow.id);
+      return;
+    }
+
+    // Day doesn't exist in DB — create it
+    setCreatingDay(true);
+    try {
+      const dayId = await ensureDayExists(cell.dayOfMonth);
+      setSelectedDayId(dayId);
+      toast.success(`Día ${cell.dayOfMonth} creado`);
+    } catch (err: any) {
+      toast.error(`Error creando día: ${err.message}`);
+    } finally {
+      setCreatingDay(false);
+    }
   };
 
   const weekdayHeaders = ["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"];
@@ -187,10 +262,10 @@ const AdminMonthDays = () => {
         {/* Calendar grid */}
         <section>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Seleccionar día</p>
-          {daysLoading ? (
+          {daysLoading && weeks.length > 0 ? (
             <Loader2 className="w-5 h-5 text-primary animate-spin" />
           ) : !calendarGrid ? (
-            <p className="text-sm text-muted-foreground">No hay datos del mes.</p>
+            <Loader2 className="w-5 h-5 text-primary animate-spin" />
           ) : (
             <div className="glass-card rounded-xl p-3 border border-primary/10">
               {/* Weekday headers */}
@@ -202,32 +277,32 @@ const AdminMonthDays = () => {
                 ))}
               </div>
 
-              {/* Day cells */}
+              {/* Day cells — ALL days clickable for admin */}
               <div className="grid grid-cols-7 gap-1">
-                {calendarGrid.map((cell, i) => {
+                {calendarGrid.cells.map((cell, i) => {
                   if (cell.dayOfMonth === null) {
                     return <div key={`blank-${i}`} className="aspect-square" />;
                   }
 
                   const status = getDayStatus(cell.dayRow);
                   const isSelected = cell.dayRow?.id === selectedDayId;
-                  const isClickable = !!cell.dayRow;
+                  const hasRecord = !!cell.dayRow;
 
                   return (
                     <button
                       key={cell.dayOfMonth}
-                      onClick={() => isClickable && setSelectedDayId(cell.dayRow!.id)}
-                      disabled={!isClickable}
+                      onClick={() => handleDayClick(cell)}
+                      disabled={creatingDay}
                       className={`aspect-square rounded-lg flex flex-col items-center justify-center gap-0.5 text-sm font-semibold transition-all ${
                         isSelected
                           ? "gold-gradient text-primary-foreground ring-2 ring-primary/30"
-                          : isClickable
+                          : hasRecord
                           ? "hover:bg-primary/10 text-foreground"
-                          : "text-muted-foreground/30 cursor-default"
+                          : "hover:bg-muted/50 text-muted-foreground"
                       }`}
                     >
                       <span className="text-xs">{cell.dayOfMonth}</span>
-                      {isClickable && (
+                      {hasRecord && (
                         <span className="text-[8px]">
                           {status === "complete" && <Check className="w-2.5 h-2.5 text-emerald-400 inline" />}
                           {status === "partial" && <Circle className="w-2 h-2 text-primary inline fill-primary" />}
@@ -238,6 +313,12 @@ const AdminMonthDays = () => {
                   );
                 })}
               </div>
+
+              {creatingDay && (
+                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Creando día...
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -499,29 +580,33 @@ const DeactivateLegacyButton = ({ dayId, tasks }: { dayId: string; tasks: TaskRo
 
   const deactivate = useMutation({
     mutationFn: async () => {
-      for (const t of tasks) {
-        const { error } = await supabase.from("tasks").update({ is_active: false } as any).eq("id", t.id);
-        if (error) throw error;
-      }
+      const ids = tasks.map((t) => t.id);
+      const { error } = await supabase
+        .from("tasks")
+        .update({ is_active: false })
+        .in("id", ids);
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Tareas antiguas desactivadas");
       queryClient.invalidateQueries({ queryKey: ["admin-day-tasks", dayId] });
       queryClient.invalidateQueries({ queryKey: ["admin-day-task-counts"] });
-      queryClient.invalidateQueries({ queryKey: ["day-tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["progress"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   return (
     <button
-      onClick={() => deactivate.mutate()}
+      onClick={() => {
+        if (window.confirm("¿Desactivar todas las tareas antiguas?")) {
+          deactivate.mutate();
+        }
+      }}
       disabled={deactivate.isPending}
-      className="text-[10px] font-semibold text-destructive flex items-center gap-1 hover:underline"
+      className="text-[10px] font-semibold text-destructive hover:text-destructive/80 flex items-center gap-1"
     >
       {deactivate.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-      Desactivar todas
+      Desactivar
     </button>
   );
 };
