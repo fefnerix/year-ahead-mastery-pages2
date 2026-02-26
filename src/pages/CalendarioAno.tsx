@@ -4,16 +4,9 @@ import Logo from "@/components/Logo";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsAdmin } from "@/hooks/useAdmin";
 import { CalendarDays, Lock } from "lucide-react";
 import { toast } from "sonner";
-
-const MONTH_NAMES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
-];
-
-// Cycle order: Mar(3)..Dec(12), Jan(1), Feb(2)
-const CYCLE_ORDER = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2];
 
 interface YearMonth {
   month_id: string;
@@ -25,8 +18,8 @@ interface YearMonth {
 
 const CalendarioAno = () => {
   const { user } = useAuth();
+  const { data: isAdmin } = useIsAdmin();
 
-  // Get program for the current (or most recent) year
   const { data: program } = useQuery({
     queryKey: ["program-for-calendar"],
     queryFn: async () => {
@@ -57,14 +50,12 @@ const CalendarioAno = () => {
   });
 
   const now = new Date();
-  const currentMonth = now.getMonth() + 1; // 1-12
+  const currentMonth = now.getMonth() + 1;
 
-  // Determine if a month is in the future based on the cycle
-  // Program starts March of programYear, ends February of programYear+1
   const isMonthFuture = (monthNumber: number): boolean => {
+    if (isAdmin) return false; // Admin never locked
     const currentY = now.getFullYear();
     const currentM = now.getMonth() + 1;
-    // Months 3-12 belong to programYear, months 1-2 belong to programYear+1
     const monthYear = monthNumber >= 3 ? programYear : programYear + 1;
     if (currentY < monthYear) return true;
     if (currentY > monthYear) return false;
@@ -72,6 +63,7 @@ const CalendarioAno = () => {
   };
 
   const handleFutureClick = (monthNumber: number) => {
+    const MONTH_NAMES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
     const name = MONTH_NAMES[monthNumber - 1];
     const year = monthNumber >= 3 ? programYear : programYear + 1;
     toast.info(`Disponible en ${name} ${year}`);
@@ -128,16 +120,15 @@ const CalendarioAno = () => {
                     className="glass-card rounded-2xl p-4 border border-primary/10 opacity-50 text-left"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                        {MONTH_NAMES[m.month_number - 1] ?? `Mes ${m.month_number}`}
+                      <p className="text-sm font-semibold text-foreground truncate">
+                        {m.month_name}
                       </p>
-                      <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                      <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     </div>
-                    <p className="text-sm font-semibold text-foreground truncate leading-snug">
-                      {m.month_name}
-                    </p>
-                    {m.month_theme && (
+                    {m.month_theme ? (
                       <p className="text-[11px] text-primary mt-0.5 truncate">{m.month_theme}</p>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground/50 mt-0.5 italic">Sin tema</p>
                     )}
                   </button>
                 );
@@ -154,20 +145,19 @@ const CalendarioAno = () => {
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      {MONTH_NAMES[m.month_number - 1] ?? `Mes ${m.month_number}`}
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {m.month_name}
                     </p>
                     {isCurrentMonth && (
-                      <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full gold-gradient text-primary-foreground">
+                      <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full gold-gradient text-primary-foreground shrink-0">
                         Ahora
                       </span>
                     )}
                   </div>
-                  <p className="text-sm font-semibold text-foreground truncate leading-snug">
-                    {m.month_name}
-                  </p>
-                  {m.month_theme && (
+                  {m.month_theme ? (
                     <p className="text-[11px] text-primary mt-0.5 truncate">{m.month_theme}</p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground/50 mt-0.5 italic">Sin tema</p>
                   )}
                   <p className="text-2xl font-bold text-primary mt-2 leading-none">{pct}%</p>
                   <div className="h-1 rounded-full bg-white/5 mt-2 overflow-hidden">
