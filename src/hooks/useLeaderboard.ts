@@ -4,15 +4,17 @@ import { useAuth } from "./useAuth";
 
 const PROGRAM_ID = "a0000000-0000-0000-0000-000000000001";
 
-interface LeaderboardEntry {
+export interface LeaderboardEntry {
   user_id: string;
   display_name: string;
+  avatar_url: string | null;
   points: number;
   days_completed: number;
+  streak: number;
   position: number;
 }
 
-interface RankingSummary {
+export interface RankingSummary {
   today_points: number;
   month_points: number;
   total_points: number;
