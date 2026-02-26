@@ -8,7 +8,6 @@ import { Link } from "react-router-dom";
 import { useProgress, useUpdateStreak } from "@/hooks/useTodayData";
 import { useDayTasks, useToggleDayTask } from "@/hooks/useDayTasks";
 import { useCalculateScore } from "@/hooks/useLeaderboard";
-import { useCurrentWeekData } from "@/hooks/useCurrentWeekData";
 import { useIsAdmin } from "@/hooks/useAdmin";
 
 const formattedToday = new Intl.DateTimeFormat("es-ES", {
@@ -24,7 +23,6 @@ const Index = () => {
   const toggleTask = useToggleDayTask(progress?.day_id);
   const updateStreak = useUpdateStreak();
   const calculateScore = useCalculateScore();
-  const { data: weekData } = useCurrentWeekData();
   const { data: isAdmin } = useIsAdmin();
 
   const prayerTask = tasks.find((t) => t.task_kind === "prayer") ?? null;
@@ -50,7 +48,7 @@ const Index = () => {
   const hoyPct = Math.min(100, Math.max(0, Math.round(progress?.day_pct ?? 0)));
   const mesPct = Math.min(100, Math.max(0, Math.round(progress?.month_pct ?? 0)));
 
-  const monthTheme = progress?.month_theme || weekData?.name || "";
+  const monthTheme = progress?.month_theme || "";
 
   // Current month label (e.g. "Marzo 2026")
   const now = new Date();
@@ -102,15 +100,7 @@ const Index = () => {
             {/* 1. Hero — Reto del Mes */}
             <section className="rounded-2xl overflow-hidden relative shrink-0">
               <div className="relative h-36">
-                {weekData?.cover_url ? (
-                  <img
-                    src={weekData.cover_url}
-                    alt={monthTheme}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full gold-gradient opacity-20" />
-                )}
+                <div className="w-full h-full gold-gradient opacity-20" />
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-background/85 to-transparent" />
                 <div className="absolute inset-0 flex flex-col justify-end p-4">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-primary/80 mb-1">
@@ -119,12 +109,12 @@ const Index = () => {
                   <h2 className="text-lg font-display font-bold text-foreground leading-tight">
                     {monthTheme || "—"}
                   </h2>
-                  {hasDayData && progress?.day_id && (
+                  {progress?.month_id && (
                     <Link
-                      to={`/day/${progress.day_id}`}
+                      to={`/mes/${progress.month_id}`}
                       className="mt-2.5 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl gold-gradient text-primary-foreground text-[11px] font-bold uppercase tracking-wider self-start press-scale"
                     >
-                      Continuar hoy <ArrowRight className="w-3 h-3" />
+                      Ver reto del mes <ArrowRight className="w-3 h-3" />
                     </Link>
                   )}
                 </div>

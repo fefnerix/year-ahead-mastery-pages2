@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import BottomNav from "@/components/BottomNav";
+import FileUpload from "@/components/FileUpload";
 import { ArrowLeft, Loader2, BookOpen, Target, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,43 +23,52 @@ interface TaskRow {
   task_kind: string;
   is_active: boolean;
   order: number;
+  media_image_url: string | null;
+  media_video_url: string | null;
+  media_audio_url: string | null;
 }
 
-const AdminDayTasks = () => {
-  const { weekId } = useParams<{ weekId: string }>();
+const AdminMonthDays = () => {
+  const { monthId } = useParams<{ monthId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
 
-  // Fetch days for this week
-  const { data: days = [], isLoading: daysLoading } = useQuery({
-    queryKey: ["admin-days", weekId],
+  // Fetch month info
+  const { data: monthInfo } = useQuery({
+    queryKey: ["admin-month-info", monthId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("days")
-        .select("id, number, date")
-        .eq("week_id", weekId!)
-        .order("number");
-      if (error) throw error;
-      return data as DayRow[];
-    },
-    enabled: !!weekId,
-  });
-
-  // Fetch week name
-  const { data: weekInfo } = useQuery({
-    queryKey: ["admin-week-info", weekId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("weeks")
-        .select("name, number")
-        .eq("id", weekId!)
+        .from("months")
+        .select("name, theme")
+        .eq("id", monthId!)
         .single();
       if (error) throw error;
       return data;
     },
-    enabled: !!weekId,
+    enabled: !!monthId,
+  });
+
+  // Fetch days for this month (via weeks join)
+  const { data: days = [], isLoading: daysLoading } = useQuery({
+    queryKey: ["admin-month-days", monthId],
+    queryFn: async () => {
+      const { data: weeks, error: wErr } = await supabase
+        .from("weeks")
+        .select("id")
+        .eq("month_id", monthId!);
+      if (wErr) throw wErr;
+      if (!weeks || weeks.length === 0) return [];
+
+      const weekIds = weeks.map((w) => w.id);
+      const { data, error } = await supabase
+        .from("days")
+        .select("id, number, date")
+        .in("week_id", weekIds)
+        .order("date");
+      if (error) throw error;
+      return data as DayRow[];
+    },
+    enabled: !!monthId,
   });
 
   // Fetch tasks for selected day
@@ -68,7 +77,7 @@ const AdminDayTasks = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tasks")
-        .select("id, title, description, category, task_kind, is_active, order")
+        .select("id, title, description, category, task_kind, is_active, order, media_image_url, media_video_url, media_audio_url")
         .eq("day_id", selectedDayId!)
         .order("order");
       if (error) throw error;
@@ -77,10 +86,9 @@ const AdminDayTasks = () => {
     enabled: !!selectedDayId,
   });
 
-  const activePrayer = dayTasks.find(t => t.task_kind === "prayer" && t.is_active);
-  const activeActivity = dayTasks.find(t => t.task_kind === "activity" && t.is_active);
-  const inactiveTasks = dayTasks.filter(t => !t.is_active || (t.task_kind !== "prayer" && t.task_kind !== "activity"));
-  const legacyActiveTasks = dayTasks.filter(t => t.is_active && t.task_kind !== "prayer" && t.task_kind !== "activity");
+  const activePrayer = dayTasks.find((t) => t.task_kind === "prayer" && t.is_active);
+  const activeActivity = dayTasks.find((t) => t.task_kind === "activity" && t.is_active);
+  const legacyActiveTasks = dayTasks.filter((t) => t.is_active && t.task_kind !== "prayer" && t.task_kind !== "activity");
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -88,11 +96,9 @@ const AdminDayTasks = () => {
         <button onClick={() => navigate("/admin")} className="text-muted-foreground mb-3 flex items-center gap-1 text-sm">
           <ArrowLeft className="w-4 h-4" /> Volver a Admin
         </button>
-        <h1 className="text-2xl font-display font-bold text-foreground">
-          Tareas del Día
-        </h1>
+        <h1 className="text-2xl font-display font-bold text-foreground">Tareas del Día</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {weekInfo ? `Semana ${weekInfo.number} — ${weekInfo.name}` : "Cargando..."}
+          {monthInfo ? `Mes: ${monthInfo.theme || monthInfo.name}` : "Cargando..."}
         </p>
       </header>
 
@@ -103,7 +109,7 @@ const AdminDayTasks = () => {
           {daysLoading ? (
             <Loader2 className="w-5 h-5 text-primary animate-spin" />
           ) : days.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No hay días creados para este reto.</p>
+            <p className="text-sm text-muted-foreground">No hay días creados para este mes.</p>
           ) : (
             <div className="flex gap-2 overflow-x-auto pb-2">
               {days.map((d) => {
@@ -137,20 +143,9 @@ const AdminDayTasks = () => {
               </div>
             ) : (
               <div className="space-y-5">
-                <TaskEditor
-                  kind="prayer"
-                  task={activePrayer ?? null}
-                  dayId={selectedDayId}
-                  weekId={weekId!}
-                />
-                <TaskEditor
-                  kind="activity"
-                  task={activeActivity ?? null}
-                  dayId={selectedDayId}
-                  weekId={weekId!}
-                />
+                <TaskEditor kind="prayer" task={activePrayer ?? null} dayId={selectedDayId} />
+                <TaskEditor kind="activity" task={activeActivity ?? null} dayId={selectedDayId} />
 
-                {/* Legacy tasks */}
                 {legacyActiveTasks.length > 0 && (
                   <section className="pt-2 border-t border-border">
                     <div className="flex items-center justify-between mb-2">
@@ -160,7 +155,7 @@ const AdminDayTasks = () => {
                       <DeactivateLegacyButton dayId={selectedDayId} tasks={legacyActiveTasks} />
                     </div>
                     <div className="space-y-1">
-                      {legacyActiveTasks.map(t => (
+                      {legacyActiveTasks.map((t) => (
                         <div key={t.id} className="glass-card rounded-lg p-2 flex items-center gap-2">
                           <span className="text-xs text-muted-foreground flex-1 truncate">{t.title}</span>
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{t.task_kind}</span>
@@ -186,13 +181,10 @@ interface TaskEditorProps {
   kind: "prayer" | "activity";
   task: TaskRow | null;
   dayId: string;
-  weekId: string;
 }
 
-const TaskEditor = ({ kind, task, dayId, weekId }: TaskEditorProps) => {
+const TaskEditor = ({ kind, task, dayId }: TaskEditorProps) => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-
   const isPrayer = kind === "prayer";
   const emoji = isPrayer ? "🙏🏼" : "🔥";
   const label = isPrayer ? "Oración del día" : "Tarea del día";
@@ -201,42 +193,44 @@ const TaskEditor = ({ kind, task, dayId, weekId }: TaskEditorProps) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>("alma");
+  const [mediaImage, setMediaImage] = useState("");
+  const [mediaVideo, setMediaVideo] = useState("");
+  const [mediaAudio, setMediaAudio] = useState("");
 
-  // Sync form when task changes
   useEffect(() => {
     setTitle(task?.title ?? "");
     setDescription(task?.description ?? "");
     setCategory(task?.category ?? "alma");
-  }, [task?.id, task?.title, task?.description, task?.category]);
+    setMediaImage(task?.media_image_url ?? "");
+    setMediaVideo(task?.media_video_url ?? "");
+    setMediaAudio(task?.media_audio_url ?? "");
+  }, [task?.id, task?.title, task?.description, task?.category, task?.media_image_url, task?.media_video_url, task?.media_audio_url]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (title.trim().length < 5) throw new Error("El texto debe tener al menos 5 caracteres.");
-      if (!isPrayer && !category) throw new Error("Selecciona un pilar para la tarea.");
+
+      const payload: any = {
+        title: title.trim(),
+        description: description.trim() || null,
+        media_image_url: mediaImage || null,
+        media_video_url: mediaVideo || null,
+        media_audio_url: mediaAudio || null,
+      };
+      if (!isPrayer) payload.category = category;
 
       if (task) {
-        // Update existing
-        const updateData: any = {
-          title: title.trim(),
-          description: description.trim() || null,
-        };
-        if (!isPrayer) updateData.category = category;
-
-        const { error } = await supabase.from("tasks").update(updateData).eq("id", task.id);
+        const { error } = await supabase.from("tasks").update(payload).eq("id", task.id);
         if (error) throw error;
       } else {
-        // Insert new
-        const insertData: any = {
+        const { error } = await supabase.from("tasks").insert({
+          ...payload,
           day_id: dayId,
-          title: title.trim(),
-          description: description.trim() || null,
           task_kind: kind,
           is_active: true,
           category: isPrayer ? "alma" : category,
           order: isPrayer ? 0 : 1,
-        };
-
-        const { error } = await supabase.from("tasks").insert(insertData);
+        });
         if (error) throw error;
       }
     },
@@ -247,7 +241,6 @@ const TaskEditor = ({ kind, task, dayId, weekId }: TaskEditorProps) => {
       queryClient.invalidateQueries({ queryKey: ["progress"] });
       queryClient.invalidateQueries({ queryKey: ["month_calendar"] });
       queryClient.invalidateQueries({ queryKey: ["year_calendar"] });
-      queryClient.invalidateQueries({ queryKey: ["reto", weekId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -259,16 +252,9 @@ const TaskEditor = ({ kind, task, dayId, weekId }: TaskEditorProps) => {
       <div className="flex items-center gap-2">
         {icon}
         <p className="text-sm font-semibold text-foreground">{emoji} {label}</p>
-        {task && (
-          <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-            Existente
-          </span>
-        )}
-        {!task && (
-          <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-            Nueva
-          </span>
-        )}
+        <span className={`ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full ${task ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+          {task ? "Existente" : "Nueva"}
+        </span>
       </div>
 
       <div>
@@ -290,7 +276,7 @@ const TaskEditor = ({ kind, task, dayId, weekId }: TaskEditorProps) => {
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Explicación detallada de la actividad..."
+          placeholder="Explicación detallada..."
           rows={3}
           className={inputClass}
           maxLength={1000}
@@ -300,11 +286,7 @@ const TaskEditor = ({ kind, task, dayId, weekId }: TaskEditorProps) => {
       {!isPrayer && (
         <div>
           <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Pilar</label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className={inputClass}
-          >
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className={inputClass}>
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
             ))}
@@ -312,16 +294,34 @@ const TaskEditor = ({ kind, task, dayId, weekId }: TaskEditorProps) => {
         </div>
       )}
 
+      {/* Media uploads */}
+      <div className="space-y-2 pt-2 border-t border-border">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Media (opcional)</p>
+        <div className="grid grid-cols-1 gap-2">
+          <FileUpload bucket="task_media" accept="image/*" label={mediaImage ? "Foto ✓" : "Subir foto"} onUploaded={setMediaImage} />
+          <div>
+            <input
+              value={mediaVideo}
+              onChange={(e) => setMediaVideo(e.target.value)}
+              placeholder="URL del video (YouTube, etc.)"
+              className={inputClass}
+            />
+          </div>
+          <FileUpload bucket="task_media" accept="audio/*" label={mediaAudio ? "Audio ✓" : "Subir audio"} onUploaded={setMediaAudio} />
+        </div>
+        {(mediaImage || mediaVideo || mediaAudio) && (
+          <div className="text-[10px] text-muted-foreground/60">
+            Foto: {mediaImage ? "✅" : "❌"} | Video: {mediaVideo ? "✅" : "❌"} | Audio: {mediaAudio ? "✅" : "❌"}
+          </div>
+        )}
+      </div>
+
       <button
         onClick={() => saveMutation.mutate()}
-        disabled={saveMutation.isPending || title.trim().length < 5 || (!isPrayer && !category)}
+        disabled={saveMutation.isPending || title.trim().length < 5}
         className="w-full py-2.5 rounded-xl gold-gradient font-bold text-primary-foreground text-sm flex items-center justify-center gap-2 disabled:opacity-40"
       >
-        {saveMutation.isPending ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <Save className="w-4 h-4" />
-        )}
+        {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
         Guardar cambios
       </button>
     </div>
@@ -361,4 +361,4 @@ const DeactivateLegacyButton = ({ dayId, tasks }: { dayId: string; tasks: TaskRo
   );
 };
 
-export default AdminDayTasks;
+export default AdminMonthDays;

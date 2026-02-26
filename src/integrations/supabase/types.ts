@@ -460,6 +460,9 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          media_audio_url: string | null
+          media_image_url: string | null
+          media_video_url: string | null
           order: number
           task_kind: string
           title: string
@@ -471,6 +474,9 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          media_audio_url?: string | null
+          media_image_url?: string | null
+          media_video_url?: string | null
           order?: number
           task_kind?: string
           title: string
@@ -482,6 +488,9 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          media_audio_url?: string | null
+          media_image_url?: string | null
+          media_video_url?: string | null
           order?: number
           task_kind?: string
           title?: string

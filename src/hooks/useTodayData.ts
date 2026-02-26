@@ -13,6 +13,7 @@ interface TaskWithCheck {
 
 interface ProgressData {
   day_id: string | null;
+  month_id: string | null;
   day_pct: number;
   week_pct: number;
   month_pct: number;
