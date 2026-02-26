@@ -18,12 +18,15 @@ const positionIcons: Record<number, React.ReactNode> = {
 };
 
 const ProgressBar = ({ value, max, label }: { value: number; max: number; label: string }) => {
-  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+  const pct = max > 0 ? Math.min(100, Math.round(((value / max) * 100) * 100) / 100) : 0;
   return (
     <div className="space-y-1">
       <div className="flex justify-between items-baseline">
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
-        <span className="text-xs font-bold text-foreground tabular-nums">{value}/{max}</span>
+        <span className="text-xs text-foreground tabular-nums">
+          <span className="font-bold">{value}/{max}</span>
+          <span className="text-muted-foreground ml-1.5">({pct}%)</span>
+        </span>
       </div>
       <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
         <div
@@ -80,9 +83,9 @@ const Ranking = () => {
                   <span className="text-muted-foreground ml-1">puntos</span>
                 </span>
               </div>
-              {pointsToNext ? (
+              {pointsToNext && nextAbove ? (
                 <p className="text-xs text-muted-foreground">
-                  Te faltan <span className="text-primary font-bold">+{pointsToNext}</span> para subir a #{(currentUserEntry?.position ?? 1) - 1}
+                  Te faltan <span className="text-primary font-bold">+{pointsToNext}</span> para pasar a <span className="font-semibold text-foreground">{nextAbove.display_name}</span>
                 </p>
               ) : (summary?.position ?? 0) === 1 ? (
                 <p className="text-xs text-primary font-semibold">¡Estás #1! 🏆</p>
@@ -118,7 +121,9 @@ const Ranking = () => {
             <div className="glass-card rounded-xl p-3 text-center flex-1">
               <div className="flex items-center justify-center gap-1.5 mb-0.5">
                 <Award className="w-4 h-4 text-primary" />
-                <span className="text-lg font-bold text-foreground tabular-nums">{summary?.total_pct ?? 0}%</span>
+                <span className="text-lg font-bold text-foreground tabular-nums">
+                  {Math.round(((summary?.total_points ?? 0) / 730) * 10000) / 100}%
+                </span>
               </div>
               <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Ciclo</p>
             </div>
@@ -195,7 +200,7 @@ const Ranking = () => {
           <ul className="text-xs text-secondary-foreground space-y-1">
             <li>• 1 tarea = 1 punto</li>
             <li>• Máximo: 2 puntos/día</li>
-            <li>• Desempate: racha 🔥 y luego fecha</li>
+            <li>• Desempate: más puntos → mayor racha → fecha de última tarea</li>
           </ul>
         </div>
       </main>
