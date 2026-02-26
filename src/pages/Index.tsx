@@ -2,12 +2,12 @@ import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import DailyItemCard from "@/components/DailyItemCard";
 import ProgressDonut from "@/components/ProgressDonut";
+import JournalInput from "@/components/JournalInput";
 import { Sparkles, Loader2, ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { useProgress, useUpdateStreak } from "@/hooks/useTodayData";
 import { useDayTasks, useToggleDayTask } from "@/hooks/useDayTasks";
-
 import { useIsAdmin } from "@/hooks/useAdmin";
 
 const formattedToday = new Intl.DateTimeFormat("es-ES", {
@@ -22,7 +22,6 @@ const Index = () => {
   const { data: tasks = [], isLoading: tasksLoading } = useDayTasks(progress?.day_id);
   const toggleTask = useToggleDayTask(progress?.day_id);
   const updateStreak = useUpdateStreak();
-  
   const { data: isAdmin } = useIsAdmin();
 
   const prayerTask = tasks.find((t) => t.task_kind === "prayer") ?? null;
@@ -47,14 +46,15 @@ const Index = () => {
   const totalPct = Math.min(100, Math.max(0, Math.round(progress?.year_pct ?? 0)));
 
   const monthTheme = progress?.month_theme || "";
-
-  // Current month label (e.g. "Marzo 2026")
   const now = new Date();
   const currentMonthLabel = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(now);
 
+  // Build today's date string for journal
+  const todayDate = now.toISOString().split("T")[0];
+
   return (
-    <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
-      {/* Header — compact */}
+    <div className="min-h-screen bg-background flex flex-col pb-20">
+      {/* Header */}
       <header className="px-5 pt-10 pb-2 flex items-center justify-between shrink-0">
         <Logo variant="compact" />
         <div className="flex items-center gap-3">
@@ -68,10 +68,8 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main content — fills remaining space */}
-      <main className="flex-1 px-5 flex flex-col gap-4 min-h-0 pt-2 pb-2">
+      <main className="flex-1 px-5 flex flex-col gap-4 pt-2 pb-2 overflow-y-auto">
         {!hasDayData && !isLoading ? (
-          /* Empty state — no published content */
           <div className="flex-1 flex flex-col items-center justify-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-muted-foreground" />
@@ -95,7 +93,7 @@ const Index = () => {
           </div>
         ) : (
           <>
-            {/* 1. Hero — Reto del Mes */}
+            {/* Hero — Reto del Mes */}
             <section className="rounded-2xl overflow-hidden relative shrink-0">
               <div className="relative h-36">
                 <div className="w-full h-full gold-gradient opacity-20" />
@@ -119,7 +117,7 @@ const Index = () => {
               </div>
             </section>
 
-            {/* 2. Progress — donut */}
+            {/* Progress donut */}
             <section className="shrink-0">
               {progressLoading ? (
                 <div className="h-[76px] rounded-xl animate-pulse bg-muted/20" />
@@ -133,8 +131,8 @@ const Index = () => {
               )}
             </section>
 
-            {/* 3. Hoy — 2 tasks only */}
-            <section className="flex-1 flex flex-col gap-2 min-h-0">
+            {/* Tasks */}
+            <section className="flex flex-col gap-2">
               {isLoading ? (
                 <div className="space-y-2">
                   {[0, 1].map((i) => (
@@ -143,17 +141,16 @@ const Index = () => {
                 </div>
               ) : (
                 <>
-                  <DailyItemCard task={prayerTask} type="prayer" onToggle={handleToggle} />
-                  <DailyItemCard task={activityTask} type="activity" onToggle={handleToggle} />
+                  <DailyItemCard task={prayerTask} type="prayer" onToggle={handleToggle} dayId={progress?.day_id} />
+                  <DailyItemCard task={activityTask} type="activity" onToggle={handleToggle} dayId={progress?.day_id} />
                 </>
               )}
 
-              {/* Concluir Día — only when all complete */}
               {allCompleted && hasDayData && (
                 <button
                   onClick={handleCompleteDay}
                   disabled={updateStreak.isPending}
-                  className="mt-auto w-full py-3 rounded-xl gold-gradient font-bold text-primary-foreground text-xs uppercase tracking-wider flex items-center justify-center gap-2 gold-glow shimmer press-scale disabled:opacity-60 shrink-0"
+                  className="w-full py-3 rounded-xl gold-gradient font-bold text-primary-foreground text-xs uppercase tracking-wider flex items-center justify-center gap-2 gold-glow shimmer press-scale disabled:opacity-60 shrink-0"
                 >
                   {updateStreak.isPending ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -164,6 +161,18 @@ const Index = () => {
                 </button>
               )}
             </section>
+
+            {/* Mi diario de hoy */}
+            {hasDayData && (
+              <section className="shrink-0">
+                <JournalInput
+                  date={todayDate}
+                  dayId={progress?.day_id ?? undefined}
+                  weekId={undefined}
+                  monthId={progress?.month_id ?? undefined}
+                />
+              </section>
+            )}
           </>
         )}
       </main>

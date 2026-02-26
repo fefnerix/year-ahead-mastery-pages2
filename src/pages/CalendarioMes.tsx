@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Headphones, Play, ArrowRight, CalendarDays } from "lucide-react";
+import { ArrowLeft, Headphones, Play, ArrowRight, CalendarDays, PenLine } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,9 +19,10 @@ interface CalendarDay {
   week_number: number;
   day_pct: number;
   status: "complete" | "partial" | "pending" | "future";
+  has_notes: boolean;
+  has_journal: boolean;
 }
 
-// Status cell styles — border + background + text
 const STATUS_CELL: Record<string, string> = {
   complete: "border-2 border-success/60 bg-success/12 text-success",
   partial:  "border-2 border-primary/40 bg-primary/8 text-primary",
@@ -34,16 +35,16 @@ const CalendarioMes = () => {
   const { user } = useAuth();
   const monthNum = Number(month);
   const yearNum = Number(year);
-  const isValid = monthNum >= 3 && monthNum <= 12 && !isNaN(yearNum);
+  const isValid = !isNaN(monthNum) && !isNaN(yearNum) && monthNum >= 1 && monthNum <= 12;
 
-  // 1) Resolve month_id from year + monthNum
   const { data: monthRecord, isLoading: monthLoading } = useQuery({
     queryKey: ["calendar-month-id", yearNum, monthNum],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("months")
-        .select("id, name, theme, number, macro_text, audio_url, video_url")
+        .select("id, name, theme, number, year, macro_text, audio_url, video_url")
         .eq("number", monthNum)
+        .eq("year", yearNum)
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -52,7 +53,6 @@ const CalendarioMes = () => {
     enabled: isValid,
   });
 
-  // 2) Load days via RPC
   const { data: days = [], isLoading: daysLoading, isError, refetch } = useQuery({
     queryKey: ["month_calendar", monthRecord?.id, user?.id],
     queryFn: async () => {
@@ -69,7 +69,6 @@ const CalendarioMes = () => {
   const isLoading = monthLoading || daysLoading;
   const monthName = MONTH_NAMES[monthNum - 1] ?? `Mes ${monthNum}`;
 
-  // Group days by week
   const weekMap = new Map<number, { week_id: string; week_name: string; days: CalendarDay[] }>();
   days.forEach((d) => {
     if (!weekMap.has(d.week_number)) {
@@ -85,7 +84,6 @@ const CalendarioMes = () => {
       <div className="min-h-screen bg-background pb-28 flex flex-col items-center justify-center px-5 text-center">
         <CalendarDays className="w-10 h-10 text-muted-foreground mb-3" />
         <p className="text-lg font-bold text-foreground">Mes no disponible</p>
-        <p className="text-sm text-muted-foreground mt-2">Este mes no está habilitado.</p>
         <Link to="/calendario" className="mt-4 text-primary text-sm font-semibold hover:underline">
           ← Volver al calendario
         </Link>
@@ -105,7 +103,7 @@ const CalendarioMes = () => {
             <ArrowLeft className="w-4 h-4 text-foreground" />
           </Link>
           <div>
-            <h1 className="text-xl font-display font-bold text-foreground">{monthName}</h1>
+            <h1 className="text-xl font-display font-bold text-foreground">{monthName} {yearNum}</h1>
             {monthRecord?.theme && (
               <p className="text-xs text-primary">{monthRecord.theme}</p>
             )}
@@ -114,7 +112,6 @@ const CalendarioMes = () => {
       </header>
 
       <main className="px-5 space-y-5 pt-1">
-        {/* Month Macro Card */}
         {monthRecord && (monthRecord as any).macro_text ? (
           <div className="glass-card rounded-2xl p-4 border border-primary/10 space-y-3">
             <p className="text-[11px] font-bold uppercase tracking-wider text-primary">Macro del mes</p>
@@ -122,22 +119,14 @@ const CalendarioMes = () => {
             {((monthRecord as any).audio_url || (monthRecord as any).video_url) && (
               <div className="flex gap-2">
                 {(monthRecord as any).audio_url && (
-                  <a
-                    href={(monthRecord as any).audio_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors press-scale"
-                  >
+                  <a href={(monthRecord as any).audio_url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors press-scale">
                     <Headphones className="w-3.5 h-3.5" /> Audio
                   </a>
                 )}
                 {(monthRecord as any).video_url && (
-                  <a
-                    href={(monthRecord as any).video_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors press-scale"
-                  >
+                  <a href={(monthRecord as any).video_url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors press-scale">
                     <Play className="w-3.5 h-3.5" /> Video
                   </a>
                 )}
@@ -163,10 +152,8 @@ const CalendarioMes = () => {
           <div className="glass-card rounded-2xl p-6 text-center space-y-3 border border-muted/20">
             <CalendarDays className="w-8 h-8 text-muted-foreground mx-auto" />
             <p className="text-sm text-muted-foreground">Error al cargar el mes.</p>
-            <button
-              onClick={() => refetch()}
-              className="px-4 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-colors press-scale"
-            >
+            <button onClick={() => refetch()}
+              className="px-4 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-colors press-scale">
               Reintentar
             </button>
           </div>
@@ -177,15 +164,11 @@ const CalendarioMes = () => {
           </div>
         ) : (
           <>
-            {/* Retos de este mes */}
             <section className="space-y-2">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Retos del mes</p>
               {weeks.map(([weekNum, w]) => (
-                <Link
-                  key={`reto-${weekNum}`}
-                  to={`/reto/${w.week_id}`}
-                  className="glass-card rounded-xl p-3.5 border border-primary/10 flex items-center justify-between hover:border-primary/30 transition-colors press-scale"
-                >
+                <Link key={`reto-${weekNum}`} to={`/reto/${w.week_id}`}
+                  className="glass-card rounded-xl p-3.5 border border-primary/10 flex items-center justify-between hover:border-primary/30 transition-colors press-scale">
                   <div>
                     <p className="text-sm font-bold text-foreground">{w.week_name}</p>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Semana {weekNum}</p>
@@ -195,7 +178,6 @@ const CalendarioMes = () => {
               ))}
             </section>
 
-            {/* Day grid by week */}
             <section className="space-y-5">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Días del mes</p>
               {weeks.map(([weekNum, w]) => (
@@ -208,34 +190,30 @@ const CalendarioMes = () => {
                       const isFuture = d.status === "future";
                       const style = STATUS_CELL[d.status] ?? STATUS_CELL.pending;
                       const dayNum = new Date(d.date + "T12:00:00").getDate();
+                      const hasWriting = d.has_notes || d.has_journal;
 
                       const content = (
-                        <div
-                          className={`rounded-xl py-2 px-1 text-center transition-all duration-150 ${style} ${
-                            !isFuture ? "hover:brightness-110 active:scale-95" : "cursor-default"
-                          }`}
-                        >
+                        <div className={`rounded-xl py-2 px-1 text-center transition-all duration-150 ${style} ${
+                          !isFuture ? "hover:brightness-110 active:scale-95" : "cursor-default"
+                        }`}>
                           <p className="text-[10px] font-semibold leading-none">{dayNum}</p>
                           <p className="text-[10px] font-bold mt-1 leading-none">
                             {isFuture ? "·" : `${d.day_pct}%`}
                           </p>
+                          {hasWriting && !isFuture && (
+                            <PenLine className="w-2.5 h-2.5 mx-auto mt-0.5 text-primary/60" />
+                          )}
                         </div>
                       );
 
                       if (isFuture) return <div key={d.day_id}>{content}</div>;
-
-                      return (
-                        <Link key={d.day_id} to={`/day/${d.day_id}`}>
-                          {content}
-                        </Link>
-                      );
+                      return <Link key={d.day_id} to={`/day/${d.day_id}`}>{content}</Link>;
                     })}
                   </div>
                 </div>
               ))}
             </section>
 
-            {/* Legend */}
             <div className="flex items-center gap-4 pb-2">
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm border-2 border-success/60 bg-success/12" />
@@ -248,6 +226,10 @@ const CalendarioMes = () => {
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm border border-white/10 bg-white/4" />
                 <span className="text-[10px] text-muted-foreground">Pendiente</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <PenLine className="w-2.5 h-2.5 text-primary/60" />
+                <span className="text-[10px] text-muted-foreground">Con notas</span>
               </div>
             </div>
           </>

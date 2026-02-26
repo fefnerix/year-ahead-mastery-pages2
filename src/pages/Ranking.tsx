@@ -73,7 +73,6 @@ const Ranking = () => {
               <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Récord</p>
             </div>
           </div>
-          {/* Certification bar */}
           <div>
             <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
               <span>Certificación del ciclo</span>
@@ -85,7 +84,6 @@ const Ranking = () => {
           </div>
         </div>
 
-        {/* Tu Posición */}
         {(summary?.position ?? 0) > 0 && (
           <div className="glass-card rounded-xl p-4">
             <div className="flex items-center justify-between">
@@ -124,7 +122,6 @@ const Ranking = () => {
           ))}
         </div>
 
-        {/* Ranking List */}
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
@@ -145,11 +142,7 @@ const Ranking = () => {
                     {showSeparator && (
                       <div className="px-4 py-1.5 text-center text-[10px] text-muted-foreground bg-muted/30">···</div>
                     )}
-                    <div
-                      className={`flex items-center gap-3 px-4 py-3.5 transition-colors ${
-                        isMe ? "bg-primary/5" : ""
-                      }`}
-                    >
+                    <div className={`flex items-center gap-3 px-4 py-3.5 transition-colors ${isMe ? "bg-primary/5" : ""}`}>
                       <div className="w-8 flex justify-center">
                         {positionIcons[entry.position] || (
                           <span className="text-sm font-bold text-muted-foreground">{entry.position}</span>
@@ -173,8 +166,7 @@ const Ranking = () => {
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Reglas del Ranking</h3>
           <ul className="text-xs text-secondary-foreground space-y-1">
             <li>• Cada tarea completada = 1 punto</li>
-            <li>• Día completo (2/2) = +1 punto bono</li>
-            <li>• Máximo por día = 3 puntos</li>
+            <li>• Máximo por día = 2 puntos (oración + actividad)</li>
           </ul>
         </div>
       </main>
