@@ -3,10 +3,10 @@ import Logo from "@/components/Logo";
 import DailyItemCard from "@/components/DailyItemCard";
 import ProgressDonut from "@/components/ProgressDonut";
 import JournalInput from "@/components/JournalInput";
-import { Sparkles, Loader2, ArrowRight } from "lucide-react";
+import { Sparkles, ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
-import { useProgress, useUpdateStreak } from "@/hooks/useTodayData";
+import { useProgress } from "@/hooks/useTodayData";
 import { useDayTasks, useToggleDayTask } from "@/hooks/useDayTasks";
 import { useIsAdmin } from "@/hooks/useAdmin";
 
@@ -21,20 +21,14 @@ const Index = () => {
   const { data: progress, isLoading: progressLoading } = useProgress();
   const { data: tasks = [], isLoading: tasksLoading } = useDayTasks(progress?.day_id);
   const toggleTask = useToggleDayTask(progress?.day_id);
-  const updateStreak = useUpdateStreak();
   const { data: isAdmin } = useIsAdmin();
 
   const prayerTask = tasks.find((t) => t.task_kind === "prayer") ?? null;
   const activityTask = tasks.find((t) => t.task_kind === "activity") ?? null;
-  const allCompleted = tasks.length > 0 && tasks.filter((t) => t.completed).length >= tasks.length;
 
   const handleToggle = (id: string) => {
     const task = tasks.find((t) => t.id === id);
     if (task) toggleTask.mutate(task);
-  };
-
-  const handleCompleteDay = () => {
-    updateStreak.mutate();
   };
 
   const isLoading = progressLoading || tasksLoading;
@@ -144,21 +138,6 @@ const Index = () => {
                   <DailyItemCard task={prayerTask} type="prayer" onToggle={handleToggle} dayId={progress?.day_id} />
                   <DailyItemCard task={activityTask} type="activity" onToggle={handleToggle} dayId={progress?.day_id} />
                 </>
-              )}
-
-              {allCompleted && hasDayData && (
-                <button
-                  onClick={handleCompleteDay}
-                  disabled={updateStreak.isPending}
-                  className="w-full py-3 rounded-xl gold-gradient font-bold text-primary-foreground text-xs uppercase tracking-wider flex items-center justify-center gap-2 gold-glow shimmer press-scale disabled:opacity-60 shrink-0"
-                >
-                  {updateStreak.isPending ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-3.5 h-3.5" />
-                  )}
-                  Concluir Día
-                </button>
               )}
             </section>
 
