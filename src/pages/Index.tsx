@@ -1,13 +1,9 @@
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import AnnouncementBanner from "@/components/AnnouncementBanner";
 import DailyItemCard from "@/components/DailyItemCard";
-import JournalInput from "@/components/JournalInput";
 import { Sparkles, Loader2, ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { useProgress, useUpdateStreak } from "@/hooks/useTodayData";
 import { useDayTasks, useToggleDayTask } from "@/hooks/useDayTasks";
 import { useCalculateScore } from "@/hooks/useLeaderboard";
@@ -15,9 +11,9 @@ import { useCurrentWeekData } from "@/hooks/useCurrentWeekData";
 import { useIsAdmin } from "@/hooks/useAdmin";
 
 const formattedToday = new Intl.DateTimeFormat("es-ES", {
-  weekday: "long",
+  weekday: "short",
   day: "numeric",
-  month: "long",
+  month: "short",
 }).format(new Date());
 
 const Index = () => {
@@ -29,19 +25,6 @@ const Index = () => {
   const calculateScore = useCalculateScore();
   const { data: weekData } = useCurrentWeekData();
   const { data: isAdmin } = useIsAdmin();
-
-  const { data: currentDayDate } = useQuery({
-    queryKey: ["day-date", progress?.day_id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("days")
-        .select("date")
-        .eq("id", progress!.day_id!)
-        .single();
-      return data?.date as string;
-    },
-    enabled: !!progress?.day_id,
-  });
 
   const prayerTask = tasks.find((t) => t.task_kind === "prayer") ?? null;
   const activityTask = tasks.find((t) => t.task_kind === "activity") ?? null;
@@ -63,179 +46,157 @@ const Index = () => {
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "";
   const initials = displayName.slice(0, 2).toUpperCase();
   const hasDayData = progress?.day_id != null;
-
   const hoyPct = Math.min(100, Math.max(0, Math.round(progress?.day_pct ?? 0)));
   const mesPct = Math.min(100, Math.max(0, Math.round(progress?.month_pct ?? 0)));
 
+  const monthTheme = progress?.month_theme || weekData?.name || "";
+
   return (
-    <div className="min-h-screen bg-background pb-28">
-      <header className="px-5 pt-12 pb-4">
-        <div className="flex items-center justify-between">
-          <Logo variant="compact" />
+    <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
+      {/* Header — compact */}
+      <header className="px-5 pt-10 pb-2 flex items-center justify-between shrink-0">
+        <Logo variant="compact" />
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-muted-foreground capitalize">{formattedToday}</span>
           <Link
             to="/perfil"
-            className="w-10 h-10 rounded-full gold-gradient flex items-center justify-center ring-2 ring-primary/20 press-scale"
+            className="w-8 h-8 rounded-full gold-gradient flex items-center justify-center ring-1 ring-primary/20 press-scale"
           >
-            <span className="text-sm font-bold text-primary-foreground">{initials}</span>
+            <span className="text-[10px] font-bold text-primary-foreground">{initials}</span>
           </Link>
         </div>
       </header>
 
-      <main className="px-5 pt-2 space-y-7">
-        {/* Greeting */}
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">
-            Hola, {displayName} 👋
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5 capitalize">{formattedToday}</p>
-        </div>
-
-        {/* Announcements */}
-        <AnnouncementBanner />
-
-        {/* Progress */}
-        <section>
-          <h2 className="section-title mb-3">Progreso</h2>
-          {progressLoading ? (
-            <div className="space-y-3">
-              <div className="glass-card rounded-2xl p-5 h-[108px] animate-pulse bg-muted/30" />
-              <div className="glass-card rounded-2xl p-4 h-[80px] animate-pulse bg-muted/30" />
+      {/* Main content — fills remaining space */}
+      <main className="flex-1 px-5 flex flex-col gap-4 min-h-0 pt-2 pb-2">
+        {!hasDayData && !isLoading ? (
+          /* Empty state — no published content */
+          <div className="flex-1 flex flex-col items-center justify-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center">
+              <Sparkles className="w-6 h-6 text-muted-foreground" />
             </div>
-          ) : (
-            <div className="space-y-3">
-              {/* Hoy — prominent */}
-              <div className="glass-card rounded-2xl p-5 border border-primary/20">
-                <div className="flex items-baseline justify-between">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Hoy</p>
-                  <p className="text-3xl font-bold text-primary">{hoyPct}%</p>
-                </div>
-                <div className="h-3 rounded-full bg-white/5 mt-3 overflow-hidden">
-                  <div
-                    className="h-full rounded-full gold-gradient transition-all duration-700"
-                    style={{ width: `${hoyPct}%` }}
+            <div className="text-center">
+              <p className="text-base font-semibold text-foreground">Sin contenido publicado</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-[240px] mx-auto">
+                {isAdmin
+                  ? "Ve a Admin para publicar el mes y el día."
+                  : "Vuelve más tarde cuando haya contenido disponible."}
+              </p>
+            </div>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl gold-gradient text-primary-foreground text-xs font-bold uppercase tracking-wider press-scale"
+              >
+                Ir a Admin
+              </Link>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* 1. Hero — Reto del Mes */}
+            <section className="rounded-2xl overflow-hidden relative shrink-0">
+              <div className="relative h-36">
+                {weekData?.cover_url ? (
+                  <img
+                    src={weekData.cover_url}
+                    alt={monthTheme}
+                    className="w-full h-full object-cover"
                   />
-                </div>
-                {totalTasks > 0 && (
-                  <p className="text-xs text-muted-foreground mt-2">{completedCount}/{totalTasks} hechas</p>
+                ) : (
+                  <div className="w-full h-full gold-gradient opacity-20" />
                 )}
-              </div>
-              {/* Mes — compact */}
-              <div className="glass-card rounded-2xl p-4 border border-primary/10">
-                <div className="flex items-baseline justify-between">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Mes</p>
-                  <p className="text-xl font-bold text-primary">{mesPct}%</p>
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/85 to-transparent" />
+                <div className="absolute inset-0 flex flex-col justify-end p-4">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-primary/80 mb-1">
+                    Reto del Mes
+                  </span>
+                  <h2 className="text-lg font-display font-bold text-foreground leading-tight">
+                    {monthTheme || "—"}
+                  </h2>
+                  {hasDayData && weekData && (
+                    <Link
+                      to={`/reto/${weekData.id}/dia/${progress?.day_number}`}
+                      className="mt-2.5 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl gold-gradient text-primary-foreground text-[11px] font-bold uppercase tracking-wider self-start press-scale"
+                    >
+                      Continuar hoy <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  )}
                 </div>
-                <div className="h-2 rounded-full bg-white/5 mt-2 overflow-hidden">
-                  <div
-                    className="h-full rounded-full gold-gradient transition-all duration-700"
-                    style={{ width: `${mesPct}%` }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-1.5">Promedio del mes</p>
               </div>
-            </div>
-          )}
-        </section>
+            </section>
 
-        {/* Hero del Reto Activo */}
-        {weekData && (
-          <div className="rounded-2xl overflow-hidden relative">
-            <div className="relative h-44">
-              {weekData.cover_url ? (
-                <img
-                  src={weekData.cover_url}
-                  alt={weekData.name}
-                  className="w-full h-full object-cover"
-                />
+            {/* 2. Progress — compact inline */}
+            <section className="shrink-0">
+              {progressLoading ? (
+                <div className="h-10 rounded-xl animate-pulse bg-muted/20" />
               ) : (
-                <div className="w-full h-full gold-gradient opacity-30" />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
-              <div className="absolute inset-0 flex flex-col justify-end p-5">
-                <span className="inline-flex self-start px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider gold-gradient text-primary-foreground backdrop-blur-sm mb-2">
-                  Reto {weekData.number} · Día {progress?.day_number ?? "—"}/7
-                </span>
-                <h2 className="text-xl font-display font-bold text-foreground">{weekData.name}</h2>
-                {hasDayData && (
-                  <Link
-                    to={`/reto/${weekData.id}/dia/${progress?.day_number}`}
-                    className="mt-3 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl gold-gradient text-primary-foreground text-xs font-bold uppercase tracking-wider self-start press-scale"
-                  >
-                    Continuar hoy <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Hoy: 2 cards */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="section-title">Hoy</h2>
-            {hasDayData && totalTasks > 0 && (
-              <span className="text-xs text-muted-foreground font-medium">
-                {completedCount}/{totalTasks} hechas
-              </span>
-            )}
-          </div>
-
-          {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(2)].map((_, i) => (
-                <div key={i} className="glass-card rounded-2xl p-4 h-[76px] animate-pulse border border-primary/5">
-                  <div className="h-2.5 bg-white/10 rounded w-1/3 mb-3" />
-                  <div className="h-4 bg-white/10 rounded w-2/3" />
+                <div className="flex gap-3">
+                  {/* Hoy */}
+                  <div className="flex-1 glass-card rounded-xl px-3 py-2.5 border border-primary/15">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Hoy</span>
+                      <span className="text-sm font-bold text-primary">{hoyPct}%</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                      <div
+                        className="h-full rounded-full gold-gradient transition-all duration-700"
+                        style={{ width: `${hoyPct}%` }}
+                      />
+                    </div>
+                    {totalTasks > 0 && (
+                      <p className="text-[9px] text-muted-foreground/70 mt-1">{completedCount}/{totalTasks}</p>
+                    )}
+                  </div>
+                  {/* Mes */}
+                  <div className="flex-1 glass-card rounded-xl px-3 py-2.5 border border-primary/10">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Mes</span>
+                      <span className="text-sm font-bold text-primary">{mesPct}%</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                      <div
+                        className="h-full rounded-full gold-gradient transition-all duration-700"
+                        style={{ width: `${mesPct}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
-          ) : !hasDayData ? (
-            <div className="glass-card rounded-2xl p-6 text-center space-y-3 border border-muted/20">
-              <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
-                <Sparkles className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Tu reto aún no está activo</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {isAdmin ? "Activa un reto desde el panel de administración." : "Vuelve más tarde cuando el reto esté disponible."}
-                </p>
-              </div>
-              {isAdmin && (
-                <Link
-                  to="/admin"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl gold-gradient text-primary-foreground text-xs font-bold press-scale"
-                >
-                  Activar reto
-                </Link>
               )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <DailyItemCard task={prayerTask} type="prayer" onToggle={handleToggle} />
-              <DailyItemCard task={activityTask} type="activity" onToggle={handleToggle} />
-            </div>
-          )}
-        </section>
+            </section>
 
-        {/* Concluir Día */}
-        {allCompleted && hasDayData && (
-          <button
-            onClick={handleCompleteDay}
-            disabled={updateStreak.isPending || calculateScore.isPending}
-            className="w-full py-4 rounded-2xl gold-gradient font-bold text-primary-foreground text-sm uppercase tracking-wider flex items-center justify-center gap-2 gold-glow shimmer press-scale disabled:opacity-60"
-          >
-            {updateStreak.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4" />
-            )}
-            Concluir Día
-          </button>
-        )}
+            {/* 3. Hoy — 2 tasks only */}
+            <section className="flex-1 flex flex-col gap-2 min-h-0">
+              {isLoading ? (
+                <div className="space-y-2">
+                  {[0, 1].map((i) => (
+                    <div key={i} className="glass-card rounded-2xl p-4 h-[68px] animate-pulse border border-primary/5" />
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <DailyItemCard task={prayerTask} type="prayer" onToggle={handleToggle} />
+                  <DailyItemCard task={activityTask} type="activity" onToggle={handleToggle} />
+                </>
+              )}
 
-        {/* Reflexión del día */}
-        {hasDayData && currentDayDate && (
-          <JournalInput date={currentDayDate} dayId={progress?.day_id} weekId={weekData?.id} />
+              {/* Concluir Día — only when all complete */}
+              {allCompleted && hasDayData && (
+                <button
+                  onClick={handleCompleteDay}
+                  disabled={updateStreak.isPending || calculateScore.isPending}
+                  className="mt-auto w-full py-3 rounded-xl gold-gradient font-bold text-primary-foreground text-xs uppercase tracking-wider flex items-center justify-center gap-2 gold-glow shimmer press-scale disabled:opacity-60 shrink-0"
+                >
+                  {updateStreak.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5" />
+                  )}
+                  Concluir Día
+                </button>
+              )}
+            </section>
+          </>
         )}
       </main>
 
