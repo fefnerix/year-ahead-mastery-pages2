@@ -4,8 +4,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import FileUpload from "@/components/FileUpload";
-import { ArrowLeft, Loader2, BookOpen, Target, Save, Trash2, Check, Minus, Circle } from "lucide-react";
+import { ArrowLeft, Loader2, BookOpen, Target, Save, Trash2, Check, Minus, Circle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { isYouTubeUrl, getMediaWarning } from "@/lib/media-utils";
 
 const CATEGORIES = ["cuerpo", "mente", "alma", "finanzas"] as const;
 
@@ -351,6 +352,9 @@ const TaskEditor = ({ kind, task, dayId }: TaskEditorProps) => {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const videoWarning = getMediaWarning(mediaVideo, "video");
+  const audioWarning = getMediaWarning(mediaAudio, "audio");
+
   const inputClass = "w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary";
 
   return (
@@ -363,6 +367,7 @@ const TaskEditor = ({ kind, task, dayId }: TaskEditorProps) => {
         </span>
       </div>
 
+      {/* 1. Título */}
       <div>
         <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Texto (título corto)</label>
         <input
@@ -377,18 +382,6 @@ const TaskEditor = ({ kind, task, dayId }: TaskEditorProps) => {
         )}
       </div>
 
-      <div>
-        <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Explicación</label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Explicación detallada..."
-          rows={3}
-          className={inputClass}
-          maxLength={1000}
-        />
-      </div>
-
       {!isPrayer && (
         <div>
           <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Pilar</label>
@@ -400,26 +393,66 @@ const TaskEditor = ({ kind, task, dayId }: TaskEditorProps) => {
         </div>
       )}
 
-      {/* Media uploads */}
-      <div className="space-y-2 pt-2 border-t border-border">
+      {/* Media: Imagen → Video → Audio */}
+      <div className="space-y-3 pt-2 border-t border-border">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Media (opcional)</p>
-        <div className="grid grid-cols-1 gap-2">
-          <FileUpload bucket="task_media" accept="image/*" label={mediaImage ? "Foto ✓" : "Subir foto"} onUploaded={setMediaImage} />
-          <div>
-            <input
-              value={mediaVideo}
-              onChange={(e) => setMediaVideo(e.target.value)}
-              placeholder="URL del video (YouTube, etc.)"
-              className={inputClass}
-            />
+
+        {/* 2. Imagen */}
+        <div>
+          <label className="text-[10px] text-muted-foreground font-semibold uppercase">Imagen</label>
+          <div className="space-y-1.5">
+            <FileUpload bucket="task_media" accept="image/*" label={mediaImage ? "Imagen ✓" : "Subir imagen"} onUploaded={setMediaImage} />
+            <input value={mediaImage} onChange={(e) => setMediaImage(e.target.value)} placeholder="O pegar URL..." className={inputClass} />
+            {mediaImage && <img src={mediaImage} alt="Preview" className="w-full max-h-24 object-cover rounded-lg" />}
           </div>
-          <FileUpload bucket="task_media" accept="audio/*" label={mediaAudio ? "Audio ✓" : "Subir audio"} onUploaded={setMediaAudio} />
         </div>
-        {(mediaImage || mediaVideo || mediaAudio) && (
-          <div className="text-[10px] text-muted-foreground/60">
-            Foto: {mediaImage ? "✅" : "❌"} | Video: {mediaVideo ? "✅" : "❌"} | Audio: {mediaAudio ? "✅" : "❌"}
+
+        {/* 3. Video */}
+        <div>
+          <label className="text-[10px] text-muted-foreground font-semibold uppercase">Video</label>
+          <div className="space-y-1.5">
+            <FileUpload bucket="task_media" accept="video/mp4" label={mediaVideo && !isYouTubeUrl(mediaVideo) ? "Video ✓" : "Subir MP4"} onUploaded={setMediaVideo} />
+            <input value={mediaVideo} onChange={(e) => setMediaVideo(e.target.value)} placeholder="O pegar URL (MP4 o YouTube)..." className={inputClass} />
+            {videoWarning && (
+              <div className="flex items-start gap-1.5 text-[10px] text-amber-400 bg-amber-400/10 rounded-lg px-2.5 py-1.5">
+                <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
+                <span>{videoWarning}</span>
+              </div>
+            )}
+            {mediaVideo && !isYouTubeUrl(mediaVideo) && (
+              <video src={mediaVideo} controls className="w-full max-h-24 rounded-lg" />
+            )}
           </div>
-        )}
+        </div>
+
+        {/* 4. Audio */}
+        <div>
+          <label className="text-[10px] text-muted-foreground font-semibold uppercase">Audio</label>
+          <div className="space-y-1.5">
+            <FileUpload bucket="task_media" accept="audio/*" label={mediaAudio ? "Audio ✓" : "Subir audio"} onUploaded={setMediaAudio} />
+            <input value={mediaAudio} onChange={(e) => setMediaAudio(e.target.value)} placeholder="O pegar URL (MP3/M4A/WAV)..." className={inputClass} />
+            {audioWarning && (
+              <div className="flex items-start gap-1.5 text-[10px] text-amber-400 bg-amber-400/10 rounded-lg px-2.5 py-1.5">
+                <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
+                <span>{audioWarning}</span>
+              </div>
+            )}
+            {mediaAudio && <audio src={mediaAudio} controls className="w-full" />}
+          </div>
+        </div>
+      </div>
+
+      {/* 5. Explicación (texto) — after media */}
+      <div>
+        <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Explicación</label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Explicación detallada..."
+          rows={3}
+          className={inputClass}
+          maxLength={1000}
+        />
       </div>
 
       <button

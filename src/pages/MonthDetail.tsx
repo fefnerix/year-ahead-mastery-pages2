@@ -5,6 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import AudioPlayer from "@/components/AudioPlayer";
 import CustomVideoPlayer from "@/components/CustomVideoPlayer";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { isYouTubeUrl, getYouTubeId } from "@/lib/media-utils";
 
 const MonthDetail = () => {
   const { monthId } = useParams<{ monthId: string }>();
@@ -24,10 +25,7 @@ const MonthDetail = () => {
     enabled: !!monthId,
   });
 
-  const getYouTubeId = (url: string) => {
-    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?#]+)/);
-    return match?.[1] || null;
-  };
+  // Use imported helpers instead of local function
 
   if (isLoading) {
     return (
@@ -50,7 +48,6 @@ const MonthDetail = () => {
 
   const videoId = month.video_url ? getYouTubeId(month.video_url) : null;
   const isYouTube = !!videoId;
-
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
@@ -70,6 +67,11 @@ const MonthDetail = () => {
       </header>
 
       <main className="px-5 space-y-6">
+        {/* 0. Image (if exists) */}
+        {(month as any).image_url && (
+          <img src={(month as any).image_url} alt="" className="w-full rounded-2xl" loading="lazy" />
+        )}
+
         {/* 1. Video (first) */}
         {month.video_url && (
           <section className="rounded-2xl overflow-hidden">

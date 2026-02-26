@@ -10,6 +10,9 @@ import {
   DrawerFooter,
   DrawerClose,
 } from "@/components/ui/drawer";
+import CustomVideoPlayer from "@/components/CustomVideoPlayer";
+import AudioPlayer from "@/components/AudioPlayer";
+import { isYouTubeUrl, getYouTubeId } from "@/lib/media-utils";
 
 interface DailyItemCardProps {
   task: TaskWithCheck | null;
@@ -88,7 +91,7 @@ const DailyItemCard = ({ task, type, onToggle }: DailyItemCardProps) => {
           </p>
         </button>
 
-        {/* Inline toggle button — positioned outside the button to avoid nesting */}
+        {/* Inline toggle button */}
         <div
           role="button"
           aria-label={isCompleted ? "Desmarcar tarea" : "Marcar como completada"}
@@ -122,25 +125,45 @@ const DailyItemCard = ({ task, type, onToggle }: DailyItemCardProps) => {
             )}
           </DrawerHeader>
           <div className="px-6 pb-2 space-y-3">
+            {/* 1. Title */}
             <p className="text-base font-semibold text-foreground">{task.title}</p>
-            {task.description && (
-              <p className="text-sm text-muted-foreground leading-relaxed">{task.description}</p>
-            )}
+
+            {/* 2. Image */}
             {task.media_image_url && (
               <img src={task.media_image_url} alt="" className="w-full rounded-xl" loading="lazy" />
             )}
+
+            {/* 3. Video */}
             {task.media_video_url && (() => {
-              const ytMatch = task.media_video_url!.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?#]+)/);
-              return ytMatch ? (
-                <div className="aspect-video rounded-xl overflow-hidden">
-                  <iframe src={`https://www.youtube.com/embed/${ytMatch[1]}`} title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-full" />
+              const ytId = getYouTubeId(task.media_video_url!);
+              return ytId ? (
+                <div className="space-y-1">
+                  <div className="aspect-video rounded-xl overflow-hidden">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${ytId}?modestbranding=1&rel=0&showinfo=0`}
+                      title="Video"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/50 text-center">
+                    Video via YouTube
+                  </p>
                 </div>
               ) : (
-                <video src={task.media_video_url!} controls className="w-full rounded-xl" />
+                <CustomVideoPlayer src={task.media_video_url!} />
               );
             })()}
+
+            {/* 4. Audio */}
             {task.media_audio_url && (
-              <audio src={task.media_audio_url} controls className="w-full" />
+              <AudioPlayer src={task.media_audio_url} />
+            )}
+
+            {/* 5. Description (text) */}
+            {task.description && (
+              <p className="text-sm text-muted-foreground leading-relaxed">{task.description}</p>
             )}
           </div>
           <DrawerFooter>

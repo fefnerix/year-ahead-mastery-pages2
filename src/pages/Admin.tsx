@@ -3,14 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
+import FileUpload from "@/components/FileUpload";
 import {
   usePrograms, useMonths,
   useCreateProgram, useCreateMonth,
 } from "@/hooks/useAdmin";
 import { useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement } from "@/hooks/useAnnouncements";
-import { Loader2, Plus, ChevronRight, Trash2, Megaphone, BookOpen, Save } from "lucide-react";
+import { Loader2, Plus, ChevronRight, Trash2, Megaphone, BookOpen, Save, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import Logo from "@/components/Logo";
+import { isYouTubeUrl, getMediaWarning } from "@/lib/media-utils";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -275,20 +277,23 @@ interface MonthData {
   macro_text?: string | null;
   audio_url?: string | null;
   video_url?: string | null;
+  image_url?: string | null;
 }
 
 const MonthMacroEditor = ({ month }: { month: MonthData }) => {
   const queryClient = useQueryClient();
   const [theme, setTheme] = useState(month.theme ?? "");
-  const [macroText, setMacroText] = useState((month as any).macro_text ?? "");
-  const [audioUrl, setAudioUrl] = useState((month as any).audio_url ?? "");
+  const [imageUrl, setImageUrl] = useState((month as any).image_url ?? "");
   const [videoUrl, setVideoUrl] = useState((month as any).video_url ?? "");
+  const [audioUrl, setAudioUrl] = useState((month as any).audio_url ?? "");
+  const [macroText, setMacroText] = useState((month as any).macro_text ?? "");
 
   useEffect(() => {
     setTheme(month.theme ?? "");
-    setMacroText((month as any).macro_text ?? "");
-    setAudioUrl((month as any).audio_url ?? "");
+    setImageUrl((month as any).image_url ?? "");
     setVideoUrl((month as any).video_url ?? "");
+    setAudioUrl((month as any).audio_url ?? "");
+    setMacroText((month as any).macro_text ?? "");
   }, [month.id]);
 
   const saveMacro = useMutation({
@@ -297,9 +302,10 @@ const MonthMacroEditor = ({ month }: { month: MonthData }) => {
         .from("months")
         .update({
           theme: theme || null,
-          macro_text: macroText || null,
-          audio_url: audioUrl || null,
+          image_url: imageUrl || null,
           video_url: videoUrl || null,
+          audio_url: audioUrl || null,
+          macro_text: macroText || null,
         } as any)
         .eq("id", month.id);
       if (error) throw error;
@@ -312,27 +318,78 @@ const MonthMacroEditor = ({ month }: { month: MonthData }) => {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const videoWarning = getMediaWarning(videoUrl, "video");
+  const audioWarning = getMediaWarning(audioUrl, "audio");
+
   const inputClass = "w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary";
 
   return (
     <div className="space-y-3 pt-2 border-t border-border">
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Macro del Mes</p>
+
+      {/* 1. Tema */}
       <div>
         <label className="text-[10px] text-muted-foreground font-semibold uppercase">Tema</label>
         <input value={theme} onChange={(e) => setTheme(e.target.value)} placeholder="Ej: Encontrando mi propósito" className={inputClass} />
       </div>
+
+      {/* 2. Imagen */}
+      <div>
+        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Imagen</label>
+        <div className="space-y-2">
+          <FileUpload bucket="task_media" accept="image/*" label={imageUrl ? "Imagen ✓" : "Subir imagen"} onUploaded={setImageUrl} />
+          <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="O pegar URL de imagen..." className={inputClass} />
+          {imageUrl && (
+            <img src={imageUrl} alt="Preview" className="w-full max-h-32 object-cover rounded-lg" />
+          )}
+        </div>
+      </div>
+
+      {/* 3. Video */}
+      <div>
+        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Video</label>
+        <div className="space-y-2">
+          <FileUpload bucket="task_media" accept="video/mp4" label={videoUrl && !isYouTubeUrl(videoUrl) ? "Video ✓" : "Subir MP4"} onUploaded={setVideoUrl} />
+          <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="O pegar URL (MP4 o YouTube)..." className={inputClass} />
+          {videoWarning && (
+            <div className="flex items-start gap-1.5 text-[10px] text-amber-400 bg-amber-400/10 rounded-lg px-2.5 py-1.5">
+              <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
+              <span>{videoWarning}</span>
+            </div>
+          )}
+          {videoUrl && !isYouTubeUrl(videoUrl) && (
+            <video src={videoUrl} controls className="w-full max-h-32 rounded-lg" />
+          )}
+          {videoUrl && isYouTubeUrl(videoUrl) && (
+            <p className="text-[10px] text-muted-foreground">Preview YouTube no disponible aquí.</p>
+          )}
+        </div>
+      </div>
+
+      {/* 4. Audio */}
+      <div>
+        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Audio</label>
+        <div className="space-y-2">
+          <FileUpload bucket="task_media" accept="audio/*" label={audioUrl ? "Audio ✓" : "Subir audio"} onUploaded={setAudioUrl} />
+          <input value={audioUrl} onChange={(e) => setAudioUrl(e.target.value)} placeholder="O pegar URL (MP3/M4A/WAV)..." className={inputClass} />
+          {audioWarning && (
+            <div className="flex items-start gap-1.5 text-[10px] text-amber-400 bg-amber-400/10 rounded-lg px-2.5 py-1.5">
+              <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
+              <span>{audioWarning}</span>
+            </div>
+          )}
+          {audioUrl && (
+            <audio src={audioUrl} controls className="w-full" />
+          )}
+        </div>
+      </div>
+
+      {/* 5. Macro Text */}
       <div>
         <label className="text-[10px] text-muted-foreground font-semibold uppercase">Texto del Macro</label>
         <textarea value={macroText} onChange={(e) => setMacroText(e.target.value)} placeholder="Explicación del macro del mes..." rows={3} className={inputClass} />
       </div>
-      <div>
-        <label className="text-[10px] text-muted-foreground font-semibold uppercase">URL Audio</label>
-        <input value={audioUrl} onChange={(e) => setAudioUrl(e.target.value)} placeholder="https://..." className={inputClass} />
-      </div>
-      <div>
-        <label className="text-[10px] text-muted-foreground font-semibold uppercase">URL Video</label>
-        <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://..." className={inputClass} />
-      </div>
+
       <button
         onClick={() => saveMacro.mutate()}
         disabled={saveMacro.isPending}
