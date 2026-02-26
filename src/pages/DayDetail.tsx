@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useDayTasks, useToggleDayTask } from "@/hooks/useDayTasks";
 import { useUpdateStreak } from "@/hooks/useTodayData";
-import { useCalculateScore } from "@/hooks/useLeaderboard";
+
 import BottomNav from "@/components/BottomNav";
 import DailyItemCard from "@/components/DailyItemCard";
 import JournalInput from "@/components/JournalInput";
@@ -14,7 +14,7 @@ const DayDetail = () => {
   const { dayId } = useParams<{ dayId: string }>();
   const navigate = useNavigate();
   const updateStreak = useUpdateStreak();
-  const calculateScore = useCalculateScore();
+  
 
   const { data: dayData, isLoading: dayLoading } = useQuery({
     queryKey: ["day-detail", dayId],
@@ -54,7 +54,6 @@ const DayDetail = () => {
 
   const handleCompleteDay = () => {
     updateStreak.mutate();
-    calculateScore.mutate();
   };
 
   if (dayLoading || tasksLoading) {
@@ -103,7 +102,7 @@ const DayDetail = () => {
         {allCompleted && (
           <button
             onClick={handleCompleteDay}
-            disabled={updateStreak.isPending || calculateScore.isPending}
+            disabled={updateStreak.isPending}
             className="w-full py-4 rounded-xl gold-gradient font-bold text-primary-foreground text-sm uppercase tracking-wider flex items-center justify-center gap-2 gold-glow shimmer"
           >
             {updateStreak.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
