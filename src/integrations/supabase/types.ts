@@ -704,6 +704,10 @@ export type Database = {
         Args: { p_day_number: number; p_week_id: string }
         Returns: string
       }
+      seed_program_months: {
+        Args: { p_program_id: string }
+        Returns: undefined
+      }
       update_user_streak: { Args: { p_user_id: string }; Returns: Json }
     }
     Enums: {
