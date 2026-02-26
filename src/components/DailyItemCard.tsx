@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { BookOpen, Target, Check, Loader2 } from "lucide-react";
+import { BookOpen, Target, Check, Loader2, Undo2 } from "lucide-react";
 import { TaskWithCheck } from "@/hooks/useDayTasks";
 import {
   Drawer,
@@ -117,9 +117,8 @@ const DailyItemCard = ({ task, type, onToggle, dayId }: DailyItemCardProps) => {
 
         <div
           role="button"
-          aria-label={isCompleted ? "Desmarcar tarea" : "Marcar como completada"}
-          aria-pressed={isCompleted}
-          onClick={() => onToggle(task.id)}
+          aria-label={isCompleted ? "Ver tarea completada" : "Abrir tarea"}
+          onClick={() => setOpen(true)}
           className={`absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all duration-200 press-scale ${
             isCompleted
               ? "bg-success/20 border-success/60"
@@ -194,24 +193,43 @@ const DailyItemCard = ({ task, type, onToggle, dayId }: DailyItemCardProps) => {
             )}
           </div>
           <DrawerFooter>
-            <button
-              onClick={() => {
-                onToggle(task.id);
-                if (!isCompleted) {
-                  // Keep drawer open after completing so user can write a note
-                } else {
-                  setOpen(false);
-                }
-              }}
-              className={`w-full py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all duration-200 press-scale ${
-                isCompleted
-                  ? "bg-success/15 text-success border border-success/30"
-                  : "gold-gradient text-primary-foreground gold-glow"
-              }`}
-            >
-              <Check className="w-4 h-4" />
-              {isCompleted ? "Completada — Desmarcar" : "Marcar como hecha"}
-            </button>
+            {!isCompleted ? (
+              /* Estado A: Incompleta → Marcar como hecha */
+              <button
+                onClick={() => onToggle(task.id)}
+                className="w-full py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all duration-200 press-scale gold-gradient text-primary-foreground gold-glow"
+              >
+                <Check className="w-4 h-4" />
+                Marcar como hecha
+              </button>
+            ) : (
+              /* Estado B: Completa → Finalizar + Desmarcar separado */
+              <>
+                <button
+                  onClick={() => {
+                    // Flush pending note save
+                    if (debounceRef.current) {
+                      clearTimeout(debounceRef.current);
+                      if (task && dayId && noteText !== (existingNote?.content ?? "")) {
+                        saveNote.mutate({ taskId: task.id, dayId, content: noteText });
+                      }
+                    }
+                    setOpen(false);
+                  }}
+                  className="w-full py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all duration-200 press-scale bg-success/15 text-success border border-success/30"
+                >
+                  <Check className="w-4 h-4" />
+                  Finalizar tarea
+                </button>
+                <button
+                  onClick={() => onToggle(task.id)}
+                  className="w-full py-2 text-xs font-medium flex items-center justify-center gap-1.5 text-destructive/70 hover:text-destructive transition-colors"
+                >
+                  <Undo2 className="w-3.5 h-3.5" />
+                  Desmarcar
+                </button>
+              </>
+            )}
             <DrawerClose asChild>
               <button className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Cerrar
