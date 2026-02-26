@@ -68,9 +68,7 @@ const Index = () => {
 
   const progressItems = [
     { label: "Hoy", value: progress?.day_pct },
-    { label: "Semana", value: progress?.week_pct },
     { label: "Mes", value: progress?.month_pct },
-    { label: "Total", value: progress?.year_pct },
   ] as const;
 
   return (
@@ -119,7 +117,7 @@ const Index = () => {
                   >
                     <p className="text-xs text-muted-foreground">{item.label}</p>
                     <p className="text-2xl font-bold text-primary mt-0.5">{pct}%</p>
-                    <div className="h-1 rounded-full bg-white/5 mt-2 overflow-hidden">
+                    <div className="h-2 rounded-full bg-white/5 mt-2 overflow-hidden">
                       <div
                         className="h-full rounded-full gold-gradient transition-all duration-700"
                         style={{ width: `${pct}%` }}
