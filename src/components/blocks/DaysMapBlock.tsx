@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Lock } from "lucide-react";
+import { Lock, Check } from "lucide-react";
 
 const dayLabels = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
@@ -63,7 +63,7 @@ const DaysMapBlock = ({ config, weekId, days = [] }: DaysMapBlockProps) => {
                   <Lock className="w-4 h-4 text-muted-foreground" />
                 ) : isComplete ? (
                   <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-primary-foreground">✓</span>
+                    <Check className="w-3 h-3 text-primary-foreground" />
                   </div>
                 ) : (
                   <span className="text-xs font-bold text-primary">{pct}%</span>

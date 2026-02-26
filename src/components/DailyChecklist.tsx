@@ -1,4 +1,4 @@
-import { Check, Zap } from "lucide-react";
+import { Check, Zap, StickyNote } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -173,7 +173,7 @@ const DailyChecklist = ({
                   onClick={() => openNoteModal(task.id)}
                   className="ml-12 mt-2 text-xs text-muted-foreground hover:text-primary transition-colors truncate max-w-full text-left"
                 >
-                  📝 {notes[task.id].slice(0, 60)}{notes[task.id].length > 60 ? "…" : ""}
+                  <StickyNote className="w-3 h-3 inline mr-1" />{notes[task.id].slice(0, 60)}{notes[task.id].length > 60 ? "…" : ""}
                 </button>
               )}
             </div>

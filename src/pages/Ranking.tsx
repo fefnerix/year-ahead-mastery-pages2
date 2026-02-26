@@ -88,7 +88,7 @@ const Ranking = () => {
                   Te faltan <span className="text-primary font-bold">+{pointsToNext}</span> para pasar a <span className="font-semibold text-foreground">{nextAbove.display_name}</span>
                 </p>
               ) : (summary?.position ?? 0) === 1 ? (
-                <p className="text-xs text-primary font-semibold">¡Estás #1! 🏆</p>
+                <p className="text-xs text-primary font-semibold flex items-center gap-1"><Trophy className="w-3.5 h-3.5" /> ¡Estás #1!</p>
               ) : (
                 <p className="text-xs text-muted-foreground">Completa tareas para subir</p>
               )}

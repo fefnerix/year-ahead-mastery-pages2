@@ -44,7 +44,7 @@ const FileUpload = ({ bucket, accept, label, onUploaded }: FileUploadProps) => {
         ) : (
           <Upload className="w-4 h-4" />
         )}
-        <span>{done ? `${label} ✓` : label}</span>
+        <span>{label}</span>
       </button>
     </div>
   );
