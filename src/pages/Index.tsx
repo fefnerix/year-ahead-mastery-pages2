@@ -1,6 +1,7 @@
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
 import DailyItemCard from "@/components/DailyItemCard";
+import ProgressDonut from "@/components/ProgressDonut";
 import { Sparkles, Loader2, ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
@@ -50,6 +51,10 @@ const Index = () => {
   const mesPct = Math.min(100, Math.max(0, Math.round(progress?.month_pct ?? 0)));
 
   const monthTheme = progress?.month_theme || weekData?.name || "";
+
+  // Current month label (e.g. "Marzo 2026")
+  const now = new Date();
+  const currentMonthLabel = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(now);
 
   return (
     <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
@@ -126,42 +131,18 @@ const Index = () => {
               </div>
             </section>
 
-            {/* 2. Progress — compact inline */}
+            {/* 2. Progress — donut */}
             <section className="shrink-0">
               {progressLoading ? (
-                <div className="h-10 rounded-xl animate-pulse bg-muted/20" />
+                <div className="h-[76px] rounded-xl animate-pulse bg-muted/20" />
               ) : (
-                <div className="flex gap-3">
-                  {/* Hoy */}
-                  <div className="flex-1 glass-card rounded-xl px-3 py-2.5 border border-primary/15">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Hoy</span>
-                      <span className="text-sm font-bold text-primary">{hoyPct}%</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-                      <div
-                        className="h-full rounded-full gold-gradient transition-all duration-700"
-                        style={{ width: `${hoyPct}%` }}
-                      />
-                    </div>
-                    {totalTasks > 0 && (
-                      <p className="text-[9px] text-muted-foreground/70 mt-1">{completedCount}/{totalTasks}</p>
-                    )}
-                  </div>
-                  {/* Mes */}
-                  <div className="flex-1 glass-card rounded-xl px-3 py-2.5 border border-primary/10">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Mes</span>
-                      <span className="text-sm font-bold text-primary">{mesPct}%</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-                      <div
-                        className="h-full rounded-full gold-gradient transition-all duration-700"
-                        style={{ width: `${mesPct}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
+                <ProgressDonut
+                  hoyPct={hoyPct}
+                  mesPct={mesPct}
+                  monthLabel={currentMonthLabel}
+                  completedCount={completedCount}
+                  totalTasks={totalTasks}
+                />
               )}
             </section>
 
