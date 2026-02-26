@@ -19,6 +19,8 @@ import Auth from "./pages/Auth";
 import CalendarioAno from "./pages/CalendarioAno";
 import CalendarioMes from "./pages/CalendarioMes";
 import ResolveLegacyDayRoute from "./pages/ResolveLegacyDayRoute";
+import SettingsPage from "./pages/Settings";
+import SupportPage from "./pages/Support";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +43,8 @@ const App = () => (
             <Route path="/ranking" element={<ProtectedRoute><Ranking /></ProtectedRoute>} />
             <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
             <Route path="/deposito" element={<ProtectedRoute><Deposito /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
             <Route path="/admin/months/:monthId/days" element={<AdminRoute><AdminMonthDays /></AdminRoute>} />
 
