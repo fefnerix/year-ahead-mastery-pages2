@@ -181,7 +181,7 @@ const Admin = () => {
                           className="flex-1 text-left"
                         >
                           <div>
-                            <span className="text-sm font-semibold text-foreground">{m.name}</span>
+                            <span className="text-sm font-semibold text-foreground">{m.name} {(m as any).year ?? ''}</span>
                             {m.theme && <span className="text-xs text-muted-foreground ml-2">{m.theme}</span>}
                           </div>
                         </button>

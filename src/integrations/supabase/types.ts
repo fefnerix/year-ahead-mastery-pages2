@@ -282,6 +282,7 @@ export type Database = {
           program_id: string
           theme: string | null
           video_url: string | null
+          year: number | null
         }
         Insert: {
           audio_url?: string | null
@@ -294,6 +295,7 @@ export type Database = {
           program_id: string
           theme?: string | null
           video_url?: string | null
+          year?: number | null
         }
         Update: {
           audio_url?: string | null
@@ -306,6 +308,7 @@ export type Database = {
           program_id?: string
           theme?: string | null
           video_url?: string | null
+          year?: number | null
         }
         Relationships: [
           {
