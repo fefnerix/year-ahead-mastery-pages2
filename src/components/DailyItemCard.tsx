@@ -39,7 +39,6 @@ const DailyItemCard = ({ task, type, onToggle, dayId }: DailyItemCardProps) => {
   const isPrayer = type === "prayer";
   const icon = isPrayer ? <BookOpen className="w-4 h-4" /> : <Target className="w-4 h-4" />;
   const label = isPrayer ? "Oración del día" : "Tarea del día";
-  const emoji = isPrayer ? "🙏🏼" : "🔥";
   const accentColor = isPrayer ? "bg-violet-400/50" : "bg-amber-400/50";
   const iconColor = isPrayer ? "text-violet-400" : "text-amber-400";
   const labelColor = isPrayer ? "text-violet-300" : "text-amber-300";
@@ -73,7 +72,7 @@ const DailyItemCard = ({ task, type, onToggle, dayId }: DailyItemCardProps) => {
       <div className="glass-card rounded-2xl p-4 border border-muted/30">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-muted/30">
-            <span className="text-base">{emoji}</span>
+            <span className="text-muted-foreground">{icon}</span>
           </div>
           <p className="text-xs text-muted-foreground">{label} — No disponible</p>
         </div>
@@ -102,7 +101,7 @@ const DailyItemCard = ({ task, type, onToggle, dayId }: DailyItemCardProps) => {
           <div className="flex items-center gap-2 mb-1.5">
             <span className={`${isCompleted ? "text-success" : iconColor}`}>{icon}</span>
             <p className={`text-[11px] font-bold uppercase tracking-wider ${isCompleted ? "text-success" : labelColor}`}>
-              {emoji} {label}
+              {label}
             </p>
             {!isPrayer && task.category && (
               <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/5 text-muted-foreground capitalize">

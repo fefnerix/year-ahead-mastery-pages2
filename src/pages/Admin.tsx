@@ -11,7 +11,7 @@ import {
   useCreateProgram, useCreateMonth,
 } from "@/hooks/useAdmin";
 import { useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement } from "@/hooks/useAnnouncements";
-import { Loader2, Plus, ChevronRight, Trash2, Megaphone, BookOpen, Save, AlertTriangle, X } from "lucide-react";
+import { Loader2, Plus, ChevronRight, Trash2, Megaphone, BookOpen, Save, AlertTriangle, X, Check } from "lucide-react";
 import { toast } from "sonner";
 import Logo from "@/components/Logo";
 import { isYouTubeUrl, getMediaWarning } from "@/lib/media-utils";
@@ -382,7 +382,7 @@ const MonthMacroEditor = ({ month }: { month: MonthData }) => {
             </div>
           )}
           {videoUrl && isYouTubeUrl(videoUrl) && (
-            <p className="text-[10px] text-muted-foreground">✓ YouTube URL válida</p>
+            <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Check className="w-3 h-3 text-success" /> YouTube URL válida</p>
           )}
         </div>
       </div>

@@ -362,7 +362,6 @@ interface TaskEditorProps {
 const TaskEditor = ({ kind, task, dayId }: TaskEditorProps) => {
   const queryClient = useQueryClient();
   const isPrayer = kind === "prayer";
-  const emoji = isPrayer ? "🙏🏼" : "🔥";
   const label = isPrayer ? "Oración del día" : "Tarea del día";
   const icon = isPrayer ? <BookOpen className="w-4 h-4 text-primary" /> : <Target className="w-4 h-4 text-primary" />;
 
@@ -431,7 +430,7 @@ const TaskEditor = ({ kind, task, dayId }: TaskEditorProps) => {
     <div className="glass-card rounded-xl p-4 space-y-3">
       <div className="flex items-center gap-2">
         {icon}
-        <p className="text-sm font-semibold text-foreground">{emoji} {label}</p>
+        <p className="text-sm font-semibold text-foreground">{label}</p>
         <span className={`ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full ${task ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
           {task ? "Existente" : "Nueva"}
         </span>
@@ -519,7 +518,7 @@ const TaskEditor = ({ kind, task, dayId }: TaskEditorProps) => {
               </div>
             )}
             {mediaVideo && isYouTubeUrl(mediaVideo) && (
-              <p className="text-[10px] text-muted-foreground">✓ YouTube URL válida</p>
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Check className="w-3 h-3 text-success" /> YouTube URL válida</p>
             )}
           </div>
         </div>

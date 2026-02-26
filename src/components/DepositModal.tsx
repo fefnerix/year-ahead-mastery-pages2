@@ -40,7 +40,7 @@ const DepositModal = ({ open, onClose }: DepositModalProps) => {
         date,
         note: note.trim() || undefined,
       });
-      toast.success("Depósito registrado ✅");
+      toast.success("Depósito registrado");
       setAmount("");
       setNote("");
       setDate(new Date().toISOString().split("T")[0]);
