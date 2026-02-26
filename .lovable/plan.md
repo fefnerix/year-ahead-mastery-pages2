@@ -1,44 +1,88 @@
 
 
-# Plan: Confirmar modelo 2 tarefas/dia e ajustar Home
+# Plan: Refazer UI de Progresso na Home + Remover "Recuperar Ayer"
 
 ## Resumo
 
-O codigo ja opera no modelo de 2 tasks (prayer + activity). As RPCs ja filtram `is_active = true` e calculam percentuais genericamente (`COUNT(checks)/COUNT(tasks)`). O Admin ja cria 2 tasks por dia. A unica mudanca real e na **Home (Index.tsx)**: remover os cards "Semana" e "Total" da secao de progresso, mantendo apenas "Hoy" e "Mes".
-
----
+Tres mudancas cirurgicas:
+1. Remover bloco "Ayer" da Home e import do hook
+2. Redesenhar secao Progresso com layout premium (card grande Hoy + card menor Mes)
+3. Ranking ja mostra Semana e Total -- nenhuma mudanca necessaria
 
 ## Mudancas
 
-### 1. `src/pages/Index.tsx` -- Secao Progresso
+### 1. `src/pages/Index.tsx`
 
-**O que muda:**
-- Remover `{ label: "Semana", value: progress?.week_pct }` e `{ label: "Total", value: progress?.year_pct }` do array `progressItems`
-- Manter apenas "Hoy" e "Mes"
-- Mudar o grid de `grid-cols-2` (4 cards) para `grid-cols-2` (2 cards) -- mesma classe, menos itens
-- O subtexto "x/2 hechas" ja funciona corretamente (usa `completedCount`/`totalTasks` dinamicamente)
-- Aumentar a barra de progresso do "Hoy" de `h-1` para `h-2` para destaque visual
+**Remover:**
+- Import de `useYesterdayProgress` (linha 16)
+- Import de `Clock` do lucide (linha 6)
+- Hook call `const { data: yesterday } = useYesterdayProgress()` (linha 33)
+- Bloco JSX "Recuperar Ayer" inteiro (linhas 165-184)
 
-Linhas afetadas: 69-74 (array progressItems) e opcionalmente 122 (altura da barra).
+**Redesenhar secao Progresso (linhas 100-131):**
 
-### 2. Nenhuma mudanca no backend
+Substituir os 2 cards identicos por um layout diferenciado:
 
-As RPCs (`get_user_progress`, `get_month_calendar`, `get_year_calendar`, `calculate_user_score`, `update_user_streak`) ja estao corretas:
-- Filtram `is_active = true`
-- Calculam `COUNT(tc.id) / NULLIF(COUNT(t.id), 0) * 100` -- generico, funciona com 2 tasks
-- day_pct: 0/2=0%, 1/2=50%, 2/2=100%
+```text
++------------------------------------------+
+|  Progreso                                |
+|                                          |
+|  [========= CARD HOY (full width) ====]  |
+|  |  HOY          67%                   |  |
+|  |  ================================  |  |
+|  |  1/2 hechas                        |  |
+|  +------------------------------------+  |
+|                                          |
+|  [========= CARD MES (full width) ====]  |
+|  |  MES          27%                   |  |
+|  |  ================================  |  |
+|  |  Promedio del mes                   |  |
+|  +------------------------------------+  |
++------------------------------------------+
+```
 
-### 3. Nenhuma mudanca no Admin
+O card "Hoy" sera maior e mais prominente:
+- Percentual em texto 3xl com cor dourada (`gold-text`)
+- Barra de progresso `h-3` com `gold-gradient`
+- Subtexto "x/2 hechas"
+- Borda dourada sutil (`border-primary/20`)
 
-`useCreateWeekWithDays` ja cria 2 tasks por dia (prayer + activity). `AdminDayTasks.tsx` ja edita exatamente 2 tasks. Validacao de legado ja existe.
+O card "Mes" sera mais compacto:
+- Percentual em texto xl
+- Barra `h-2`
+- Subtexto "Promedio del mes"
+
+Tambem atualizar o skeleton loader de `[...Array(4)]` para `[...Array(2)]` com tamanhos adequados.
+
+**Subtexto "x/2 hechas"**: Ja funciona dinamicamente via `completedCount`/`totalTasks`. Nao precisa hardcodar "/2".
+
+### 2. `src/pages/Ranking.tsx`
+
+**Nenhuma mudanca necessaria.** O Ranking ja exibe:
+- `week_pct` como hero principal ("Semana")
+- `year_pct` como card ("Anual")
+- Streaks (racha/record)
+- Dias completados
+- Certificacao anual com barra
+
+Todos os criterios de aceite para o Ranking ja estao atendidos.
+
+### 3. `src/hooks/useYesterdayData.ts`
+
+**Nenhuma mudanca.** O arquivo fica no projeto mas nao sera mais importado na Home. Pode ser util no futuro.
 
 ---
 
+## Arquivos alterados
+
+| Arquivo | Acao |
+|---|---|
+| `src/pages/Index.tsx` | Remover "Ayer", redesenhar Progresso |
+
 ## Criterios de aceite
 
-- CA1: Home mostra apenas "Hoy" e "Mes" (sem "Semana" e "Total")
-- CA2: Subtexto mostra "x/2 hechas"
-- CA3: day_pct correto: 0%, 50%, 100%
-- CA4: month_pct e week_pct usam formula generica (soma checks / soma tasks ativas)
-- CA5: Admin continua criando/editando exatamente 2 tasks por dia
-
+- CA1: Bloco "Ayer / Recuperar" nao aparece mais
+- CA2: Home exibe "Hoy" (card grande, % destaque, barra h-3) e "Mes" (card menor, barra h-2)
+- CA3: Ranking ja exibe Semana e Total
+- CA4: Marcar tarefa atualiza Hoy/Mes imediatamente (sem mudanca -- React Query invalidate ja funciona)
+- CA5: UI premium mantida -- dourado, dark, sem redundancia
