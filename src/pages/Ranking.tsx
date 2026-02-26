@@ -1,5 +1,5 @@
 import BottomNav from "@/components/BottomNav";
-import { Crown, Medal, Trophy, Loader2, Flame, TrendingUp } from "lucide-react";
+import { Crown, Medal, Trophy, Loader2, Flame, TrendingUp, Target, Award } from "lucide-react";
 import { useState } from "react";
 import { useLeaderboard, useRankingSummary } from "@/hooks/useLeaderboard";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +17,24 @@ const positionIcons: Record<number, React.ReactNode> = {
   3: <Trophy className="w-5 h-5 text-streak" />,
 };
 
+const ProgressBar = ({ value, max, label }: { value: number; max: number; label: string }) => {
+  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between items-baseline">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
+        <span className="text-xs font-bold text-foreground tabular-nums">{value}/{max}</span>
+      </div>
+      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+        <div
+          className="h-full gold-gradient rounded-full transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
 const Ranking = () => {
   const [activeTab, setActiveTab] = useState<typeof tabs[number]>("Hoy");
   const { user } = useAuth();
@@ -30,80 +48,82 @@ const Ranking = () => {
 
   const top10 = ranking.slice(0, 10);
   const userInTop10 = top10.some((e) => e.user_id === user?.id);
-  const displayRanking = userInTop10 ? top10 : [...top10, ...(currentUserEntry ? [currentUserEntry] : [])];
+  const displayRanking = userInTop10
+    ? top10
+    : [...top10, ...(currentUserEntry ? [currentUserEntry] : [])];
+
+  const pointsToNext = nextAbove && currentUserEntry
+    ? nextAbove.points - currentUserEntry.points + 1
+    : null;
 
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="px-5 pt-12 pb-4">
         <h1 className="text-3xl font-display font-bold text-foreground">Ranking</h1>
-        <p className="text-sm text-muted-foreground mt-1">Tu rendimiento y posición</p>
       </header>
 
-      <main className="px-5 space-y-5">
-        {/* Mi Progreso */}
-        <div className="glass-card gold-border rounded-2xl p-5 space-y-4">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Mi Progreso</h2>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="glass-card rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold gold-text tabular-nums">{summary?.today_points ?? 0}</p>
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-1">Hoy</p>
+      <main className="px-5 space-y-4">
+        {/* Tu Posición card */}
+        <div className="glass-card gold-border rounded-2xl p-5">
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-center">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Posición</p>
+              <p className="text-4xl font-display font-bold gold-text">
+                #{summary?.position || "—"}
+              </p>
             </div>
-            <div className="glass-card rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold gold-text tabular-nums">{summary?.month_points ?? 0}</p>
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-1">Mes</p>
-            </div>
-            <div className="glass-card rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold gold-text tabular-nums">{summary?.total_points ?? 0}</p>
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-1">Total</p>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <div className="glass-card rounded-xl p-3 text-center flex-1">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <Flame className="w-3.5 h-3.5 text-primary" />
-                <span className="text-lg font-bold text-foreground">{summary?.streak ?? 0}</span>
+            <div className="flex-1 space-y-1 pl-4 border-l border-border/30">
+              <div className="flex items-center gap-2">
+                <Target className="w-3.5 h-3.5 text-primary" />
+                <span className="text-sm text-foreground">
+                  <span className="font-bold">{summary?.total_points ?? 0}</span>
+                  <span className="text-muted-foreground ml-1">puntos</span>
+                </span>
               </div>
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Racha (2/2)</p>
-            </div>
-            <div className="glass-card rounded-xl p-3 text-center flex-1">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <TrendingUp className="w-3.5 h-3.5 text-primary" />
-                <span className="text-lg font-bold text-foreground">{summary?.max_streak ?? 0}</span>
-              </div>
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Récord</p>
-            </div>
-          </div>
-          <div>
-            <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-              <span>Certificación del ciclo</span>
-              <span>{summary?.total_pct ?? 0}%</span>
-            </div>
-            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-              <div className="h-full gold-gradient rounded-full transition-all duration-500" style={{ width: `${summary?.total_pct ?? 0}%` }} />
+              {pointsToNext ? (
+                <p className="text-xs text-muted-foreground">
+                  Te faltan <span className="text-primary font-bold">+{pointsToNext}</span> para subir a #{(currentUserEntry?.position ?? 1) - 1}
+                </p>
+              ) : (summary?.position ?? 0) === 1 ? (
+                <p className="text-xs text-primary font-semibold">¡Estás #1! 🏆</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Completa tareas para subir</p>
+              )}
             </div>
           </div>
         </div>
 
-        {(summary?.position ?? 0) > 0 && (
-          <div className="glass-card rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Tu posición</p>
-                <p className="text-2xl font-bold text-primary">#{summary?.position}</p>
+        {/* Mi Progreso: barras X/2, X/60, X/730 + streak */}
+        <div className="glass-card rounded-2xl p-5 space-y-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Mi Progreso</h2>
+          <ProgressBar value={summary?.today_points ?? 0} max={2} label="Puntos hoy" />
+          <ProgressBar value={summary?.month_points ?? 0} max={60} label="Puntos mes" />
+          <ProgressBar value={summary?.total_points ?? 0} max={730} label="Puntos total" />
+
+          <div className="flex gap-3 pt-1">
+            <div className="glass-card rounded-xl p-3 text-center flex-1">
+              <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                <Flame className="w-4 h-4 text-streak" />
+                <span className="text-lg font-bold text-foreground tabular-nums">{summary?.streak ?? 0}</span>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Puntos totales</p>
-                <p className="text-2xl font-bold text-foreground">{summary?.total_points ?? 0}</p>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Racha</p>
+            </div>
+            <div className="glass-card rounded-xl p-3 text-center flex-1">
+              <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                <span className="text-lg font-bold text-foreground tabular-nums">{summary?.max_streak ?? 0}</span>
               </div>
-              {nextAbove && currentUserEntry && (
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Para subir</p>
-                  <p className="text-lg font-bold text-primary">+{nextAbove.points - currentUserEntry.points + 1}</p>
-                </div>
-              )}
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Récord</p>
+            </div>
+            <div className="glass-card rounded-xl p-3 text-center flex-1">
+              <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                <Award className="w-4 h-4 text-primary" />
+                <span className="text-lg font-bold text-foreground tabular-nums">{summary?.total_pct ?? 0}%</span>
+              </div>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Ciclo</p>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Tabs */}
         <div className="flex bg-muted rounded-xl p-1">
@@ -122,14 +142,15 @@ const Ranking = () => {
           ))}
         </div>
 
+        {/* Leaderboard */}
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
           </div>
         ) : ranking.length === 0 ? (
           <div className="glass-card rounded-xl p-8 text-center">
-            <p className="text-muted-foreground">No hay datos de ranking todavía.</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Completa tareas para aparecer aquí.</p>
+            <p className="text-muted-foreground">Aún no hay ranking.</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Completa tu primera tarea para entrar.</p>
           </div>
         ) : (
           <div className="glass-card rounded-xl overflow-hidden">
@@ -142,18 +163,24 @@ const Ranking = () => {
                     {showSeparator && (
                       <div className="px-4 py-1.5 text-center text-[10px] text-muted-foreground bg-muted/30">···</div>
                     )}
-                    <div className={`flex items-center gap-3 px-4 py-3.5 transition-colors ${isMe ? "bg-primary/5" : ""}`}>
-                      <div className="w-8 flex justify-center">
+                    <div className={`flex items-center gap-3 px-4 py-3 transition-colors ${isMe ? "bg-primary/5 border-l-2 border-l-primary" : ""}`}>
+                      <div className="w-7 flex justify-center shrink-0">
                         {positionIcons[entry.position] || (
                           <span className="text-sm font-bold text-muted-foreground">{entry.position}</span>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <span className={`text-sm ${isMe ? "font-bold text-primary" : "font-medium text-foreground"}`}>
+                      <div className="flex-1 min-w-0">
+                        <span className={`text-sm block truncate ${isMe ? "font-bold text-primary" : "font-medium text-foreground"}`}>
                           {isMe ? "Tú" : entry.display_name}
                         </span>
                       </div>
-                      <span className="text-sm font-bold text-foreground tabular-nums">{entry.points}</span>
+                      {entry.streak > 0 && (
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <Flame className="w-3 h-3 text-streak" />
+                          <span className="text-[10px] font-bold text-streak tabular-nums">{entry.streak}</span>
+                        </div>
+                      )}
+                      <span className="text-sm font-bold text-foreground tabular-nums shrink-0">{entry.points}</span>
                     </div>
                   </div>
                 );
@@ -162,11 +189,13 @@ const Ranking = () => {
           </div>
         )}
 
+        {/* Reglas */}
         <div className="glass-card rounded-xl p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Reglas del Ranking</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Reglas</h3>
           <ul className="text-xs text-secondary-foreground space-y-1">
-            <li>• Cada tarea completada = 1 punto</li>
-            <li>• Máximo por día = 2 puntos (oración + actividad)</li>
+            <li>• 1 tarea = 1 punto</li>
+            <li>• Máximo: 2 puntos/día</li>
+            <li>• Desempate: racha 🔥 y luego fecha</li>
           </ul>
         </div>
       </main>
