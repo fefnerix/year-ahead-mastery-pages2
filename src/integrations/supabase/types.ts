@@ -275,6 +275,7 @@ export type Database = {
           audio_url: string | null
           created_at: string
           id: string
+          image_url: string | null
           macro_text: string | null
           name: string
           number: number
@@ -286,6 +287,7 @@ export type Database = {
           audio_url?: string | null
           created_at?: string
           id?: string
+          image_url?: string | null
           macro_text?: string | null
           name: string
           number: number
@@ -297,6 +299,7 @@ export type Database = {
           audio_url?: string | null
           created_at?: string
           id?: string
+          image_url?: string | null
           macro_text?: string | null
           name?: string
           number?: number
