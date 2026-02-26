@@ -1,41 +1,36 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+
+const PROGRAM_ID = "a0000000-0000-0000-0000-000000000001";
 
 interface LeaderboardEntry {
   user_id: string;
   display_name: string;
-  score: number;
+  points: number;
   days_completed: number;
-  weeks_completed: number;
-  streak: number;
   position: number;
 }
 
-function getCurrentPeriodKey(type: "week" | "month" | "year"): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  if (type === "year") return `${year}`;
-  if (type === "month") return `${year}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  // ISO week
-  const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+interface RankingSummary {
+  today_points: number;
+  month_points: number;
+  total_points: number;
+  today_pct: number;
+  month_pct: number;
+  total_pct: number;
+  streak: number;
+  max_streak: number;
+  position: number;
 }
 
-export function useLeaderboard(periodType: "week" | "month" | "year") {
-  const periodKey = getCurrentPeriodKey(periodType);
-
+export function useLeaderboard(scope: "day" | "month" | "total") {
   return useQuery({
-    queryKey: ["leaderboard", periodType, periodKey],
+    queryKey: ["leaderboard", scope],
     queryFn: async (): Promise<LeaderboardEntry[]> => {
-      const { data, error } = await supabase.rpc("get_leaderboard", {
-        p_period_type: periodType,
-        p_period_key: periodKey,
-        p_limit: 20,
+      const { data, error } = await supabase.rpc("get_leaderboard_v2" as any, {
+        p_scope: scope,
+        p_program_id: PROGRAM_ID,
       });
       if (error) throw error;
       return (data as unknown as LeaderboardEntry[]) ?? [];
@@ -43,31 +38,20 @@ export function useLeaderboard(periodType: "week" | "month" | "year") {
   });
 }
 
-export function useCalculateScore() {
+export function useRankingSummary() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async () => {
+  return useQuery({
+    queryKey: ["ranking-summary", user?.id],
+    queryFn: async (): Promise<RankingSummary> => {
       if (!user) throw new Error("Not authenticated");
-      const periods: Array<{ type: "week" | "month" | "year"; key: string }> = [
-        { type: "week", key: getCurrentPeriodKey("week") },
-        { type: "month", key: getCurrentPeriodKey("month") },
-        { type: "year", key: getCurrentPeriodKey("year") },
-      ];
-
-      for (const p of periods) {
-        await supabase.rpc("calculate_user_score", {
-          p_user_id: user.id,
-          p_period_type: p.type,
-          p_period_key: p.key,
-        });
-      }
+      const { data, error } = await supabase.rpc("get_my_ranking_summary" as any, {
+        p_user_id: user.id,
+        p_program_id: PROGRAM_ID,
+      });
+      if (error) throw error;
+      return data as unknown as RankingSummary;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
-    },
+    enabled: !!user,
   });
 }
-
-export { getCurrentPeriodKey };

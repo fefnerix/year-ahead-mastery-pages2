@@ -677,8 +677,16 @@ export type Database = {
         }
         Returns: Json
       }
+      get_leaderboard_v2: {
+        Args: { p_program_id: string; p_scope: string }
+        Returns: Json
+      }
       get_month_calendar: {
         Args: { p_month_id: string; p_user_id: string }
+        Returns: Json
+      }
+      get_my_ranking_summary: {
+        Args: { p_program_id: string; p_user_id: string }
         Returns: Json
       }
       get_user_progress: {

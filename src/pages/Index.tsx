@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { useProgress, useUpdateStreak } from "@/hooks/useTodayData";
 import { useDayTasks, useToggleDayTask } from "@/hooks/useDayTasks";
-import { useCalculateScore } from "@/hooks/useLeaderboard";
+
 import { useIsAdmin } from "@/hooks/useAdmin";
 
 const formattedToday = new Intl.DateTimeFormat("es-ES", {
@@ -22,7 +22,7 @@ const Index = () => {
   const { data: tasks = [], isLoading: tasksLoading } = useDayTasks(progress?.day_id);
   const toggleTask = useToggleDayTask(progress?.day_id);
   const updateStreak = useUpdateStreak();
-  const calculateScore = useCalculateScore();
+  
   const { data: isAdmin } = useIsAdmin();
 
   const prayerTask = tasks.find((t) => t.task_kind === "prayer") ?? null;
@@ -36,7 +36,6 @@ const Index = () => {
 
   const handleCompleteDay = () => {
     updateStreak.mutate();
-    calculateScore.mutate();
   };
 
   const isLoading = progressLoading || tasksLoading;
@@ -153,7 +152,7 @@ const Index = () => {
               {allCompleted && hasDayData && (
                 <button
                   onClick={handleCompleteDay}
-                  disabled={updateStreak.isPending || calculateScore.isPending}
+                  disabled={updateStreak.isPending}
                   className="mt-auto w-full py-3 rounded-xl gold-gradient font-bold text-primary-foreground text-xs uppercase tracking-wider flex items-center justify-center gap-2 gold-glow shimmer press-scale disabled:opacity-60 shrink-0"
                 >
                   {updateStreak.isPending ? (
