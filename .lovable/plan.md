@@ -1,172 +1,151 @@
 
-# Plan: Complete PROGRESS Refactor
+# Plan: Admin Month Grid + MonthDetail Layout + Home 3 Indicators + Diario Cleanup + Custom Players
 
 ## Overview
 
-This is the consolidated implementation covering ALL requested changes:
+All pending changes consolidated into one implementation pass:
 
-1. **MonthDetail page** (`/mes/:monthId`) with text, video, audio, CTA "IR A HOY"
-2. **Home CTA** changes to "Ver reto del mes" pointing to `/mes/:monthId`
-3. **Task media fields** (image, video, audio) in Admin CMS + rendered in app drawer
-4. **Complete removal of Weeks/Retos** from Admin UI, routes, and hooks
-5. **New month-based day editor** (`/admin/months/:monthId/days`) replacing week-based AdminDayTasks
+1. **Admin "Editar dias" -- full month grid** (replace weekly strip with calendar grid)
+2. **MonthDetail -- reorder content** (Video, Audio, Text) + CTA "IR A HOY" navigates to "/"
+3. **Home -- 3 donuts** (HOY, MES, TOTAL)
+4. **Diario -- remove "Semana" grouping**, group by month only, delete old data
+5. **Custom video player** (no YouTube UI for direct files)
+6. **Enhanced audio player** (volume, 5 speeds, error handling)
 
 ---
 
-## Part 1: Database Migration (single SQL file)
+## Part 1: Admin "Editar dias" -- Full Month Grid
 
-### A. Update `get_user_progress` RPC
-- Add `'month_id', v_month_id` to the JSON return object
-- Change the entry point: instead of `SELECT FROM weeks WHERE status = 'active'`, find the active month first via a date-based lookup or a new `is_active` flag on months
-- The RPC currently starts from "active week" -- this changes to find the current day by date across all months/weeks, then derive month_id from there
+**File: `src/pages/AdminMonthDays.tsx`** (rewrite)
 
-### B. Add media columns to `tasks`
-```text
-ALTER TABLE public.tasks
-  ADD COLUMN IF NOT EXISTS media_image_url text,
-  ADD COLUMN IF NOT EXISTS media_video_url text,
-  ADD COLUMN IF NOT EXISTS media_audio_url text;
+### Replace the horizontal weekly scroll strip with a calendar-style month grid
+
+Current problem: Days are shown as a horizontal scroll of buttons (LUN..DOM style), only showing days that exist in the DB. This looks and feels like a week selector.
+
+New UI:
+- 7-column grid with weekday headers: LUN MAR MIE JUE VIE SAB DOM
+- Compute the full calendar for the month from `month.name` + program year (or from the `days` data dates)
+- Show all calendar days 1..N where N = days in month
+- Each cell shows:
+  - Day number
+  - Status indicator: check mark if both tasks exist (prayer + activity), dot if partial, dash if empty
+  - Gold highlight for selected day
+  - Muted style for days outside the month (leading/trailing blanks)
+- Click a cell to select it and load the TaskEditor below
+
+### Data changes
+- Fetch month info including `name` to determine which calendar month it is
+- Still fetch days via `weeks` join (unchanged query)
+- For days that don't exist in DB yet: show them as empty cells (no click action, or show "Dia no creado" state)
+- The task count per day can be derived from a bulk query or computed client-side after selecting
+
+### Day status computation
+- After fetching all days, also fetch task counts per day in one query:
+  ```
+  SELECT day_id, COUNT(*) as task_count 
+  FROM tasks WHERE day_id IN (...) AND is_active = true 
+  GROUP BY day_id
+  ```
+- Map: 0 tasks = empty, 1 task = partial, 2+ tasks = complete
+
+### TaskEditor section (below grid) -- unchanged
+- Same prayer + activity editors with media uploads
+- Same save/validation logic
+
+---
+
+## Part 2: MonthDetail -- Reorder + CTA Fix
+
+**File: `src/pages/MonthDetail.tsx`** (edit)
+
+### Content reorder (currently: text, video, audio)
+New order:
+1. Header (back, "RETO DEL MES", title, month name) -- unchanged
+2. **Video** -- moved up (currently 2nd)
+3. **Audio** -- moved up (currently 3rd)  
+4. **Macro text** -- moved down (currently 1st content block)
+5. **CTA "IR A HOY"** -- always visible at bottom
+
+### Fallbacks
+- No video: skip video section
+- No audio: skip audio section
+- No macro_text: show "Contenido del mes aun no fue publicado."
+
+### CTA behavior
+- Change from `navigate(/day/${progress.day_id})` to `navigate("/")`
+- Remove conditional rendering (`progress?.day_id &&`) -- button always shows
+- Remove `useProgress` import (no longer needed)
+
+### Video: use CustomVideoPlayer for direct files, YouTube iframe as fallback
+- Detect YouTube URL with existing `getYouTubeId` helper
+- Direct file: `<CustomVideoPlayer src={url} />`
+- YouTube: iframe with `modestbranding=1&rel=0&showinfo=0` + disclaimer text
+
+---
+
+## Part 3: Custom Video Player
+
+**New file: `src/components/CustomVideoPlayer.tsx`**
+
+HTML5 `<video>` with custom controls overlay:
+- Native controls disabled (`controls={false}`)
+- Custom UI overlay at bottom:
+  - Play/Pause button
+  - Seekbar (clickable progress bar)
+  - Current time / Duration
+  - Volume toggle (mute/unmute)
+  - Speed selector cycling: 0.5x, 1x, 1.25x, 1.5x, 2x
+  - Fullscreen toggle
+- Auto-hide controls after 2s of inactivity (show on hover/tap)
+- Error state: `onError` shows "Video no disponible" fallback
+- Icons from lucide-react: Play, Pause, Volume2, VolumeX, Maximize
+
+---
+
+## Part 4: Enhanced Audio Player
+
+**File: `src/components/AudioPlayer.tsx`** (edit)
+
+- Expand `speeds` from `[1, 1.25, 1.5]` to `[0.5, 1, 1.25, 1.5, 2]`
+- Add volume toggle button (Volume2/VolumeX icons) that mutes/unmutes
+- Add error handling: listen for `error` event on `<audio>`, show "Audio no disponible" fallback
+
+---
+
+## Part 5: Home -- 3 Donuts (HOY, MES, TOTAL)
+
+**File: `src/components/ProgressDonut.tsx`** (edit)
+
+- Add `totalPct` prop
+- Render 3 Donut components: Hoy, Mes, Total
+- Reduce donut size from 56px to 48px so 3 fit comfortably
+- Fix SVG gradient ID collision: use unique IDs per donut (`gold-grad-hoy`, `gold-grad-mes`, `gold-grad-total`)
+- Remove `completedCount`/`totalTasks` props
+
+**File: `src/pages/Index.tsx`** (edit)
+
+- Compute `totalPct = Math.min(100, Math.max(0, Math.round(progress?.year_pct ?? 0)))`
+- Pass `totalPct` to `ProgressDonut`
+- Remove `completedCount` and `totalTasks` props
+
+---
+
+## Part 6: Diario -- Remove "Semana" Grouping
+
+**File: `src/pages/Cuaderno.tsx`** (edit)
+
+- Flatten `groupedNotes`: remove nested `weeks` Map, use `Map<monthKey, { label, notes[] }>`
+- Flatten `groupedJournal`: same pattern, `Map<monthKey, { label, entries[] }>`
+- Remove `weekLabel`/`weekKey` computation
+- Remove `<h3>` headers showing "Semana X -- Name" (lines 256, 289)
+- Render notes/entries flat under each month `<h2>` header, sorted by date
+
+### Data cleanup (SQL DELETE)
+```sql
+DELETE FROM task_notes;
+DELETE FROM journal_entries;
 ```
-
-### C. Create `task_media` storage bucket
-Public bucket with RLS policies: admin can upload (INSERT), authenticated users can read (SELECT).
-
----
-
-## Part 2: New Page -- `src/pages/MonthDetail.tsx`
-
-Route: `/mes/:monthId`
-
-Layout (scrollable, dark premium theme):
-- Back arrow + "PROGRESS" header
-- Month title (theme) + month name
-- Macro text section (conditional on `macro_text`)
-- Video player via iframe (conditional on `video_url`) -- YouTube/Vimeo auto-detection
-- Audio player reusing existing `AudioPlayer` component (conditional on `audio_url`)
-- Gold CTA button "IR A HOY" -- uses `useProgress()` to get `day_id`, navigates to `/day/:dayId`
-- BottomNav at bottom
-
-Data source: `supabase.from("months").select("*").eq("id", monthId).single()`
-
----
-
-## Part 3: Home (`src/pages/Index.tsx`) Changes
-
-### Hero CTA
-- Label: "Continuar hoy" becomes **"Ver reto del mes"**
-- Link: `/day/${progress.day_id}` becomes **`/mes/${progress.month_id}`**
-- Only shows if `progress.month_id` exists
-
-### Remove `useCurrentWeekData` dependency
-- Currently used for `weekData?.cover_url` (hero image) and `weekData?.name` (fallback monthTheme)
-- Replace with: `monthTheme` from `progress.month_theme` only; hero image becomes gold gradient placeholder
-- Remove import of `useCurrentWeekData`
-
-### Keep "Continuar hoy" as `/day/${progress.day_id}` link
-- The daily task cards already open drawers, but there's a secondary CTA in the hero -- this specific one changes to month
-
----
-
-## Part 4: Router (`src/App.tsx`)
-
-### Add new routes
-```text
-/mes/:monthId -> MonthDetail (auth)
-/admin/months/:monthId/days -> AdminMonthDays (admin)
-```
-
-### Remove/redirect legacy routes
-```text
-/admin/retos/:weekId/builder -> redirect to /admin
-/admin/retos/:weekId/tareas  -> redirect to /admin
-```
-Remove imports: `RetoBuilder`, `AdminDayTasks`
-
-### Keep existing safe redirects
-```text
-/reto/:weekId/dia/:dayNumber -> ResolveLegacyDayRoute (already exists)
-/reto/:weekId -> redirect to / (already exists)
-/lecturas -> redirect to / (already exists)
-```
-
----
-
-## Part 5: Admin (`src/pages/Admin.tsx`) -- Remove Weeks/Retos
-
-### Remove entirely (lines 237-389)
-- The full "Retos / Semanas" section: week form, week cards, expanded actions, asset uploads
-- All week-related state variables: `showWeekForm`, `expandedWeek`, `wName`, `wNumber`, `wObjective`, `wStartDate`, `wCover`, `wAudio`, `wScheduleImg`, `wSchedulePdf`, `wDescLong`, `wSpiritualPlaylist`, `wMentalPlaylist`
-- Week-related hook calls: `useWeeks`, `useCreateWeekWithDays`, `useUpdateWeekAsset`, `useAdjustWeekDates`, `useActivateWeek`
-- `handleCreateWeek` function
-- Update subtitle: "Gestion de programas, meses y comunicados"
-
-### Add per-month "Editar dias" button
-- Each month card gets a button that navigates to `/admin/months/:monthId/days`
-
----
-
-## Part 6: New Admin Page -- `src/pages/AdminMonthDays.tsx`
-
-Route: `/admin/months/:monthId/days`
-
-Replaces the old `AdminDayTasks` (which was week-based).
-
-UI:
-1. Header: "Tareas del Dia" + subtitle "Mes: {month.theme} -- {month.name}"
-2. Day selector: horizontal scroll of all days in the month (fetched via `days JOIN weeks WHERE weeks.month_id = monthId`, ordered by date)
-3. TaskEditor per selected day (prayer + activity) with:
-   - Title (text input, required, min 5 chars)
-   - Description (textarea)
-   - Media uploads: 3 `FileUpload` components for image, video, audio (bucket: `task_media`)
-   - Alternative text input for external video/audio URL
-   - Save button
-4. BottomNav
-
-Data queries:
-- Days: `SELECT d.* FROM days d JOIN weeks w ON w.id = d.week_id WHERE w.month_id = :monthId ORDER BY d.date`
-- Tasks for day: same pattern as current AdminDayTasks
-- Save: upsert tasks with media URLs
-
----
-
-## Part 7: App -- Render Task Media in Drawer
-
-### `src/hooks/useDayTasks.ts`
-Add to `TaskWithCheck` interface:
-```text
-media_image_url?: string | null
-media_video_url?: string | null
-media_audio_url?: string | null
-```
-Update the select query to include these 3 columns and map them through.
-
-### `src/components/DailyItemCard.tsx`
-In the Drawer content (after description text), conditionally render:
-1. Image: `<img>` with rounded corners if `media_image_url` exists
-2. Video: iframe embed (YouTube/Vimeo auto-detection) or `<video>` tag if `media_video_url`
-3. Audio: inline `<audio>` controls or reuse `AudioPlayer` if `media_audio_url`
-
----
-
-## Part 8: Cleanup
-
-### `src/hooks/useAdmin.ts`
-Remove: `useWeeks`, `useCreateWeekWithDays`, `useUpdateWeekAsset`, `useAdjustWeekDates`, `useActivateWeek`, `ASSET_BLOCK_MAP`
-Keep: `useIsAdmin`, `usePrograms`, `useMonths`, `useCreateProgram`, `useCreateMonth`, `uploadFile`
-
-### `src/hooks/useTodayData.ts`
-Add `month_id: string | null` to `ProgressData` interface.
-
-### Files that can be deleted (already disconnected from router)
-- `src/pages/Reto.tsx`
-- `src/pages/Dia.tsx`
-- `src/pages/Lecturas.tsx`
-- `src/pages/RetoBuilder.tsx`
-- `src/pages/AdminDayTasks.tsx`
-- `src/hooks/useCurrentWeekData.ts`
-- `src/hooks/useRetoData.ts`
-- `src/hooks/useWeekBlocks.ts`
-- `src/components/blocks/HeroBlock.tsx` (week-specific)
+Clear all legacy mock data. Diario starts empty until users create new entries.
 
 ---
 
@@ -174,38 +153,32 @@ Add `month_id: string | null` to `ProgressData` interface.
 
 | File | Action |
 |---|---|
-| SQL Migration | Update RPC (add month_id, remove week dependency), add 3 media columns, create task_media bucket |
-| `src/pages/MonthDetail.tsx` | **CREATE** |
-| `src/pages/AdminMonthDays.tsx` | **CREATE** |
-| `src/App.tsx` | Add 2 new routes, redirect 2 admin routes, remove 2 imports |
-| `src/pages/Index.tsx` | Change hero CTA to `/mes/:monthId`, remove `useCurrentWeekData` |
-| `src/pages/Admin.tsx` | Remove entire Weeks/Retos section (lines 237-389), add "Editar dias" per month |
-| `src/hooks/useAdmin.ts` | Remove 5 week-related hooks + ASSET_BLOCK_MAP |
-| `src/hooks/useTodayData.ts` | Add `month_id` to ProgressData |
-| `src/hooks/useDayTasks.ts` | Add 3 media fields to TaskWithCheck + select |
-| `src/components/DailyItemCard.tsx` | Render media in drawer |
-| `src/pages/RetoBuilder.tsx` | **DELETE** |
-| `src/pages/AdminDayTasks.tsx` | **DELETE** |
-| `src/hooks/useCurrentWeekData.ts` | **DELETE** |
-| `src/hooks/useRetoData.ts` | **DELETE** |
-| `src/hooks/useWeekBlocks.ts` | **DELETE** |
-| `src/pages/Reto.tsx` | **DELETE** |
-| `src/pages/Dia.tsx` | **DELETE** |
-| `src/pages/Lecturas.tsx` | **DELETE** |
+| `src/pages/AdminMonthDays.tsx` | **REWRITE** -- replace weekly strip with full month calendar grid |
+| `src/pages/MonthDetail.tsx` | **EDIT** -- reorder (video, audio, text), CTA -> "/", use CustomVideoPlayer |
+| `src/components/CustomVideoPlayer.tsx` | **CREATE** -- custom HTML5 video player |
+| `src/components/AudioPlayer.tsx` | **EDIT** -- add volume, 5 speeds, error handling |
+| `src/components/ProgressDonut.tsx` | **EDIT** -- add 3rd donut (TOTAL), fix gradient IDs |
+| `src/pages/Index.tsx` | **EDIT** -- pass `totalPct` |
+| `src/pages/Cuaderno.tsx` | **EDIT** -- flatten grouping, remove week sub-headers |
+| Data cleanup | DELETE FROM task_notes; DELETE FROM journal_entries; |
 
 ---
 
 ## Acceptance Criteria
 
-- CA1: Home hero CTA opens `/mes/:monthId` with label "Ver reto del mes" (NEVER `/reto/:weekId`)
-- CA2: MonthDetail shows text + video + audio from CMS
-- CA3: All content from CMS only (no mock)
-- CA4: CTA "IR A HOY" in MonthDetail navigates to `/day/:dayId`
-- CA5: Admin does NOT show "Retos / Semanas" anywhere
-- CA6: No route `/admin/retos/*` is accessible (redirects to /admin)
-- CA7: Admin edits tasks by selecting Month then Day (not Week)
-- CA8: Admin can upload image/video/audio per task
-- CA9: App drawer renders task media (image, video, audio)
-- CA10: Progress calculations unaffected by media
-- CA11: Day listing in admin loads by month_id (via weeks join)
-- CA12: No public route references weeks
+- CA1: Admin "Editar dias" shows all days of the month in a 7-column grid (not a weekly strip)
+- CA2: Each day cell shows status (complete/partial/empty)
+- CA3: Clicking a day opens the task editor (prayer + activity) inline below the grid
+- CA4: MonthDetail shows Video before Audio before Text
+- CA5: "IR A HOY" always navigates to "/" (Home)
+- CA6: CTA button always visible (no dependency on day_id)
+- CA7: If no macro_text, show fallback text
+- CA8: Video plays with custom player (no YouTube UI) for direct file URLs
+- CA9: YouTube URLs show iframe with disclaimer
+- CA10: Audio plays with volume, seek, and 5 speed options (0.5x-2x)
+- CA11: Invalid media URLs show fallback without breaking
+- CA12: Home shows 3 indicators: HOY, MES, TOTAL
+- CA13: No "Semana" label anywhere in Home, Diario, or MonthDetail
+- CA14: Diario groups entries by month only
+- CA15: No old mock data in Diario after cleanup
+- CA16: SVG gradient IDs don't collide across donuts
