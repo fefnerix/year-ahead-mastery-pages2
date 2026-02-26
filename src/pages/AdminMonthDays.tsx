@@ -468,9 +468,14 @@ const TaskEditor = ({ kind, task, dayId }: TaskEditorProps) => {
       {!isPrayer && (
         <div>
           <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Pilar</label>
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className={inputClass}>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className={`${inputClass} appearance-none`}
+            style={{ colorScheme: 'dark' }}
+          >
             {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+              <option key={c} value={c} className="bg-background text-foreground">{c.charAt(0).toUpperCase() + c.slice(1)}</option>
             ))}
           </select>
         </div>
