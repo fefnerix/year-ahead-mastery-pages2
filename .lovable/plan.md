@@ -1,22 +1,44 @@
 
 
-# Plan: Sprint 0 + Sprint 1 — Produto Operável
+# Plan: Confirmar modelo 2 tarefas/dia e ajustar Home
 
-## Checklist DoD
+## Resumo
 
-- [x] Home mostra 2 cards (Oracion + Tarea) com drawer de detalhe
-- [x] Nenhuma referencia a "5 momentos" ou "Perfect Day" na Home
-- [x] RPCs filtram tasks inativas (is_active = true) — calculate_user_score + update_user_streak corrigidos
-- [x] get_month_calendar sem hardcode /5
-- [x] Constraint unique(user_id, task_id) em task_checks
-- [x] useYesterdayData funciona com 2 tasks
-- [x] useRetoData sem N+1
-- [x] CalendarioMes mostra dia do mes real
-- [x] DailyItemCard reutilizado em Home, Dia e DayDetail
-- [x] RetoBuilder limita 2 tasks ativas por dia (AdminDayTasks)
-- [x] Navegacao consistente entre todas as telas
-- [x] useCreateWeekWithDays cria 2 tasks (prayer + activity) por dia, não 5 Momentos
-- [x] /semana removida (era hardcoded)
-- [x] /lecturas criada como página funcional
-- [x] Admin: editor Macro del Mes (theme/macro_text/audio/video)
-- [ ] Admin: CRUD de Lecturas (content_items) — pendente Sprint 2
+O codigo ja opera no modelo de 2 tasks (prayer + activity). As RPCs ja filtram `is_active = true` e calculam percentuais genericamente (`COUNT(checks)/COUNT(tasks)`). O Admin ja cria 2 tasks por dia. A unica mudanca real e na **Home (Index.tsx)**: remover os cards "Semana" e "Total" da secao de progresso, mantendo apenas "Hoy" e "Mes".
+
+---
+
+## Mudancas
+
+### 1. `src/pages/Index.tsx` -- Secao Progresso
+
+**O que muda:**
+- Remover `{ label: "Semana", value: progress?.week_pct }` e `{ label: "Total", value: progress?.year_pct }` do array `progressItems`
+- Manter apenas "Hoy" e "Mes"
+- Mudar o grid de `grid-cols-2` (4 cards) para `grid-cols-2` (2 cards) -- mesma classe, menos itens
+- O subtexto "x/2 hechas" ja funciona corretamente (usa `completedCount`/`totalTasks` dinamicamente)
+- Aumentar a barra de progresso do "Hoy" de `h-1` para `h-2` para destaque visual
+
+Linhas afetadas: 69-74 (array progressItems) e opcionalmente 122 (altura da barra).
+
+### 2. Nenhuma mudanca no backend
+
+As RPCs (`get_user_progress`, `get_month_calendar`, `get_year_calendar`, `calculate_user_score`, `update_user_streak`) ja estao corretas:
+- Filtram `is_active = true`
+- Calculam `COUNT(tc.id) / NULLIF(COUNT(t.id), 0) * 100` -- generico, funciona com 2 tasks
+- day_pct: 0/2=0%, 1/2=50%, 2/2=100%
+
+### 3. Nenhuma mudanca no Admin
+
+`useCreateWeekWithDays` ja cria 2 tasks por dia (prayer + activity). `AdminDayTasks.tsx` ja edita exatamente 2 tasks. Validacao de legado ja existe.
+
+---
+
+## Criterios de aceite
+
+- CA1: Home mostra apenas "Hoy" e "Mes" (sem "Semana" e "Total")
+- CA2: Subtexto mostra "x/2 hechas"
+- CA3: day_pct correto: 0%, 50%, 100%
+- CA4: month_pct e week_pct usam formula generica (soma checks / soma tasks ativas)
+- CA5: Admin continua criando/editando exatamente 2 tasks por dia
+
