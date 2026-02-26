@@ -44,7 +44,7 @@ const AdminMonthDays = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("months")
-        .select("name, theme, number, program_id, programs(year, start_date)")
+        .select("name, theme, number, year, program_id, programs(year, start_date)")
         .eq("id", monthId!)
         .single();
       if (error) throw error;
@@ -130,23 +130,10 @@ const AdminMonthDays = () => {
     if (!monthInfo) return null;
 
     const monthNumber = monthInfo.number; // 1-based month number
-    const programYear = monthInfo.programs?.year || new Date().getFullYear();
 
-    // Determine the actual calendar month/year
-    // Program cycle: month 3..12 = Mar..Dec of programYear, month 1..2 = Jan..Feb of programYear+1
-    let calendarMonth: number; // 0-based for Date constructor
-    let calendarYear: number;
-
-    if (days.length > 0) {
-      // Use the first day's date to determine the calendar month
-      const parts = days[0].date.split("-");
-      calendarYear = parseInt(parts[0]);
-      calendarMonth = parseInt(parts[1]) - 1; // 0-based
-    } else {
-      // Fallback: derive from month number
-      calendarMonth = monthNumber - 1; // 0-based
-      calendarYear = monthNumber >= 3 ? programYear : programYear + 1;
-    }
+    // Use the month's own year from the DB — this is the source of truth
+    let calendarMonth = monthNumber - 1; // 0-based for Date constructor
+    let calendarYear = monthInfo.year ?? monthInfo.programs?.year ?? new Date().getFullYear();
 
     const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
     const firstDayOfWeek = new Date(calendarYear, calendarMonth, 1).getDay(); // 0=Sun
