@@ -209,7 +209,7 @@ const DailyChecklist = ({
             value={modalNote}
             onChange={(e) => setModalNote(e.target.value)}
             className="min-h-[100px] bg-card/50 border-primary/15 text-sm resize-none rounded-xl"
-            autoFocus
+            
           />
 
           <DialogFooter>

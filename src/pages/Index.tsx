@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { useProgress } from "@/hooks/useTodayData";
 import { useDayTasks, useToggleDayTask } from "@/hooks/useDayTasks";
 import { useIsAdmin } from "@/hooks/useAdmin";
+import { getTodayBRT } from "@/lib/dates";
 
 const formattedToday = new Intl.DateTimeFormat("es-ES", {
   weekday: "short",
@@ -43,8 +44,8 @@ const Index = () => {
   const now = new Date();
   const currentMonthLabel = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(now);
 
-  // Build today's date string for journal
-  const todayDate = now.toISOString().split("T")[0];
+  // Build today's date string for journal (BRT timezone)
+  const todayDate = getTodayBRT();
 
   return (
     <div className="min-h-screen bg-background flex flex-col pb-20">

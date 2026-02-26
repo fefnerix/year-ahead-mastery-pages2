@@ -185,7 +185,6 @@ const DailyItemCard = ({ task, type, onToggle, dayId }: DailyItemCardProps) => {
                   onBlur={handleNoteBlur}
                   placeholder="Escribe tu reflexión…"
                   rows={2}
-                  autoFocus
                   className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none px-3 pb-3 min-h-[50px]"
                 />
               </div>
