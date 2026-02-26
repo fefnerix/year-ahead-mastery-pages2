@@ -3,7 +3,7 @@ import DepositCard from "@/components/DepositCard";
 import { ChevronRight, Settings, HelpCircle, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeposits } from "@/hooks/useDeposits";
-import { format } from "date-fns";
+
 
 const Perfil = () => {
   const { user, signOut } = useAuth();
@@ -39,18 +39,18 @@ const Perfil = () => {
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Últimos depósitos
             </p>
-            {recentDeposits.map((d) => (
-              <div key={d.id} className="flex items-center justify-between py-1.5 border-b border-border/20 last:border-0">
+            {recentDeposits.map((dep) => (
+              <div key={dep.id} className="flex items-center justify-between py-1.5 border-b border-border/20 last:border-0">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-foreground truncate">
-                    {d.note || "Sin nota"}
+                    {dep.note || "Sin nota"}
                   </p>
                   <p className="text-[10px] text-muted-foreground">
-                    {format(new Date(d.date), "dd MMM yyyy")}
+                    {(() => { const [y, mo, da] = dep.date.split("-"); return `${da}/${mo}/${y}`; })()}
                   </p>
                 </div>
                 <span className="text-sm font-bold text-primary tabular-nums ml-3">
-                  +${Number(d.amount).toFixed(2)}
+                  +{Number(dep.amount).toFixed(2)}
                 </span>
               </div>
             ))}

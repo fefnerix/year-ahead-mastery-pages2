@@ -38,9 +38,11 @@ export function useCreateDeposit() {
   const { user } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { amount: number; currency: string; date: string; note?: string }) => {
+    mutationFn: async (input: { amount: number; date: string; note?: string }) => {
       const { error } = await supabase.from("abundance_deposits").insert({
-        ...input,
+        amount: input.amount,
+        date: input.date,
+        note: input.note ?? null,
         user_id: user!.id,
       });
       if (error) throw error;
