@@ -166,9 +166,9 @@ const DailyItemCard = ({ task, type, onToggle, dayId }: DailyItemCardProps) => {
               <p className="text-sm text-muted-foreground leading-relaxed">{task.description}</p>
             )}
 
-            {/* Note section */}
-            {dayId && (
-              <div className="glass-card rounded-xl border border-primary/10 focus-within:border-primary/30 transition-colors duration-200 overflow-hidden">
+            {/* Note section — only visible when completed */}
+            {dayId && isCompleted && (
+              <div className="glass-card rounded-xl border border-primary/10 focus-within:border-primary/30 transition-colors duration-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="flex items-center gap-2 px-3 pt-3 pb-1">
                   <BookOpen className="w-3.5 h-3.5 text-primary shrink-0" />
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex-1">
@@ -185,8 +185,9 @@ const DailyItemCard = ({ task, type, onToggle, dayId }: DailyItemCardProps) => {
                   value={noteText}
                   onChange={(e) => handleNoteChange(e.target.value)}
                   onBlur={handleNoteBlur}
-                  placeholder="Escribe tu nota…"
+                  placeholder="Escribe tu reflexión…"
                   rows={2}
+                  autoFocus
                   className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none px-3 pb-3 min-h-[50px]"
                 />
               </div>
