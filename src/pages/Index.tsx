@@ -27,9 +27,7 @@ const Index = () => {
 
   const prayerTask = tasks.find((t) => t.task_kind === "prayer") ?? null;
   const activityTask = tasks.find((t) => t.task_kind === "activity") ?? null;
-  const completedCount = tasks.filter((t) => t.completed).length;
-  const totalTasks = tasks.length;
-  const allCompleted = totalTasks > 0 && completedCount >= totalTasks;
+  const allCompleted = tasks.length > 0 && tasks.filter((t) => t.completed).length >= tasks.length;
 
   const handleToggle = (id: string) => {
     const task = tasks.find((t) => t.id === id);
@@ -47,6 +45,7 @@ const Index = () => {
   const hasDayData = progress?.day_id != null;
   const hoyPct = Math.min(100, Math.max(0, Math.round(progress?.day_pct ?? 0)));
   const mesPct = Math.min(100, Math.max(0, Math.round(progress?.month_pct ?? 0)));
+  const totalPct = Math.min(100, Math.max(0, Math.round(progress?.year_pct ?? 0)));
 
   const monthTheme = progress?.month_theme || "";
 
@@ -129,9 +128,8 @@ const Index = () => {
                 <ProgressDonut
                   hoyPct={hoyPct}
                   mesPct={mesPct}
+                  totalPct={totalPct}
                   monthLabel={currentMonthLabel}
-                  completedCount={completedCount}
-                  totalTasks={totalTasks}
                 />
               )}
             </section>

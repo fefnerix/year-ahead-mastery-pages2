@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import FileUpload from "@/components/FileUpload";
-import { ArrowLeft, Loader2, BookOpen, Target, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, BookOpen, Target, Save, Trash2, Check, Minus, Circle } from "lucide-react";
 import { toast } from "sonner";
 
 const CATEGORIES = ["cuerpo", "mente", "alma", "finanzas"] as const;
@@ -33,17 +33,17 @@ const AdminMonthDays = () => {
   const navigate = useNavigate();
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
 
-  // Fetch month info
+  // Fetch month info + program year
   const { data: monthInfo } = useQuery({
     queryKey: ["admin-month-info", monthId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("months")
-        .select("name, theme")
+        .select("name, theme, number, program_id, programs(year)")
         .eq("id", monthId!)
         .single();
       if (error) throw error;
-      return data;
+      return data as any;
     },
     enabled: !!monthId,
   });
@@ -71,6 +71,27 @@ const AdminMonthDays = () => {
     enabled: !!monthId,
   });
 
+  // Fetch task counts per day (bulk)
+  const { data: taskCounts = {} } = useQuery({
+    queryKey: ["admin-day-task-counts", monthId, days.map((d) => d.id).join(",")],
+    queryFn: async () => {
+      if (days.length === 0) return {};
+      const dayIds = days.map((d) => d.id);
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("day_id")
+        .in("day_id", dayIds)
+        .eq("is_active", true);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      data.forEach((t) => {
+        counts[t.day_id] = (counts[t.day_id] || 0) + 1;
+      });
+      return counts;
+    },
+    enabled: days.length > 0,
+  });
+
   // Fetch tasks for selected day
   const { data: dayTasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ["admin-day-tasks", selectedDayId],
@@ -90,6 +111,63 @@ const AdminMonthDays = () => {
   const activeActivity = dayTasks.find((t) => t.task_kind === "activity" && t.is_active);
   const legacyActiveTasks = dayTasks.filter((t) => t.is_active && t.task_kind !== "prayer" && t.task_kind !== "activity");
 
+  // Build calendar grid
+  const calendarGrid = useMemo(() => {
+    if (!monthInfo) return null;
+
+    const monthNumber = monthInfo.number; // 1-based month number in program
+    const programYear = monthInfo.programs?.year || new Date().getFullYear();
+
+    // Try to determine actual calendar month from first day's date, or from month number
+    let calendarMonth: number;
+    let calendarYear: number;
+
+    if (days.length > 0) {
+      const firstDate = new Date(days[0].date + "T12:00:00");
+      calendarMonth = firstDate.getMonth(); // 0-based
+      calendarYear = firstDate.getFullYear();
+    } else {
+      // Fallback: program starts March (month 2, 0-based), month 1 = March, month 2 = April, etc.
+      calendarMonth = (2 + monthNumber - 1) % 12;
+      calendarYear = programYear;
+    }
+
+    const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+    const firstDayOfWeek = new Date(calendarYear, calendarMonth, 1).getDay(); // 0=Sun
+    // Convert to Mon=0 based
+    const startOffset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+
+    // Map day-of-month to DayRow
+    const dayByDate = new Map<number, DayRow>();
+    days.forEach((d) => {
+      const dom = new Date(d.date + "T12:00:00").getDate();
+      dayByDate.set(dom, d);
+    });
+
+    const cells: Array<{ dayOfMonth: number | null; dayRow: DayRow | null }> = [];
+
+    // Leading blanks
+    for (let i = 0; i < startOffset; i++) {
+      cells.push({ dayOfMonth: null, dayRow: null });
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push({ dayOfMonth: d, dayRow: dayByDate.get(d) || null });
+    }
+
+    return cells;
+  }, [monthInfo, days]);
+
+  const getDayStatus = (dayRow: DayRow | null): "complete" | "partial" | "empty" | "none" => {
+    if (!dayRow) return "none";
+    const count = taskCounts[dayRow.id] || 0;
+    if (count >= 2) return "complete";
+    if (count === 1) return "partial";
+    return "empty";
+  };
+
+  const weekdayHeaders = ["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"];
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="px-5 pt-12 pb-4">
@@ -103,33 +181,60 @@ const AdminMonthDays = () => {
       </header>
 
       <main className="px-5 space-y-6">
-        {/* Day selector */}
+        {/* Calendar grid */}
         <section>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Seleccionar día</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Seleccionar día</p>
           {daysLoading ? (
             <Loader2 className="w-5 h-5 text-primary animate-spin" />
-          ) : days.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No hay días creados para este mes.</p>
+          ) : !calendarGrid ? (
+            <p className="text-sm text-muted-foreground">No hay datos del mes.</p>
           ) : (
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {days.map((d) => {
-                const dayOfMonth = new Date(d.date + "T12:00:00").getDate();
-                const weekday = new Date(d.date + "T12:00:00").toLocaleDateString("es", { weekday: "short" });
-                return (
-                  <button
-                    key={d.id}
-                    onClick={() => setSelectedDayId(d.id)}
-                    className={`shrink-0 flex flex-col items-center px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
-                      selectedDayId === d.id
-                        ? "gold-gradient text-primary-foreground"
-                        : "glass-card text-foreground hover:border-primary/30"
-                    }`}
-                  >
-                    <span className="text-[10px] uppercase">{weekday}</span>
-                    <span className="text-lg">{dayOfMonth}</span>
-                  </button>
-                );
-              })}
+            <div className="glass-card rounded-xl p-3 border border-primary/10">
+              {/* Weekday headers */}
+              <div className="grid grid-cols-7 gap-1 mb-1">
+                {weekdayHeaders.map((d) => (
+                  <div key={d} className="text-center text-[9px] font-bold text-muted-foreground uppercase tracking-wider py-1">
+                    {d}
+                  </div>
+                ))}
+              </div>
+
+              {/* Day cells */}
+              <div className="grid grid-cols-7 gap-1">
+                {calendarGrid.map((cell, i) => {
+                  if (cell.dayOfMonth === null) {
+                    return <div key={`blank-${i}`} className="aspect-square" />;
+                  }
+
+                  const status = getDayStatus(cell.dayRow);
+                  const isSelected = cell.dayRow?.id === selectedDayId;
+                  const isClickable = !!cell.dayRow;
+
+                  return (
+                    <button
+                      key={cell.dayOfMonth}
+                      onClick={() => isClickable && setSelectedDayId(cell.dayRow!.id)}
+                      disabled={!isClickable}
+                      className={`aspect-square rounded-lg flex flex-col items-center justify-center gap-0.5 text-sm font-semibold transition-all ${
+                        isSelected
+                          ? "gold-gradient text-primary-foreground ring-2 ring-primary/30"
+                          : isClickable
+                          ? "hover:bg-primary/10 text-foreground"
+                          : "text-muted-foreground/30 cursor-default"
+                      }`}
+                    >
+                      <span className="text-xs">{cell.dayOfMonth}</span>
+                      {isClickable && (
+                        <span className="text-[8px]">
+                          {status === "complete" && <Check className="w-2.5 h-2.5 text-emerald-400 inline" />}
+                          {status === "partial" && <Circle className="w-2 h-2 text-primary inline fill-primary" />}
+                          {status === "empty" && <Minus className="w-2.5 h-2.5 text-muted-foreground/40 inline" />}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </section>
@@ -237,6 +342,7 @@ const TaskEditor = ({ kind, task, dayId }: TaskEditorProps) => {
     onSuccess: () => {
       toast.success(`${label} guardada`);
       queryClient.invalidateQueries({ queryKey: ["admin-day-tasks", dayId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-day-task-counts"] });
       queryClient.invalidateQueries({ queryKey: ["day-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["progress"] });
       queryClient.invalidateQueries({ queryKey: ["month_calendar"] });
@@ -343,6 +449,7 @@ const DeactivateLegacyButton = ({ dayId, tasks }: { dayId: string; tasks: TaskRo
     onSuccess: () => {
       toast.success("Tareas antiguas desactivadas");
       queryClient.invalidateQueries({ queryKey: ["admin-day-tasks", dayId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-day-task-counts"] });
       queryClient.invalidateQueries({ queryKey: ["day-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["progress"] });
     },

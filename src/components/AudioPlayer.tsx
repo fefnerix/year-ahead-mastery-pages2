@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX } from "lucide-react";
 
 interface AudioPlayerProps {
   src: string;
   title?: string;
 }
 
-const speeds = [1, 1.25, 1.5];
+const speeds = [0.5, 1, 1.25, 1.5, 2];
 
 const AudioPlayer = ({ src, title }: AudioPlayerProps) => {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -14,6 +14,8 @@ const AudioPlayer = ({ src, title }: AudioPlayerProps) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(1);
+  const [muted, setMuted] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -21,13 +23,16 @@ const AudioPlayer = ({ src, title }: AudioPlayerProps) => {
     const onTime = () => setCurrentTime(audio.currentTime);
     const onMeta = () => setDuration(audio.duration);
     const onEnd = () => setPlaying(false);
+    const onErr = () => setError(true);
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onMeta);
     audio.addEventListener("ended", onEnd);
+    audio.addEventListener("error", onErr);
     return () => {
       audio.removeEventListener("timeupdate", onTime);
       audio.removeEventListener("loadedmetadata", onMeta);
       audio.removeEventListener("ended", onEnd);
+      audio.removeEventListener("error", onErr);
     };
   }, []);
 
@@ -53,11 +58,27 @@ const AudioPlayer = ({ src, title }: AudioPlayerProps) => {
     if (audioRef.current) audioRef.current.playbackRate = next;
   };
 
+  const toggleMute = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.muted = !muted;
+    setMuted(!muted);
+  };
+
   const fmt = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = Math.floor(s % 60);
     return `${m}:${sec.toString().padStart(2, "0")}`;
   };
+
+  if (error) {
+    return (
+      <div className="glass-card rounded-xl p-4">
+        {title && <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{title}</p>}
+        <p className="text-sm text-muted-foreground">Audio no disponible</p>
+      </div>
+    );
+  }
 
   return (
     <div className="glass-card rounded-xl p-4">
@@ -86,6 +107,9 @@ const AudioPlayer = ({ src, title }: AudioPlayerProps) => {
             <span>{fmt(duration)}</span>
           </div>
         </div>
+        <button onClick={toggleMute} className="text-muted-foreground shrink-0">
+          {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        </button>
         <button
           onClick={cycleSpeed}
           className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-lg shrink-0"
