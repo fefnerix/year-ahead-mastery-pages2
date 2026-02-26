@@ -33,9 +33,13 @@ export function useMonths(programId: string | null) {
   return useQuery({
     queryKey: ["admin-months", programId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("months").select("*").eq("program_id", programId!).order("number");
+      const { data, error } = await supabase.from("months").select("*").eq("program_id", programId!);
       if (error) throw error;
-      return data;
+      return (data ?? []).sort((a: any, b: any) => {
+        const orderA = (a.year ?? 0) * 100 + a.number;
+        const orderB = (b.year ?? 0) * 100 + b.number;
+        return orderA - orderB;
+      });
     },
     enabled: !!programId,
   });

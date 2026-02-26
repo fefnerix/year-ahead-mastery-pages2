@@ -13,6 +13,7 @@ interface YearMonth {
   month_number: number;
   month_name: string;
   month_theme: string;
+  month_year: number;
   month_pct: number;
 }
 
@@ -51,22 +52,17 @@ const CalendarioAno = () => {
 
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
 
-  const isMonthFuture = (monthNumber: number): boolean => {
-    if (isAdmin) return false; // Admin never locked
-    const currentY = now.getFullYear();
-    const currentM = now.getMonth() + 1;
-    const monthYear = monthNumber >= 3 ? programYear : programYear + 1;
-    if (currentY < monthYear) return true;
-    if (currentY > monthYear) return false;
-    return currentM < monthNumber;
+  const isMonthFuture = (monthNumber: number, monthYear: number): boolean => {
+    if (isAdmin) return false;
+    if (currentYear < monthYear) return true;
+    if (currentYear > monthYear) return false;
+    return currentMonth < monthNumber;
   };
 
-  const handleFutureClick = (monthNumber: number) => {
-    const MONTH_NAMES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-    const name = MONTH_NAMES[monthNumber - 1];
-    const year = monthNumber >= 3 ? programYear : programYear + 1;
-    toast.info(`Disponible en ${name} ${year}`);
+  const handleFutureClick = (monthName: string, monthYear: number) => {
+    toast.info(`Disponible en ${monthName} ${monthYear}`);
   };
 
   return (
@@ -80,12 +76,12 @@ const CalendarioAno = () => {
       <main className="px-5 space-y-6 pt-2">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Calendario {programYear}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Tu progreso anual mes a mes</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Tu progreso mes a mes</p>
         </div>
 
         {isLoading ? (
           <div className="grid grid-cols-2 gap-3">
-            {[...Array(12)].map((_, i) => (
+            {[...Array(14)].map((_, i) => (
               <div key={i} className="glass-card rounded-2xl p-4 h-[112px] animate-pulse bg-muted/30" />
             ))}
           </div>
@@ -109,20 +105,20 @@ const CalendarioAno = () => {
           <div className="grid grid-cols-2 gap-3">
             {months.map((m) => {
               const pct = Math.min(100, Math.max(0, Math.round(m.month_pct ?? 0)));
-              const isCurrentMonth = m.month_number === currentMonth;
-              const isFuture = isMonthFuture(m.month_number);
+              const mYear = m.month_year ?? programYear;
+              const isCurrentMonth = m.month_number === currentMonth && mYear === currentYear;
+              const isFuture = isMonthFuture(m.month_number, mYear);
+              const label = `${m.month_name} ${mYear}`;
 
               if (isFuture) {
                 return (
                   <button
                     key={m.month_id}
-                    onClick={() => handleFutureClick(m.month_number)}
+                    onClick={() => handleFutureClick(m.month_name, mYear)}
                     className="glass-card rounded-2xl p-4 border border-primary/10 opacity-50 text-left"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm font-semibold text-foreground truncate">
-                        {m.month_name}
-                      </p>
+                      <p className="text-sm font-semibold text-foreground truncate">{label}</p>
                       <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     </div>
                     {m.month_theme ? (
@@ -145,9 +141,7 @@ const CalendarioAno = () => {
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-semibold text-foreground truncate">
-                      {m.month_name}
-                    </p>
+                    <p className="text-sm font-semibold text-foreground truncate">{label}</p>
                     {isCurrentMonth && (
                       <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full gold-gradient text-primary-foreground shrink-0">
                         Ahora
