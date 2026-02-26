@@ -1,116 +1,128 @@
 
-# Plan: Add "Remove Media" Buttons to Admin Editors (Month + Day Tasks)
+
+# Plan: Full Data Reset + Ranking Refactor (No Weeks)
 
 ## Overview
 
-Add the ability to delete/clear uploaded images, YouTube video URLs, and audio files from both the Month Macro Editor and the Day Task Editor. For Storage-hosted files (images and audio), also delete from Supabase Storage. For YouTube URLs, simply clear the field.
+Two main deliverables:
+
+1. **Global data reset**: Delete all user progress, checks, streaks, leaderboard scores, and seed content. Recreate a clean program structure (12 months, no days/weeks/tasks until admin creates them).
+2. **Ranking refactor**: Replace week-based tabs and scoring with HOY/MES/TOTAL model (max 2 tasks per day).
 
 ---
 
-## Approach: Extract Storage Path from Public URL (No Schema Changes)
+## Part 1: Global Data Reset (SQL)
 
-Instead of adding new `_path` columns to the database, we can extract the storage path from the public URL. All Supabase Storage public URLs follow the pattern:
-```
-https://{project}.supabase.co/storage/v1/object/public/{bucket}/{path}
-```
+Execute via database migration tool. Order matters due to foreign keys.
 
-A utility function `extractStoragePath(url, bucket)` will parse this and return the path for deletion. If the URL doesn't match (external URL), skip Storage deletion and just clear the field.
+```sql
+-- 1. Delete all user progress data
+DELETE FROM task_checks;
+DELETE FROM task_notes;
+DELETE FROM journal_entries;
+DELETE FROM user_streaks;
+DELETE FROM leaderboard_scores;
+DELETE FROM abundance_deposits;
 
----
+-- 2. Delete all content (tasks -> days -> weeks -> months)
+DELETE FROM content_items;
+DELETE FROM week_blocks;
+DELETE FROM tasks;
+DELETE FROM days;
+DELETE FROM weeks;
+DELETE FROM months;
 
-## Part 1: Storage Deletion Helper
-
-**New file: `src/lib/storage-utils.ts`**
-
-```typescript
-export function extractStoragePath(url: string, bucket: string): string | null {
-  // Match: .../storage/v1/object/public/{bucket}/{path}
-  const pattern = `/storage/v1/object/public/${bucket}/`;
-  const idx = url.indexOf(pattern);
-  if (idx === -1) return null;
-  return url.substring(idx + pattern.length);
-}
-
-export async function deleteStorageFile(bucket: string, url: string) {
-  const path = extractStoragePath(url, bucket);
-  if (!path) return; // external URL, skip
-  const { error } = await supabase.storage.from(bucket).remove([path]);
-  if (error) console.warn("Storage delete failed:", error.message);
-}
+-- 3. Keep the program, re-seed 12 empty months
+SELECT seed_program_months('a0000000-0000-0000-0000-000000000001');
 ```
 
----
-
-## Part 2: Admin Month Editor (`src/pages/Admin.tsx` -- MonthMacroEditor)
-
-For each media field, when a value exists, add a red "Eliminar" button next to the upload/input:
-
-### Image (lines 338-345)
-- When `imageUrl` exists, show:
-  - Thumbnail preview (already there)
-  - "Eliminar imagen" button (red, Trash2 icon)
-  - On click: `window.confirm("Eliminar imagen?...")` then `deleteStorageFile("task_media", imageUrl)` then `setImageUrl("")`
-
-### Video (lines 348-362)
-- When `videoUrl` exists, add a small X button next to the input to clear it
-  - On click: `setVideoUrl("")` (no Storage deletion needed, it's just a YouTube URL)
-
-### Audio (lines 365-373)
-- When `audioUrl` exists (shown via AudioRecorder's `currentUrl`), add:
-  - "Eliminar audio" button (red)
-  - On click: confirm, then `deleteStorageFile("task_media", audioUrl)`, then `setAudioUrl("")`
-- Pass a new `onRemoved` callback to AudioRecorder so it can show the delete button inline
-
-### Save mutation
-- No changes needed -- already saves `null` when fields are empty strings (`imageUrl || null`)
+This leaves:
+- 1 program (PROGRESS 2026)
+- 12 empty months (Mar-Feb) with no weeks/days/tasks
+- Zero checks, zero progress
 
 ---
 
-## Part 3: Admin Day Task Editor (`src/pages/AdminMonthDays.tsx` -- TaskEditor)
+## Part 2: New Leaderboard RPC -- `get_leaderboard_v2`
 
-Same pattern for each media field:
+Replace the existing `get_leaderboard` with a new version that works with scopes `day`, `month`, `total` instead of `week/month/year` period keys.
 
-### Image (lines 401-407)
-- When `mediaImage` exists: show preview + "Eliminar imagen" button
-- On delete: `deleteStorageFile("task_media", mediaImage)`, `setMediaImage("")`
+**New SQL function**: `get_leaderboard_v2(p_scope text, p_program_id uuid)`
 
-### Video (lines 410-424)
-- When `mediaVideo` exists: show X button to clear URL
-- On clear: `setMediaVideo("")`
+- `p_scope`: `'day'` | `'month'` | `'total'`
+- Calculates points directly from `task_checks` JOIN `tasks` (where `is_active=true`) JOIN `days` JOIN `weeks` JOIN `months`
+- Scope filtering:
+  - `day`: `d.date = today (America/Sao_Paulo timezone)`
+  - `month`: `m.id = current month for today`
+  - `total`: `m.program_id = p_program_id` (all months)
+- Returns: `user_id, display_name, points, days_completed, rank`
+- Points: 1 per completed task + 1 bonus per complete day (2/2)
+- No week-based logic at all
 
-### Audio (lines 427-435)
-- When `mediaAudio` exists: show "Eliminar audio" button
-- On delete: `deleteStorageFile("task_media", mediaAudio)`, `setMediaAudio("")`
+**New SQL function**: `get_my_ranking_summary(p_user_id uuid, p_program_id uuid)`
 
----
+Returns a single JSON with:
+- `today_points` (0-3: up to 2 tasks + 1 bonus)
+- `month_points` (sum for current month)
+- `total_points` (sum for program)
+- `today_pct`, `month_pct`, `total_pct`
+- `streak_days` (consecutive days with 2/2 completed)
+- `max_streak`
+- `position` (rank in total leaderboard)
 
-## Part 4: AudioRecorder -- Add `onRemoved` Callback
-
-**File: `src/components/AudioRecorder.tsx`**
-
-Add optional `onRemoved` prop:
-```typescript
-interface AudioRecorderProps {
-  bucket: string;
-  pathPrefix: string;
-  currentUrl?: string;
-  onUploaded: (url: string) => void;
-  onRemoved?: () => void;  // NEW
-}
-```
-
-When `currentUrl` exists and `onRemoved` is provided, show a red "Eliminar audio" button below the current audio preview. Clicking it calls `onRemoved()` (the parent handles Storage deletion and state clearing).
+Both functions use `(now() AT TIME ZONE 'America/Sao_Paulo')::date` for "today".
 
 ---
 
-## Part 5: Confirmation UX
+## Part 3: Update `useLeaderboard.ts`
 
-All destructive actions use `window.confirm()` with Spanish text:
-- Image: "Eliminar imagen? Esta accion no se puede deshacer."
-- Audio: "Eliminar audio? Esta accion no se puede deshacer."
-- Video: no confirm needed (just clearing a URL, easily re-entered)
+Replace the hook to use the new RPC:
 
-After deletion, UI resets to the "empty" state (upload button visible, no preview).
+- `useLeaderboard(scope: "day" | "month" | "total")` -- calls `get_leaderboard_v2`
+- `useRankingSummary()` -- calls `get_my_ranking_summary`
+- Remove `getCurrentPeriodKey` function (no longer needed)
+- Remove `useCalculateScore` (points calculated on-the-fly now, no stored scores)
+
+---
+
+## Part 4: Refactor `Ranking.tsx`
+
+### Tabs
+Replace `["Semana", "Reto", "General"]` with `["Hoy", "Mes", "Total"]`
+
+### "Mi Progreso" Card
+- Show 3 metrics: HOY points, MES points, TOTAL points
+- Keep Racha (streak) but label it "Dias consecutivos (2/2)"
+- Remove "Semana %" and "Record semanal"
+- Keep certification bar but label "Certificacion del ciclo"
+
+### Leaderboard List
+- Show position, display_name, points for selected scope
+- Same top-10 + current user logic
+
+### Rules Card
+Update to:
+- Cada tarea completada = 1 punto
+- Dia completo (2/2) = +1 punto bono
+- Maximo por dia = 3 puntos
+
+---
+
+## Part 5: Update `Index.tsx` -- Remove `useCalculateScore`
+
+Since scoring is now calculated on-the-fly:
+- Remove `useCalculateScore` import and usage from `handleCompleteDay`
+- Keep `updateStreak` call (streak still calculated on demand)
+- The "Concluir Dia" button just calls `updateStreak`
+
+---
+
+## Part 6: Update `useTodayData.ts` -- Remove `useStreak` dependency on stored scores
+
+- `useStreak` stays the same (reads from `user_streaks` table)
+- `useUpdateStreak` stays the same (calls `update_user_streak` RPC)
+
+The streak RPC already works correctly with `is_active=true` filter.
 
 ---
 
@@ -118,20 +130,22 @@ After deletion, UI resets to the "empty" state (upload button visible, no previe
 
 | File | Action |
 |---|---|
-| `src/lib/storage-utils.ts` | **CREATE** -- `extractStoragePath` + `deleteStorageFile` helpers |
-| `src/components/AudioRecorder.tsx` | **EDIT** -- add `onRemoved` prop + delete button |
-| `src/pages/Admin.tsx` | **EDIT** -- add delete buttons for image/video/audio in MonthMacroEditor |
-| `src/pages/AdminMonthDays.tsx` | **EDIT** -- add delete buttons for image/video/audio in TaskEditor |
-
-No database migrations needed.
+| DB Migration | **CREATE** -- Reset data + new RPCs `get_leaderboard_v2` and `get_my_ranking_summary` |
+| `src/hooks/useLeaderboard.ts` | **REWRITE** -- New hooks for v2 RPCs, remove period key logic |
+| `src/pages/Ranking.tsx` | **REWRITE** -- HOY/MES/TOTAL tabs, new Mi Progreso card, updated rules |
+| `src/pages/Index.tsx` | **EDIT** -- Remove `useCalculateScore` usage |
 
 ---
 
 ## Acceptance Criteria
 
-- CA1: Each media field shows an "Eliminar" button when it has a value
-- CA2: Deleting image/audio removes the file from Storage and clears the field
-- CA3: Deleting video just clears the YouTube URL
-- CA4: After deletion, the UI returns to "empty" state ready for new upload
-- CA5: Destructive actions (image/audio) require confirmation dialog
-- CA6: External URLs (non-Storage) are handled gracefully -- field cleared without attempting Storage deletion
+- CA1: No task appears as completed after reset (0 checks in DB)
+- CA2: HOY/MES/TOTAL show 0% on Home
+- CA3: No seed content appears ("Oracion teste", "Ve a misa" all gone)
+- CA4: Calendar shows 12 empty months (structure only)
+- CA5: Ranking tabs are HOY/MES/TOTAL (no "Semana" or "Reto")
+- CA6: Scoring is 1 point per task, +1 bonus for 2/2 day, max 3/day
+- CA7: No week-based logic anywhere in Ranking
+- CA8: Leaderboard calculates points on-the-fly from task_checks (no stored scores needed)
+- CA9: After publishing new content via Admin and completing tasks, ranking updates correctly
+
