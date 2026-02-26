@@ -16,11 +16,8 @@ type ViewMode = "notas" | "diario";
 
 const formatDate = (dateStr: string) => {
   try {
-    return new Date(dateStr + "T12:00:00").toLocaleDateString("es-ES", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+    const [y, m, d] = dateStr.split("-");
+    return `${d}/${m}/${y}`;
   } catch {
     return dateStr;
   }
