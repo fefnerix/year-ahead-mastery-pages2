@@ -3,7 +3,7 @@ import Logo from "@/components/Logo";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import DailyItemCard from "@/components/DailyItemCard";
 import JournalInput from "@/components/JournalInput";
-import { Sparkles, Loader2, ArrowRight, Clock } from "lucide-react";
+import { Sparkles, Loader2, ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
@@ -13,7 +13,6 @@ import { useDayTasks, useToggleDayTask } from "@/hooks/useDayTasks";
 import { useCalculateScore } from "@/hooks/useLeaderboard";
 import { useCurrentWeekData } from "@/hooks/useCurrentWeekData";
 import { useIsAdmin } from "@/hooks/useAdmin";
-import { useYesterdayProgress } from "@/hooks/useYesterdayData";
 
 const formattedToday = new Intl.DateTimeFormat("es-ES", {
   weekday: "long",
@@ -30,7 +29,6 @@ const Index = () => {
   const calculateScore = useCalculateScore();
   const { data: weekData } = useCurrentWeekData();
   const { data: isAdmin } = useIsAdmin();
-  const { data: yesterday } = useYesterdayProgress();
 
   const { data: currentDayDate } = useQuery({
     queryKey: ["day-date", progress?.day_id],
@@ -66,10 +64,8 @@ const Index = () => {
   const initials = displayName.slice(0, 2).toUpperCase();
   const hasDayData = progress?.day_id != null;
 
-  const progressItems = [
-    { label: "Hoy", value: progress?.day_pct },
-    { label: "Mes", value: progress?.month_pct },
-  ] as const;
+  const hoyPct = Math.min(100, Math.max(0, Math.round(progress?.day_pct ?? 0)));
+  const mesPct = Math.min(100, Math.max(0, Math.round(progress?.month_pct ?? 0)));
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -94,38 +90,49 @@ const Index = () => {
           <p className="text-sm text-muted-foreground mt-0.5 capitalize">{formattedToday}</p>
         </div>
 
-        {/* Announcements — early, before content */}
+        {/* Announcements */}
         <AnnouncementBanner />
 
         {/* Progress */}
         <section>
           <h2 className="section-title mb-3">Progreso</h2>
           {progressLoading ? (
-            <div className="grid grid-cols-2 gap-3">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="glass-card rounded-2xl p-4 h-[88px] animate-pulse bg-muted/30" />
-              ))}
+            <div className="space-y-3">
+              <div className="glass-card rounded-2xl p-5 h-[108px] animate-pulse bg-muted/30" />
+              <div className="glass-card rounded-2xl p-4 h-[80px] animate-pulse bg-muted/30" />
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {progressItems.map((item) => {
-                const pct = Math.min(100, Math.max(0, Math.round(item.value ?? 0)));
-                return (
+            <div className="space-y-3">
+              {/* Hoy — prominent */}
+              <div className="glass-card rounded-2xl p-5 border border-primary/20">
+                <div className="flex items-baseline justify-between">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Hoy</p>
+                  <p className="text-3xl font-bold text-primary">{hoyPct}%</p>
+                </div>
+                <div className="h-3 rounded-full bg-white/5 mt-3 overflow-hidden">
                   <div
-                    key={item.label}
-                    className="glass-card rounded-2xl p-4 border border-primary/10"
-                  >
-                    <p className="text-xs text-muted-foreground">{item.label}</p>
-                    <p className="text-2xl font-bold text-primary mt-0.5">{pct}%</p>
-                    <div className="h-2 rounded-full bg-white/5 mt-2 overflow-hidden">
-                      <div
-                        className="h-full rounded-full gold-gradient transition-all duration-700"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+                    className="h-full rounded-full gold-gradient transition-all duration-700"
+                    style={{ width: `${hoyPct}%` }}
+                  />
+                </div>
+                {totalTasks > 0 && (
+                  <p className="text-xs text-muted-foreground mt-2">{completedCount}/{totalTasks} hechas</p>
+                )}
+              </div>
+              {/* Mes — compact */}
+              <div className="glass-card rounded-2xl p-4 border border-primary/10">
+                <div className="flex items-baseline justify-between">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Mes</p>
+                  <p className="text-xl font-bold text-primary">{mesPct}%</p>
+                </div>
+                <div className="h-2 rounded-full bg-white/5 mt-2 overflow-hidden">
+                  <div
+                    className="h-full rounded-full gold-gradient transition-all duration-700"
+                    style={{ width: `${mesPct}%` }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1.5">Promedio del mes</p>
+              </div>
             </div>
           )}
         </section>
@@ -159,27 +166,6 @@ const Index = () => {
                 )}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Recuperar Ayer */}
-        {yesterday && (
-          <div className="glass-card rounded-2xl p-4 border border-primary/15 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Clock className="w-5 h-5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground">Ayer — aún estás a tiempo</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {yesterday.completed_count}/{yesterday.total_count} completados
-              </p>
-            </div>
-            <Link
-              to={`/reto/${yesterday.week_id}/dia/${yesterday.day_number}`}
-              className="shrink-0 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 active:bg-primary/30 transition-colors"
-            >
-              Recuperar
-            </Link>
           </div>
         )}
 
