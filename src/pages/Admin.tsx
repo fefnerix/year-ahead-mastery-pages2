@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import FileUpload from "@/components/FileUpload";
 import {
@@ -8,7 +10,7 @@ import {
   useUpdateWeekAsset, useAdjustWeekDates, useActivateWeek,
 } from "@/hooks/useAdmin";
 import { useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement } from "@/hooks/useAnnouncements";
-import { Loader2, Plus, ChevronRight, Trash2, Megaphone, Wrench, Calendar, Zap, ChevronDown, BookOpen } from "lucide-react";
+import { Loader2, Plus, ChevronRight, Trash2, Megaphone, Wrench, Calendar, Zap, ChevronDown, BookOpen, Save } from "lucide-react";
 import { toast } from "sonner";
 import Logo from "@/components/Logo";
 
@@ -100,7 +102,7 @@ const Admin = () => {
         spiritual_playlist_url: wSpiritualPlaylist || undefined,
         mental_playlist_url: wMentalPlaylist || undefined,
       });
-      toast.success("Reto creado con 7 días y 35 tareas");
+      toast.success("Reto creado con 7 días y 14 tareas (2 por día)");
       setShowWeekForm(false);
       setWName(""); setWObjective(""); setWStartDate("");
       setWCover(""); setWAudio(""); setWScheduleImg(""); setWSchedulePdf("");
@@ -211,17 +213,22 @@ const Admin = () => {
 
                 <div className="space-y-2">
                   {months.map((m) => (
-                    <button
-                      key={m.id}
-                      onClick={() => setSelectedMonth(m.id)}
-                      className={`w-full glass-card rounded-xl p-3 flex items-center justify-between text-left ${selectedMonth === m.id ? "gold-border" : ""}`}
-                    >
-                      <div>
-                        <span className="text-sm font-semibold text-foreground">{m.name}</span>
-                        {m.theme && <span className="text-xs text-muted-foreground ml-2">{m.theme}</span>}
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    </button>
+                    <div key={m.id} className="glass-card rounded-xl p-3 space-y-2">
+                      <button
+                        onClick={() => setSelectedMonth(m.id)}
+                        className={`w-full flex items-center justify-between text-left ${selectedMonth === m.id ? "gold-border rounded-lg p-1" : ""}`}
+                      >
+                        <div>
+                          <span className="text-sm font-semibold text-foreground">{m.name}</span>
+                          {m.theme && <span className="text-xs text-muted-foreground ml-2">{m.theme}</span>}
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      </button>
+
+                      {selectedMonth === m.id && (
+                        <MonthMacroEditor month={m} />
+                      )}
+                    </div>
                   ))}
                 </div>
               </section>
@@ -251,7 +258,7 @@ const Admin = () => {
                     <FileUpload bucket="schedules" accept="image/*" label="Subir cronograma (imagen)" onUploaded={setWScheduleImg} />
                     <FileUpload bucket="pdfs" accept=".pdf" label="Subir cronograma (PDF)" onUploaded={setWSchedulePdf} />
                     <button onClick={handleCreateWeek} disabled={createWeek.isPending} className="w-full py-2 rounded-lg gold-gradient font-bold text-primary-foreground text-sm">
-                      {createWeek.isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Crear Reto (+ 7 días + 35 tareas)"}
+                      {createWeek.isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Crear Reto (+ 7 días + 14 tareas)"}
                     </button>
                   </div>
                 )}
@@ -445,6 +452,85 @@ const Admin = () => {
       </main>
 
       <BottomNav />
+    </div>
+  );
+};
+
+/* ── Month Macro Editor ─────────────────────────── */
+
+interface MonthData {
+  id: string;
+  name: string;
+  theme?: string | null;
+  macro_text?: string | null;
+  audio_url?: string | null;
+  video_url?: string | null;
+}
+
+const MonthMacroEditor = ({ month }: { month: MonthData }) => {
+  const queryClient = useQueryClient();
+  const [theme, setTheme] = useState(month.theme ?? "");
+  const [macroText, setMacroText] = useState((month as any).macro_text ?? "");
+  const [audioUrl, setAudioUrl] = useState((month as any).audio_url ?? "");
+  const [videoUrl, setVideoUrl] = useState((month as any).video_url ?? "");
+
+  useEffect(() => {
+    setTheme(month.theme ?? "");
+    setMacroText((month as any).macro_text ?? "");
+    setAudioUrl((month as any).audio_url ?? "");
+    setVideoUrl((month as any).video_url ?? "");
+  }, [month.id]);
+
+  const saveMacro = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("months")
+        .update({
+          theme: theme || null,
+          macro_text: macroText || null,
+          audio_url: audioUrl || null,
+          video_url: videoUrl || null,
+        } as any)
+        .eq("id", month.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Macro del mes actualizado");
+      queryClient.invalidateQueries({ queryKey: ["admin-months"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar-month-id"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const inputClass = "w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary";
+
+  return (
+    <div className="space-y-3 pt-2 border-t border-border">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Macro del Mes</p>
+      <div>
+        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Tema</label>
+        <input value={theme} onChange={(e) => setTheme(e.target.value)} placeholder="Ej: Encontrando mi propósito" className={inputClass} />
+      </div>
+      <div>
+        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Texto del Macro</label>
+        <textarea value={macroText} onChange={(e) => setMacroText(e.target.value)} placeholder="Explicación del macro del mes..." rows={3} className={inputClass} />
+      </div>
+      <div>
+        <label className="text-[10px] text-muted-foreground font-semibold uppercase">URL Audio</label>
+        <input value={audioUrl} onChange={(e) => setAudioUrl(e.target.value)} placeholder="https://..." className={inputClass} />
+      </div>
+      <div>
+        <label className="text-[10px] text-muted-foreground font-semibold uppercase">URL Video</label>
+        <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://..." className={inputClass} />
+      </div>
+      <button
+        onClick={() => saveMacro.mutate()}
+        disabled={saveMacro.isPending}
+        className="w-full py-2 rounded-lg gold-gradient font-bold text-primary-foreground text-sm flex items-center justify-center gap-2 disabled:opacity-40"
+      >
+        {saveMacro.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+        Guardar Macro
+      </button>
     </div>
   );
 };

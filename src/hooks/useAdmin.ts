@@ -100,10 +100,7 @@ export function useCreateWeekWithDays() {
       const { data: week, error: weekError } = await supabase.from("weeks").insert(weekData).select().single();
       if (weekError) throw weekError;
 
-      // Create 7 days
-      const categories: Array<"cuerpo" | "mente" | "alma" | "finanzas"> = ["cuerpo", "mente", "alma", "finanzas"];
-      const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-
+      // Create 7 days with 2 tasks each (prayer + activity)
       for (let i = 0; i < 7; i++) {
         const date = new Date(start_date);
         date.setDate(date.getDate() + i);
@@ -121,13 +118,24 @@ export function useCreateWeekWithDays() {
           .single();
         if (dayError) throw dayError;
 
-        // Create 5 tasks per day
-        const tasks = Array.from({ length: 5 }, (_, j) => ({
-          day_id: day.id,
-          title: `Momento ${j + 1}`,
-          category: categories[j % categories.length],
-          order: j + 1,
-        }));
+        const tasks = [
+          {
+            day_id: day.id,
+            title: "Oración del día",
+            category: "alma" as const,
+            order: 0,
+            task_kind: "prayer",
+            is_active: true,
+          },
+          {
+            day_id: day.id,
+            title: "Tarea del día",
+            category: "cuerpo" as const,
+            order: 1,
+            task_kind: "activity",
+            is_active: true,
+          },
+        ];
 
         const { error: tasksError } = await supabase.from("tasks").insert(tasks);
         if (tasksError) throw tasksError;
