@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import FileUpload from "@/components/FileUpload";
 import AudioRecorder from "@/components/AudioRecorder";
-import { ArrowLeft, Loader2, BookOpen, Target, Save, Trash2, Check, Minus, Circle, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Loader2, BookOpen, Target, Save, Trash2, Check, Minus, Circle, AlertTriangle, X } from "lucide-react";
+import { deleteStorageFile } from "@/lib/storage-utils";
 import { toast } from "sonner";
 import { isYouTubeUrl, getMediaWarning } from "@/lib/media-utils";
 
@@ -402,8 +403,27 @@ const TaskEditor = ({ kind, task, dayId }: TaskEditorProps) => {
         <div>
           <label className="text-[10px] text-muted-foreground font-semibold uppercase">Imagen</label>
           <div className="space-y-1.5">
-            <FileUpload bucket="task_media" accept="image/*" label={mediaImage ? "Imagen ✓" : "Subir foto"} onUploaded={setMediaImage} />
-            {mediaImage && <img src={mediaImage} alt="Preview" className="w-full max-h-24 object-cover rounded-lg" />}
+            {mediaImage ? (
+              <>
+                <img src={mediaImage} alt="Preview" className="w-full max-h-24 object-cover rounded-lg" />
+                <div className="flex gap-2">
+                  <FileUpload bucket="task_media" accept="image/*" label="Cambiar imagen" onUploaded={setMediaImage} />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!window.confirm("¿Eliminar imagen? Esta acción no se puede deshacer.")) return;
+                      await deleteStorageFile("task_media", mediaImage);
+                      setMediaImage("");
+                    }}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-destructive hover:text-destructive/80 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" /> Eliminar
+                  </button>
+                </div>
+              </>
+            ) : (
+              <FileUpload bucket="task_media" accept="image/*" label="Subir foto" onUploaded={setMediaImage} />
+            )}
           </div>
         </div>
 
@@ -411,7 +431,14 @@ const TaskEditor = ({ kind, task, dayId }: TaskEditorProps) => {
         <div>
           <label className="text-[10px] text-muted-foreground font-semibold uppercase">Video (YouTube)</label>
           <div className="space-y-1.5">
-            <input value={mediaVideo} onChange={(e) => setMediaVideo(e.target.value)} placeholder="URL del video (YouTube)" className={inputClass} />
+            <div className="flex gap-1.5">
+              <input value={mediaVideo} onChange={(e) => setMediaVideo(e.target.value)} placeholder="URL del video (YouTube)" className={`${inputClass} flex-1`} />
+              {mediaVideo && (
+                <button type="button" onClick={() => setMediaVideo("")} className="shrink-0 p-2 text-muted-foreground hover:text-destructive transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
             {videoWarning && (
               <div className="flex items-start gap-1.5 text-[10px] text-destructive bg-destructive/10 rounded-lg px-2.5 py-1.5">
                 <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
@@ -432,6 +459,10 @@ const TaskEditor = ({ kind, task, dayId }: TaskEditorProps) => {
             pathPrefix={`days/${dayId}/${kind}/audio`}
             currentUrl={mediaAudio || undefined}
             onUploaded={setMediaAudio}
+            onRemoved={async () => {
+              await deleteStorageFile("task_media", mediaAudio);
+              setMediaAudio("");
+            }}
           />
         </div>
       </div>
