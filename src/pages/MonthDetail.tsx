@@ -1,15 +1,14 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useProgress } from "@/hooks/useTodayData";
 import BottomNav from "@/components/BottomNav";
 import AudioPlayer from "@/components/AudioPlayer";
+import CustomVideoPlayer from "@/components/CustomVideoPlayer";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 
 const MonthDetail = () => {
   const { monthId } = useParams<{ monthId: string }>();
   const navigate = useNavigate();
-  const { data: progress } = useProgress();
 
   const { data: month, isLoading } = useQuery({
     queryKey: ["month-detail", monthId],
@@ -50,6 +49,7 @@ const MonthDetail = () => {
   }
 
   const videoId = month.video_url ? getYouTubeId(month.video_url) : null;
+  const isYouTube = !!videoId;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -70,39 +70,31 @@ const MonthDetail = () => {
       </header>
 
       <main className="px-5 space-y-6">
-        {/* Macro text */}
-        {month.macro_text && (
-          <section className="glass-card rounded-2xl p-5">
-            <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line">
-              {month.macro_text}
-            </p>
-          </section>
-        )}
-
-        {/* Video */}
+        {/* 1. Video (first) */}
         {month.video_url && (
           <section className="rounded-2xl overflow-hidden">
-            {videoId ? (
-              <div className="aspect-video">
-                <iframe
-                  src={`https://www.youtube.com/embed/${videoId}`}
-                  title="Video del mes"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="w-full h-full rounded-2xl"
-                />
-              </div>
+            {isYouTube ? (
+              <>
+                <div className="aspect-video">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${videoId}?modestbranding=1&rel=0&showinfo=0`}
+                    title="Video del mes"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full rounded-2xl"
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground/50 mt-1 text-center">
+                  Este video se reproduce via YouTube
+                </p>
+              </>
             ) : (
-              <video
-                src={month.video_url}
-                controls
-                className="w-full rounded-2xl"
-              />
+              <CustomVideoPlayer src={month.video_url} />
             )}
           </section>
         )}
 
-        {/* Audio */}
+        {/* 2. Audio (second) */}
         {month.audio_url && (
           <section>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
@@ -112,15 +104,26 @@ const MonthDetail = () => {
           </section>
         )}
 
-        {/* CTA — IR A HOY */}
-        {progress?.day_id && (
-          <button
-            onClick={() => navigate(`/day/${progress.day_id}`)}
-            className="w-full py-4 rounded-2xl gold-gradient font-bold text-primary-foreground text-sm uppercase tracking-wider flex items-center justify-center gap-2 gold-glow shimmer press-scale"
-          >
-            Ir a hoy <ArrowRight className="w-4 h-4" />
-          </button>
-        )}
+        {/* 3. Macro text (last) */}
+        <section className="glass-card rounded-2xl p-5">
+          {month.macro_text ? (
+            <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line max-h-[40vh] overflow-y-auto">
+              {month.macro_text}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground italic">
+              Contenido del mes aún no fue publicado.
+            </p>
+          )}
+        </section>
+
+        {/* 4. CTA — IR A HOY (always visible, navigates to home) */}
+        <button
+          onClick={() => navigate("/")}
+          className="w-full py-4 rounded-2xl gold-gradient font-bold text-primary-foreground text-sm uppercase tracking-wider flex items-center justify-center gap-2 gold-glow shimmer press-scale"
+        >
+          Ir a hoy <ArrowRight className="w-4 h-4" />
+        </button>
       </main>
 
       <BottomNav />

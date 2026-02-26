@@ -26,7 +26,6 @@ const formatDate = (dateStr: string) => {
   }
 };
 
-// Skeleton loader
 const NotesSkeleton = () => (
   <div className="space-y-4">
     {[...Array(4)].map((_, i) => (
@@ -53,7 +52,6 @@ const Cuaderno = () => {
 
   const isLoading = view === "notas" ? notesLoading : journalLoading;
 
-  // Extract unique months from current view data
   const months = useMemo(() => {
     const map = new Map<string, { name: string; number: number }>();
     if (view === "notas") {
@@ -76,7 +74,6 @@ const Cuaderno = () => {
     return Array.from(map.values()).sort((a, b) => a.number - b.number);
   }, [notes, journalEntries, view]);
 
-  // Filter task notes
   const filteredNotes = useMemo(() => {
     let result = notes;
     if (monthFilter !== "all") {
@@ -91,7 +88,6 @@ const Cuaderno = () => {
     return result;
   }, [notes, search, monthFilter]);
 
-  // Filter journal entries
   const filteredJournal = useMemo(() => {
     let result = journalEntries;
     if (monthFilter !== "all") {
@@ -104,55 +100,35 @@ const Cuaderno = () => {
     return result;
   }, [journalEntries, search, monthFilter]);
 
-  // Group notes by month > week
+  // Group notes flat by month (no week sub-grouping)
   type NoteItem = (typeof notes)[number];
   const groupedNotes = useMemo(() => {
-    const monthMap = new Map<string, { label: string; weeks: Map<string, { label: string; notes: NoteItem[] }> }>();
+    const monthMap = new Map<string, { label: string; notes: NoteItem[] }>();
     filteredNotes.forEach((note) => {
       const m = note.days?.weeks?.months;
-      const w = note.days?.weeks;
       const monthKey = m ? `${m.number}` : "?";
       const monthLabel = m ? `${m.name}` : "Sin contexto";
-      const weekKey = w ? `${w.number}` : "?";
-      const weekLabel = w ? `Semana ${w.number} — ${w.name}` : "Sin semana";
-      if (!monthMap.has(monthKey)) monthMap.set(monthKey, { label: monthLabel, weeks: new Map() });
-      const me = monthMap.get(monthKey)!;
-      if (!me.weeks.has(weekKey)) me.weeks.set(weekKey, { label: weekLabel, notes: [] });
-      me.weeks.get(weekKey)!.notes.push(note);
+      if (!monthMap.has(monthKey)) monthMap.set(monthKey, { label: monthLabel, notes: [] });
+      monthMap.get(monthKey)!.notes.push(note);
     });
     return Array.from(monthMap.entries())
       .sort(([a], [b]) => Number(a) - Number(b))
-      .map(([, v]) => ({
-        label: v.label,
-        weeks: Array.from(v.weeks.entries())
-          .sort(([a], [b]) => Number(a) - Number(b))
-          .map(([, w]) => w),
-      }));
+      .map(([, v]) => v);
   }, [filteredNotes]);
 
-  // Group journal by month > week
+  // Group journal flat by month (no week sub-grouping)
   const groupedJournal = useMemo(() => {
-    const monthMap = new Map<string, { label: string; weeks: Map<string, { label: string; entries: any[] }> }>();
+    const monthMap = new Map<string, { label: string; entries: any[] }>();
     filteredJournal.forEach((entry: any) => {
       const m = entry.days?.weeks?.months;
-      const w = entry.days?.weeks;
       const monthKey = m ? `${m.number}` : "?";
       const monthLabel = m ? `${m.name}` : "Sin contexto";
-      const weekKey = w ? `${w.number}` : "?";
-      const weekLabel = w ? `Semana ${w.number} — ${w.name}` : "Sin semana";
-      if (!monthMap.has(monthKey)) monthMap.set(monthKey, { label: monthLabel, weeks: new Map() });
-      const me = monthMap.get(monthKey)!;
-      if (!me.weeks.has(weekKey)) me.weeks.set(weekKey, { label: weekLabel, entries: [] });
-      me.weeks.get(weekKey)!.entries.push(entry);
+      if (!monthMap.has(monthKey)) monthMap.set(monthKey, { label: monthLabel, entries: [] });
+      monthMap.get(monthKey)!.entries.push(entry);
     });
     return Array.from(monthMap.entries())
       .sort(([a], [b]) => Number(a) - Number(b))
-      .map(([, v]) => ({
-        label: v.label,
-        weeks: Array.from(v.weeks.entries())
-          .sort(([a], [b]) => Number(a) - Number(b))
-          .map(([, w]) => w),
-      }));
+      .map(([, v]) => v);
   }, [filteredJournal]);
 
   const currentFiltered = view === "notas" ? filteredNotes : filteredJournal;
@@ -173,7 +149,6 @@ const Cuaderno = () => {
         </div>
         <p className="text-sm text-muted-foreground -mt-2">Tus reflexiones y notas del programa</p>
 
-        {/* Toggle Notas / Diario */}
         <div className="flex gap-1 p-1 rounded-xl bg-card border border-border">
           {(["diario", "notas"] as ViewMode[]).map((v) => (
             <button
@@ -191,7 +166,6 @@ const Cuaderno = () => {
           ))}
         </div>
 
-        {/* Search + Filter */}
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -250,31 +224,24 @@ const Cuaderno = () => {
           groupedNotes.map((monthGroup) => (
             <div key={monthGroup.label}>
               <h2 className="text-xs font-bold text-primary uppercase tracking-widest mb-3">{monthGroup.label}</h2>
-              <div className="space-y-5">
-                {monthGroup.weeks.map((weekGroup) => (
-                  <section key={weekGroup.label}>
-                    <h3 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">{weekGroup.label}</h3>
-                    <div className="space-y-2">
-                      {weekGroup.notes.map((note) => (
-                        <div key={note.id} className="glass-card rounded-xl p-4 border border-primary/5">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span
-                              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                                categoryColors[note.tasks?.category] ?? "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              {note.tasks?.category}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              Día {note.days?.number} · {formatDate(note.days?.date ?? "")}
-                            </span>
-                          </div>
-                          <p className="text-sm font-semibold text-foreground mb-1">{note.tasks?.title}</p>
-                          <p className="text-sm text-secondary-foreground whitespace-pre-wrap leading-relaxed">{note.content}</p>
-                        </div>
-                      ))}
+              <div className="space-y-2">
+                {monthGroup.notes.map((note) => (
+                  <div key={note.id} className="glass-card rounded-xl p-4 border border-primary/5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                          categoryColors[note.tasks?.category] ?? "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {note.tasks?.category}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Día {note.days?.number} · {formatDate(note.days?.date ?? "")}
+                      </span>
                     </div>
-                  </section>
+                    <p className="text-sm font-semibold text-foreground mb-1">{note.tasks?.title}</p>
+                    <p className="text-sm text-secondary-foreground whitespace-pre-wrap leading-relaxed">{note.content}</p>
+                  </div>
                 ))}
               </div>
             </div>
@@ -283,25 +250,18 @@ const Cuaderno = () => {
           groupedJournal.map((monthGroup) => (
             <div key={monthGroup.label}>
               <h2 className="text-xs font-bold text-primary uppercase tracking-widest mb-3">{monthGroup.label}</h2>
-              <div className="space-y-5">
-                {monthGroup.weeks.map((weekGroup) => (
-                  <section key={weekGroup.label}>
-                    <h3 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">{weekGroup.label}</h3>
-                    <div className="space-y-2">
-                      {weekGroup.entries.map((entry: any) => (
-                        <div key={entry.id} className="glass-card rounded-xl p-4 border border-primary/5">
-                          <div className="flex items-center gap-2 mb-2">
-                            <PenLine className="w-3.5 h-3.5 text-primary" />
-                            <span className="text-xs font-medium text-muted-foreground">
-                              {entry.days?.number ? `Día ${entry.days.number} · ` : ""}
-                              {formatDate(entry.date)}
-                            </span>
-                          </div>
-                          <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{entry.content}</p>
-                        </div>
-                      ))}
+              <div className="space-y-2">
+                {monthGroup.entries.map((entry: any) => (
+                  <div key={entry.id} className="glass-card rounded-xl p-4 border border-primary/5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <PenLine className="w-3.5 h-3.5 text-primary" />
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {entry.days?.number ? `Día ${entry.days.number} · ` : ""}
+                        {formatDate(entry.date)}
+                      </span>
                     </div>
-                  </section>
+                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{entry.content}</p>
+                  </div>
                 ))}
               </div>
             </div>
