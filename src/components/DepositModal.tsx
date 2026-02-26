@@ -53,11 +53,17 @@ const DepositModal = ({ open, onClose }: DepositModalProps) => {
   const inputClass =
     "w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors";
 
+  const isValid = (() => {
+    const num = parseFloat(amount.replace(",", "."));
+    return !!(num && num > 0 && date);
+  })();
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md glass-card gold-border rounded-t-2xl sm:rounded-2xl p-6 space-y-5 safe-area-bottom">
-        <div className="flex items-center justify-between">
+      <div className="relative w-full max-w-md max-h-[90vh] glass-card gold-border rounded-t-2xl sm:rounded-2xl flex flex-col safe-area-bottom">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 pb-3 shrink-0">
           <div>
             <h3 className="text-lg font-display font-bold text-foreground">Registrar depósito</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -69,59 +75,60 @@ const DepositModal = ({ open, onClose }: DepositModalProps) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Valor */}
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 block">
-              Valor
-            </label>
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="0,00"
-              value={amount}
-              onChange={(e) => {
-                const v = e.target.value.replace(/[^0-9.,]/g, "");
-                setAmount(v);
-                if (error) setError("");
-              }}
-              autoFocus
-              className={inputClass}
-            />
+        {/* Scrollable body */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="overflow-y-auto flex-1 px-5 space-y-4 pb-3">
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 block">
+                Valor
+              </label>
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={amount}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^0-9.,]/g, "");
+                  setAmount(v);
+                  if (error) setError("");
+                }}
+                autoFocus
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 block">
+                Fecha
+              </label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 block">
+                Nota <span className="text-muted-foreground/50 normal-case">(opcional)</span>
+              </label>
+              <textarea
+                placeholder="¿Qué significa este depósito para ti?"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={2}
+                className={`${inputClass} resize-none`}
+              />
+            </div>
+
+            {error && (
+              <p className="text-xs text-destructive font-medium">{error}</p>
+            )}
           </div>
 
-          {/* Data */}
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 block">
-              Fecha
-            </label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-
-          {/* Nota */}
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 block">
-              Nota <span className="text-muted-foreground/50 normal-case">(opcional)</span>
-            </label>
-            <textarea
-              placeholder="¿Qué significa este depósito para ti?"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={3}
-              className={`${inputClass} resize-none`}
-            />
-          </div>
-
-          {error && (
-            <p className="text-xs text-destructive font-medium">{error}</p>
-          )}
-
-          <div className="flex gap-3 pt-1">
+          {/* Sticky footer */}
+          <div className="shrink-0 px-5 py-4 border-t border-border/30 backdrop-blur-md flex gap-3">
             <button
               type="button"
               onClick={onClose}
@@ -131,10 +138,16 @@ const DepositModal = ({ open, onClose }: DepositModalProps) => {
             </button>
             <button
               type="submit"
-              disabled={createDeposit.isPending}
-              className="flex-1 py-3 rounded-xl gold-gradient font-bold text-primary-foreground text-sm uppercase tracking-wider flex items-center justify-center gap-2"
+              disabled={createDeposit.isPending || !isValid}
+              className="flex-1 py-3 rounded-xl gold-gradient font-bold text-primary-foreground text-sm uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-40"
             >
-              {createDeposit.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Guardar"}
+              {createDeposit.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Guardando…
+                </>
+              ) : (
+                "Guardar depósito"
+              )}
             </button>
           </div>
         </form>
