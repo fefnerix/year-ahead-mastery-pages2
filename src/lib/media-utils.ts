@@ -32,21 +32,12 @@ export const getMediaWarning = (
   if (!url) return null;
 
   if (type === "video") {
-    if (isYouTubeUrl(url)) {
-      return "YouTube — player limitado (sin controles propios). Sube MP4 para player PROGRESS.";
+    if (!isYouTubeUrl(url)) {
+      return "Solo se aceptan URLs de YouTube para video.";
     }
     return null;
   }
 
-  if (type === "audio") {
-    if (isYouTubeUrl(url)) {
-      return "YouTube no es una fuente de audio válida. Usa un archivo MP3/M4A/WAV.";
-    }
-    if (!isDirectAudioUrl(url)) {
-      return "URL no parece ser audio directo (.mp3/.m4a/.wav)";
-    }
-    return null;
-  }
-
+  // Audio warnings no longer needed (always from Storage)
   return null;
 };

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Play, Pause, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Music } from "lucide-react";
 
 interface AudioPlayerProps {
   src: string;
@@ -73,15 +73,20 @@ const AudioPlayer = ({ src, title }: AudioPlayerProps) => {
 
   if (error) {
     return (
-      <div className="glass-card rounded-xl p-4">
-        {title && <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{title}</p>}
-        <p className="text-sm text-muted-foreground">Audio no disponible</p>
+      <div className="premium-card rounded-[20px] p-4 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
+          <Music className="w-4 h-4 text-muted-foreground/40" />
+        </div>
+        <div>
+          {title && <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>}
+          <p className="text-sm text-muted-foreground">Audio aún no disponible</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="glass-card rounded-xl p-4">
+    <div className="premium-card rounded-[20px] p-4">
       <audio ref={audioRef} src={src} preload="metadata" />
       {title && <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">{title}</p>}
       <div className="flex items-center gap-3">
@@ -95,14 +100,16 @@ const AudioPlayer = ({ src, title }: AudioPlayerProps) => {
             <Play className="w-4 h-4 text-primary-foreground ml-0.5" />
           )}
         </button>
-        <div className="flex-1 space-y-1">
-          <div className="w-full h-1.5 bg-muted rounded-full cursor-pointer" onClick={seek}>
+        <div className="flex-1 space-y-0.5">
+          <div className="w-full h-1 bg-muted rounded-full cursor-pointer group" onClick={seek}>
             <div
-              className="h-full gold-gradient rounded-full transition-all"
+              className="h-full gold-gradient rounded-full transition-all relative"
               style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
-            />
+            >
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
           </div>
-          <div className="flex justify-between text-[10px] text-muted-foreground">
+          <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
             <span>{fmt(currentTime)}</span>
             <span>{fmt(duration)}</span>
           </div>
@@ -112,7 +119,7 @@ const AudioPlayer = ({ src, title }: AudioPlayerProps) => {
         </button>
         <button
           onClick={cycleSpeed}
-          className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-lg shrink-0"
+          className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-lg shrink-0"
         >
           {speed}x
         </button>

@@ -3,9 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import AudioPlayer from "@/components/AudioPlayer";
-import CustomVideoPlayer from "@/components/CustomVideoPlayer";
+import YouTubeProgressPlayer from "@/components/YouTubeProgressPlayer";
+import ExpandableTextCard from "@/components/ExpandableTextCard";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
-import { isYouTubeUrl, getYouTubeId } from "@/lib/media-utils";
+import { getYouTubeId } from "@/lib/media-utils";
 
 const MonthDetail = () => {
   const { monthId } = useParams<{ monthId: string }>();
@@ -24,8 +25,6 @@ const MonthDetail = () => {
     },
     enabled: !!monthId,
   });
-
-  // Use imported helpers instead of local function
 
   if (isLoading) {
     return (
@@ -47,7 +46,7 @@ const MonthDetail = () => {
   }
 
   const videoId = month.video_url ? getYouTubeId(month.video_url) : null;
-  const isYouTube = !!videoId;
+
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
@@ -66,60 +65,31 @@ const MonthDetail = () => {
         )}
       </header>
 
-      <main className="px-5 space-y-6">
-        {/* 0. Image (if exists) */}
+      <main className="px-5 space-y-4">
+        {/* 1. Image */}
         {(month as any).image_url && (
-          <img src={(month as any).image_url} alt="" className="w-full rounded-2xl" loading="lazy" />
+          <img
+            src={(month as any).image_url}
+            alt=""
+            className="w-full rounded-[20px] border border-border/30"
+            loading="lazy"
+          />
         )}
 
-        {/* 1. Video (first) */}
-        {month.video_url && (
-          <section className="rounded-2xl overflow-hidden">
-            {isYouTube ? (
-              <>
-                <div className="aspect-video">
-                  <iframe
-                    src={`https://www.youtube.com/embed/${videoId}?modestbranding=1&rel=0&showinfo=0`}
-                    title="Video del mes"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-full rounded-2xl"
-                  />
-                </div>
-                <p className="text-[10px] text-muted-foreground/50 mt-1 text-center">
-                  Este video se reproduce via YouTube
-                </p>
-              </>
-            ) : (
-              <CustomVideoPlayer src={month.video_url} />
-            )}
-          </section>
+        {/* 2. Video — YouTubeProgressPlayer */}
+        {videoId && (
+          <YouTubeProgressPlayer videoId={videoId} />
         )}
 
-        {/* 2. Audio (second) */}
+        {/* 3. Audio */}
         {month.audio_url && (
-          <section>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-              🎧 Audio del mes
-            </p>
-            <AudioPlayer src={month.audio_url} title={month.theme || month.name} />
-          </section>
+          <AudioPlayer src={month.audio_url} title={month.theme || month.name} />
         )}
 
-        {/* 3. Macro text (last) */}
-        <section className="glass-card rounded-2xl p-5">
-          {month.macro_text ? (
-            <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line max-h-[40vh] overflow-y-auto">
-              {month.macro_text}
-            </p>
-          ) : (
-            <p className="text-sm text-muted-foreground italic">
-              Contenido del mes aún no fue publicado.
-            </p>
-          )}
-        </section>
+        {/* 4. Text — ExpandableTextCard */}
+        <ExpandableTextCard text={month.macro_text} />
 
-        {/* 4. CTA — IR A HOY (always visible, navigates to home) */}
+        {/* CTA */}
         <button
           onClick={() => navigate("/")}
           className="w-full py-4 rounded-2xl gold-gradient font-bold text-primary-foreground text-sm uppercase tracking-wider flex items-center justify-center gap-2 gold-glow shimmer press-scale"
