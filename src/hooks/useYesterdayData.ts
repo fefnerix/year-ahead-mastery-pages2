@@ -1,14 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
-
-const getTodaySP = (): string =>
-  new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
+import { getTodayBRT } from "@/lib/dates";
 
 interface YesterdayData {
   day_id: string;
@@ -25,7 +18,7 @@ export function useYesterdayProgress() {
   return useQuery({
     queryKey: ["yesterday-progress", user?.id],
     queryFn: async (): Promise<YesterdayData | null> => {
-      const todaySP = getTodaySP();
+      const todaySP = getTodayBRT();
 
       const { data: activeWeek, error: weekErr } = await supabase
         .from("weeks")

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useCreateDeposit } from "@/hooks/useDeposits";
 import { X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { getTodayBRT } from "@/lib/dates";
 
 interface DepositModalProps {
   open: boolean;
@@ -10,7 +11,7 @@ interface DepositModalProps {
 
 const DepositModal = ({ open, onClose }: DepositModalProps) => {
   const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(getTodayBRT());
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const createDeposit = useCreateDeposit();
@@ -43,7 +44,7 @@ const DepositModal = ({ open, onClose }: DepositModalProps) => {
       toast.success("Depósito registrado");
       setAmount("");
       setNote("");
-      setDate(new Date().toISOString().split("T")[0]);
+      setDate(getTodayBRT());
       onClose();
     } catch (err: any) {
       toast.error(err.message);
@@ -92,7 +93,7 @@ const DepositModal = ({ open, onClose }: DepositModalProps) => {
                   setAmount(v);
                   if (error) setError("");
                 }}
-                autoFocus
+                
                 className={inputClass}
               />
             </div>

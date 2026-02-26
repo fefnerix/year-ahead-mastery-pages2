@@ -3,9 +3,22 @@ import { Drawer as DrawerPrimitive } from "vaul";
 
 import { cn } from "@/lib/utils";
 
-const Drawer = ({ shouldScaleBackground = true, ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
-  <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} {...props} />
-);
+const Drawer = ({ shouldScaleBackground = false, onOpenChange, ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) => {
+  const handleOpenChange = React.useCallback((open: boolean) => {
+    if (!open) {
+      // BUG-01 fix: force-reset body styles that vaul may leave behind (iOS Safari)
+      requestAnimationFrame(() => {
+        document.body.style.overflow = "";
+        document.body.style.pointerEvents = "";
+      });
+    }
+    onOpenChange?.(open);
+  }, [onOpenChange]);
+
+  return (
+    <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} onOpenChange={handleOpenChange} {...props} />
+  );
+};
 Drawer.displayName = "Drawer";
 
 const DrawerTrigger = DrawerPrimitive.Trigger;
