@@ -14,7 +14,6 @@ const DayDetail = () => {
   const { dayId } = useParams<{ dayId: string }>();
   const navigate = useNavigate();
   const updateStreak = useUpdateStreak();
-  
 
   const { data: dayData, isLoading: dayLoading } = useQuery({
     queryKey: ["day-detail", dayId],
@@ -96,8 +95,8 @@ const DayDetail = () => {
       </header>
 
       <main className="px-5 space-y-5">
-        <DailyItemCard task={prayerTask} type="prayer" onToggle={handleToggle} />
-        <DailyItemCard task={activityTask} type="activity" onToggle={handleToggle} />
+        <DailyItemCard task={prayerTask} type="prayer" onToggle={handleToggle} dayId={dayId} />
+        <DailyItemCard task={activityTask} type="activity" onToggle={handleToggle} dayId={dayId} />
 
         {allCompleted && (
           <button

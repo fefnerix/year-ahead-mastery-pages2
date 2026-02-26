@@ -1,45 +1,78 @@
-import { useState } from "react";
-import { BookOpen, Target, Check } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { BookOpen, Target, Check, Loader2 } from "lucide-react";
 import { TaskWithCheck } from "@/hooks/useDayTasks";
 import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
-  DrawerDescription,
   DrawerFooter,
   DrawerClose,
 } from "@/components/ui/drawer";
 import YouTubeProgressPlayer from "@/components/YouTubeProgressPlayer";
 import AudioPlayer from "@/components/AudioPlayer";
 import { getYouTubeId } from "@/lib/media-utils";
+import { useTaskNotes, useSaveNote } from "@/hooks/useTaskNotes";
 
 interface DailyItemCardProps {
   task: TaskWithCheck | null;
   type: "prayer" | "activity";
   onToggle: (id: string) => void;
+  dayId?: string | null;
 }
 
-const DailyItemCard = ({ task, type, onToggle }: DailyItemCardProps) => {
+const DailyItemCard = ({ task, type, onToggle, dayId }: DailyItemCardProps) => {
   const [open, setOpen] = useState(false);
+  const [noteText, setNoteText] = useState("");
+  const [noteSaved, setNoteSaved] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const { data: notes = [] } = useTaskNotes(dayId);
+  const saveNote = useSaveNote();
+
+  const existingNote = task ? notes.find((n) => n.task_id === task.id) : null;
+
+  useEffect(() => {
+    if (existingNote?.content != null) setNoteText(existingNote.content);
+  }, [existingNote?.content]);
 
   const isPrayer = type === "prayer";
   const icon = isPrayer ? <BookOpen className="w-4 h-4" /> : <Target className="w-4 h-4" />;
   const label = isPrayer ? "Oración del día" : "Tarea del día";
   const emoji = isPrayer ? "🙏🏼" : "🔥";
-
-  // Type-specific accent colors
-  const accentColor = isPrayer
-    ? "bg-violet-400/50"
-    : "bg-amber-400/50";
+  const accentColor = isPrayer ? "bg-violet-400/50" : "bg-amber-400/50";
   const iconColor = isPrayer ? "text-violet-400" : "text-amber-400";
   const labelColor = isPrayer ? "text-violet-300" : "text-amber-300";
+
+  const handleNoteChange = (val: string) => {
+    setNoteText(val);
+    setNoteSaved(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!task || !dayId) return;
+    debounceRef.current = setTimeout(() => {
+      saveNote.mutate(
+        { taskId: task.id, dayId, content: val },
+        { onSuccess: () => setNoteSaved(true) }
+      );
+    }, 1500);
+  };
+
+  const handleNoteBlur = () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!task || !dayId) return;
+    if (noteText !== (existingNote?.content ?? "")) {
+      saveNote.mutate(
+        { taskId: task.id, dayId, content: noteText },
+        { onSuccess: () => setNoteSaved(true) }
+      );
+    }
+  };
 
   if (!task) {
     return (
       <div className="glass-card rounded-2xl p-4 border border-muted/30">
         <div className="flex items-center gap-2.5">
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center bg-muted/30`}>
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-muted/30">
             <span className="text-base">{emoji}</span>
           </div>
           <p className="text-xs text-muted-foreground">{label} — No disponible</p>
@@ -59,18 +92,13 @@ const DailyItemCard = ({ task, type, onToggle }: DailyItemCardProps) => {
             : "border-primary/10 hover:border-primary/25"
         }`}
       >
-        {/* Left accent bar */}
         <div
           className={`absolute left-0 top-0 bottom-0 w-[3px] ${
             isCompleted ? "bg-success/70" : accentColor
           }`}
         />
 
-        {/* Main tap area → opens drawer */}
-        <button
-          onClick={() => setOpen(true)}
-          className="w-full pl-5 pr-14 py-4 text-left"
-        >
+        <button onClick={() => setOpen(true)} className="w-full pl-5 pr-14 py-4 text-left">
           <div className="flex items-center gap-2 mb-1.5">
             <span className={`${isCompleted ? "text-success" : iconColor}`}>{icon}</span>
             <p className={`text-[11px] font-bold uppercase tracking-wider ${isCompleted ? "text-success" : labelColor}`}>
@@ -82,16 +110,11 @@ const DailyItemCard = ({ task, type, onToggle }: DailyItemCardProps) => {
               </span>
             )}
           </div>
-          <p
-            className={`text-sm font-semibold leading-snug ${
-              isCompleted ? "text-foreground/60 line-through" : "text-foreground"
-            }`}
-          >
+          <p className={`text-sm font-semibold leading-snug ${isCompleted ? "text-foreground/60 line-through" : "text-foreground"}`}>
             {task.title}
           </p>
         </button>
 
-        {/* Inline toggle button */}
         <div
           role="button"
           aria-label={isCompleted ? "Desmarcar tarea" : "Marcar como completada"}
@@ -125,36 +148,59 @@ const DailyItemCard = ({ task, type, onToggle }: DailyItemCardProps) => {
             )}
           </DrawerHeader>
           <div className="px-6 pb-2 space-y-3">
-            {/* 1. Title */}
             <p className="text-base font-semibold text-foreground">{task.title}</p>
 
-            {/* 2. Image */}
             {task.media_image_url && (
               <img src={task.media_image_url} alt="" className="w-full rounded-xl" loading="lazy" />
             )}
 
-            {/* 3. Video */}
             {task.media_video_url && (() => {
               const ytId = getYouTubeId(task.media_video_url!);
               if (ytId) return <YouTubeProgressPlayer videoId={ytId} />;
               return null;
             })()}
 
-            {/* 4. Audio */}
-            {task.media_audio_url && (
-              <AudioPlayer src={task.media_audio_url} />
-            )}
+            {task.media_audio_url && <AudioPlayer src={task.media_audio_url} />}
 
-            {/* 5. Description (text) */}
             {task.description && (
               <p className="text-sm text-muted-foreground leading-relaxed">{task.description}</p>
+            )}
+
+            {/* Note section */}
+            {dayId && (
+              <div className="glass-card rounded-xl border border-primary/10 focus-within:border-primary/30 transition-colors duration-200 overflow-hidden">
+                <div className="flex items-center gap-2 px-3 pt-3 pb-1">
+                  <BookOpen className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex-1">
+                    Nota (opcional)
+                  </p>
+                  {saveNote.isPending && <Loader2 className="w-3 h-3 text-muted-foreground animate-spin" />}
+                  {noteSaved && !saveNote.isPending && (
+                    <span className="flex items-center gap-1 text-[10px] text-success font-semibold">
+                      <Check className="w-3 h-3" /> Guardado
+                    </span>
+                  )}
+                </div>
+                <textarea
+                  value={noteText}
+                  onChange={(e) => handleNoteChange(e.target.value)}
+                  onBlur={handleNoteBlur}
+                  placeholder="Escribe tu nota…"
+                  rows={2}
+                  className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none px-3 pb-3 min-h-[50px]"
+                />
+              </div>
             )}
           </div>
           <DrawerFooter>
             <button
               onClick={() => {
                 onToggle(task.id);
-                setOpen(false);
+                if (!isCompleted) {
+                  // Keep drawer open after completing so user can write a note
+                } else {
+                  setOpen(false);
+                }
               }}
               className={`w-full py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all duration-200 press-scale ${
                 isCompleted
