@@ -59,9 +59,9 @@ const DepositModal = ({ open, onClose }: DepositModalProps) => {
   })();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pb-24 pt-6">
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md max-h-[90vh] glass-card gold-border rounded-t-2xl sm:rounded-2xl flex flex-col safe-area-bottom">
+      <div className="relative w-full max-w-md max-h-[calc(100vh-140px)] glass-card gold-border rounded-2xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-5 pb-3 shrink-0">
           <div>
