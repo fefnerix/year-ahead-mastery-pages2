@@ -5,12 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import FileUpload from "@/components/FileUpload";
 import AudioRecorder from "@/components/AudioRecorder";
+import { deleteStorageFile } from "@/lib/storage-utils";
 import {
   usePrograms, useMonths,
   useCreateProgram, useCreateMonth,
 } from "@/hooks/useAdmin";
 import { useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement } from "@/hooks/useAnnouncements";
-import { Loader2, Plus, ChevronRight, Trash2, Megaphone, BookOpen, Save, AlertTriangle } from "lucide-react";
+import { Loader2, Plus, ChevronRight, Trash2, Megaphone, BookOpen, Save, AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
 import Logo from "@/components/Logo";
 import { isYouTubeUrl, getMediaWarning } from "@/lib/media-utils";
@@ -338,9 +339,26 @@ const MonthMacroEditor = ({ month }: { month: MonthData }) => {
       <div>
         <label className="text-[10px] text-muted-foreground font-semibold uppercase">Imagen</label>
         <div className="space-y-2">
-          <FileUpload bucket="task_media" accept="image/*" label={imageUrl ? "Imagen ✓" : "Subir foto"} onUploaded={setImageUrl} />
-          {imageUrl && (
-            <img src={imageUrl} alt="Preview" className="w-full max-h-32 object-cover rounded-lg" />
+          {imageUrl ? (
+            <>
+              <img src={imageUrl} alt="Preview" className="w-full max-h-32 object-cover rounded-lg" />
+              <div className="flex gap-2">
+                <FileUpload bucket="task_media" accept="image/*" label="Cambiar imagen" onUploaded={setImageUrl} />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!window.confirm("¿Eliminar imagen? Esta acción no se puede deshacer.")) return;
+                    await deleteStorageFile("task_media", imageUrl);
+                    setImageUrl("");
+                  }}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-destructive hover:text-destructive/80 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" /> Eliminar
+                </button>
+              </div>
+            </>
+          ) : (
+            <FileUpload bucket="task_media" accept="image/*" label="Subir foto" onUploaded={setImageUrl} />
           )}
         </div>
       </div>
@@ -349,7 +367,14 @@ const MonthMacroEditor = ({ month }: { month: MonthData }) => {
       <div>
         <label className="text-[10px] text-muted-foreground font-semibold uppercase">Video (YouTube)</label>
         <div className="space-y-2">
-          <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="URL del video (YouTube)" className={inputClass} />
+          <div className="flex gap-1.5">
+            <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="URL del video (YouTube)" className={`${inputClass} flex-1`} />
+            {videoUrl && (
+              <button type="button" onClick={() => setVideoUrl("")} className="shrink-0 p-2 text-muted-foreground hover:text-destructive transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
           {videoWarning && (
             <div className="flex items-start gap-1.5 text-[10px] text-destructive bg-destructive/10 rounded-lg px-2.5 py-1.5">
               <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
@@ -370,6 +395,10 @@ const MonthMacroEditor = ({ month }: { month: MonthData }) => {
           pathPrefix={`months/${month.id}/audio`}
           currentUrl={audioUrl || undefined}
           onUploaded={setAudioUrl}
+          onRemoved={async () => {
+            await deleteStorageFile("task_media", audioUrl);
+            setAudioUrl("");
+          }}
         />
       </div>
 

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Mic, Square, Upload, Loader2, Check } from "lucide-react";
+import { Mic, Square, Upload, Loader2, Check, Trash2 } from "lucide-react";
 import { uploadFile } from "@/hooks/useAdmin";
 import FileUpload from "@/components/FileUpload";
 
@@ -8,9 +8,10 @@ interface AudioRecorderProps {
   pathPrefix: string;
   currentUrl?: string;
   onUploaded: (url: string) => void;
+  onRemoved?: () => void;
 }
 
-const AudioRecorder = ({ bucket, pathPrefix, currentUrl, onUploaded }: AudioRecorderProps) => {
+const AudioRecorder = ({ bucket, pathPrefix, currentUrl, onUploaded, onRemoved }: AudioRecorderProps) => {
   const [tab, setTab] = useState<"record" | "upload">("record");
   const [recording, setRecording] = useState(false);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -101,9 +102,23 @@ const AudioRecorder = ({ bucket, pathPrefix, currentUrl, onUploaded }: AudioReco
     <div className="space-y-2">
       {/* Current audio preview */}
       {currentUrl && !blobUrl && (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <p className="text-[10px] text-muted-foreground">Audio actual:</p>
           <audio src={currentUrl} controls className="w-full h-8" />
+          {onRemoved && (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm("¿Eliminar audio? Esta acción no se puede deshacer.")) {
+                  onRemoved();
+                }
+              }}
+              className="flex items-center gap-1 text-[11px] font-semibold text-destructive hover:text-destructive/80 transition-colors"
+            >
+              <Trash2 className="w-3 h-3" />
+              Eliminar audio
+            </button>
+          )}
         </div>
       )}
 
