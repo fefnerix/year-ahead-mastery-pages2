@@ -688,6 +688,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      resolve_day_id: {
+        Args: { p_day_number: number; p_week_id: string }
+        Returns: string
+      }
       update_user_streak: { Args: { p_user_id: string }; Returns: Json }
     }
     Enums: {
