@@ -7,7 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import Index from "./pages/Index";
-import Semana from "./pages/Semana";
+import Lecturas from "./pages/Lecturas";
 import Ranking from "./pages/Ranking";
 import Perfil from "./pages/Perfil";
 import Reto from "./pages/Reto";
@@ -35,7 +35,7 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/semana" element={<ProtectedRoute><Semana /></ProtectedRoute>} />
+            <Route path="/lecturas" element={<ProtectedRoute><Lecturas /></ProtectedRoute>} />
             <Route path="/ranking" element={<ProtectedRoute><Ranking /></ProtectedRoute>} />
             <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
             <Route path="/reto/:weekId" element={<ProtectedRoute><Reto /></ProtectedRoute>} />
