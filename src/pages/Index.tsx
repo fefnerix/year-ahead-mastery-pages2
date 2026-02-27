@@ -1,13 +1,13 @@
 import BottomNav from "@/components/BottomNav";
 import Logo from "@/components/Logo";
-import DailyItemCard from "@/components/DailyItemCard";
 import ProgressDonut from "@/components/ProgressDonut";
+import MonthChecklist from "@/components/MonthChecklist";
 import JournalInput from "@/components/JournalInput";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { useProgress } from "@/hooks/useTodayData";
-import { useDayTasks, useToggleDayTask } from "@/hooks/useDayTasks";
+import { useMonthTasks, useMonthTaskChecks } from "@/hooks/useMonthTasks";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { getTodayBRT } from "@/lib/dates";
 
@@ -20,31 +20,28 @@ const formattedToday = new Intl.DateTimeFormat("es-ES", {
 const Index = () => {
   const { user } = useAuth();
   const { data: progress, isLoading: progressLoading } = useProgress();
-  const { data: tasks = [], isLoading: tasksLoading } = useDayTasks(progress?.day_id);
-  const toggleTask = useToggleDayTask(progress?.day_id);
   const { data: isAdmin } = useIsAdmin();
 
-  const prayerTask = tasks.find((t) => t.task_kind === "prayer") ?? null;
-  const activityTask = tasks.find((t) => t.task_kind === "activity") ?? null;
+  const monthId = progress?.month_id ?? null;
 
-  const handleToggle = (id: string) => {
-    const task = tasks.find((t) => t.id === id);
-    if (task) toggleTask.mutate(task);
-  };
+  // Month tasks progress for donut
+  const { data: monthTasks = [] } = useMonthTasks();
+  const { data: monthChecks = [] } = useMonthTaskChecks(monthId);
 
-  const isLoading = progressLoading || tasksLoading;
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "";
   const initials = displayName.slice(0, 2).toUpperCase();
-  const hasDayData = progress?.day_id != null;
-  const hoyPct = Math.min(100, Math.max(0, Math.round(progress?.day_pct ?? 0)));
-  const mesPct = Math.min(100, Math.max(0, Math.round(progress?.month_pct ?? 0)));
+  const hasMonthData = monthId != null;
+
+  // Progress: hoy = month checks / total active tasks, mes = same, total from RPC
+  const totalActive = monthTasks.length;
+  const checkedCount = monthChecks.length;
+  const mesPct = totalActive > 0 ? Math.min(100, Math.round((checkedCount / totalActive) * 100)) : 0;
   const totalPct = Math.min(100, Math.max(0, Math.round(progress?.year_pct ?? 0)));
 
   const monthTheme = progress?.month_theme || "";
   const now = new Date();
   const currentMonthLabel = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(now);
 
-  // Build today's date string for journal (BRT timezone)
   const todayDate = getTodayBRT();
 
   return (
@@ -64,7 +61,7 @@ const Index = () => {
       </header>
 
       <main className="flex-1 px-5 flex flex-col gap-4 pt-2 pb-2 overflow-y-auto">
-        {!hasDayData && !isLoading ? (
+        {!hasMonthData && !progressLoading ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-muted-foreground" />
@@ -118,7 +115,7 @@ const Index = () => {
                 <div className="h-[76px] rounded-xl animate-pulse bg-muted/20" />
               ) : (
                 <ProgressDonut
-                  hoyPct={hoyPct}
+                  hoyPct={mesPct}
                   mesPct={mesPct}
                   totalPct={totalPct}
                   monthLabel={currentMonthLabel}
@@ -126,28 +123,15 @@ const Index = () => {
               )}
             </section>
 
-            {/* Tasks */}
-            <section className="flex flex-col gap-2">
-              {isLoading ? (
-                <div className="space-y-2">
-                  {[0, 1].map((i) => (
-                    <div key={i} className="glass-card rounded-2xl p-4 h-[68px] animate-pulse border border-primary/5" />
-                  ))}
-                </div>
-              ) : (
-                <>
-                  <DailyItemCard task={prayerTask} type="prayer" onToggle={handleToggle} dayId={progress?.day_id} />
-                  <DailyItemCard task={activityTask} type="activity" onToggle={handleToggle} dayId={progress?.day_id} />
-                </>
-              )}
-            </section>
+            {/* Month Checklist */}
+            <MonthChecklist monthId={monthId} />
 
             {/* Mi diario de hoy */}
-            {hasDayData && (
+            {hasMonthData && (
               <section className="shrink-0">
                 <JournalInput
                   date={todayDate}
-                  dayId={progress?.day_id ?? undefined}
+                  dayId={undefined}
                   weekId={undefined}
                   monthId={progress?.month_id ?? undefined}
                 />

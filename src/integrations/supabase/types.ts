@@ -270,6 +270,135 @@ export type Database = {
         }
         Relationships: []
       }
+      month_task_checks: {
+        Row: {
+          checked: boolean
+          checked_at: string
+          id: string
+          month_id: string
+          month_task_id: string
+          user_id: string
+        }
+        Insert: {
+          checked?: boolean
+          checked_at?: string
+          id?: string
+          month_id: string
+          month_task_id: string
+          user_id: string
+        }
+        Update: {
+          checked?: boolean
+          checked_at?: string
+          id?: string
+          month_id?: string
+          month_task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "month_task_checks_month_id_fkey"
+            columns: ["month_id"]
+            isOneToOne: false
+            referencedRelation: "months"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "month_task_checks_month_task_id_fkey"
+            columns: ["month_task_id"]
+            isOneToOne: false
+            referencedRelation: "month_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      month_task_notes: {
+        Row: {
+          created_at: string
+          id: string
+          month_id: string
+          month_task_id: string
+          note: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month_id: string
+          month_task_id: string
+          note?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month_id?: string
+          month_task_id?: string
+          note?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "month_task_notes_month_id_fkey"
+            columns: ["month_id"]
+            isOneToOne: false
+            referencedRelation: "months"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "month_task_notes_month_task_id_fkey"
+            columns: ["month_task_id"]
+            isOneToOne: false
+            referencedRelation: "month_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      month_tasks: {
+        Row: {
+          audio_url: string | null
+          created_at: string
+          description: string | null
+          file_url: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          sort_order: number
+          title: string
+          type: string | null
+          video_url: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          created_at?: string
+          description?: string | null
+          file_url?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          sort_order?: number
+          title: string
+          type?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          created_at?: string
+          description?: string | null
+          file_url?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          sort_order?: number
+          title?: string
+          type?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       months: {
         Row: {
           audio_url: string | null
