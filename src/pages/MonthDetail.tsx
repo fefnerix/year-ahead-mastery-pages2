@@ -7,6 +7,7 @@ import YouTubeProgressPlayer from "@/components/YouTubeProgressPlayer";
 import ExpandableTextCard from "@/components/ExpandableTextCard";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { getYouTubeId } from "@/lib/media-utils";
+import MonthChecklist from "@/components/MonthChecklist";
 
 const MonthDetail = () => {
   const { monthId } = useParams<{ monthId: string }>();
@@ -88,6 +89,9 @@ const MonthDetail = () => {
 
         {/* 4. Text — ExpandableTextCard */}
         <ExpandableTextCard text={month.macro_text} />
+
+        {/* Month Checklist */}
+        <MonthChecklist monthId={monthId} />
 
         {/* CTA */}
         <button
