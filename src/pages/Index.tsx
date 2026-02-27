@@ -32,7 +32,6 @@ const Index = () => {
   const initials = displayName.slice(0, 2).toUpperCase();
   const hasMonthData = monthId != null;
 
-  // Progress: hoy = month checks / total active tasks, mes = same, total from RPC
   const totalActive = monthTasks.length;
   const checkedCount = monthChecks.length;
   const mesPct = totalActive > 0 ? Math.min(100, Math.round((checkedCount / totalActive) * 100)) : 0;
@@ -70,8 +69,8 @@ const Index = () => {
               <p className="text-base font-semibold text-foreground">Sin contenido publicado</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-[240px] mx-auto">
                 {isAdmin
-                  ? "Ve a Admin para publicar el mes y el día."
-                  : "Vuelve más tarde cuando haya contenido disponible."}
+                  ? "Ve a Admin para publicar el mes y el dia."
+                  : "Vuelve mas tarde cuando haya contenido disponible."}
               </p>
             </div>
             {isAdmin && (
@@ -115,7 +114,6 @@ const Index = () => {
                 <div className="h-[76px] rounded-xl animate-pulse bg-muted/20" />
               ) : (
                 <ProgressDonut
-                  hoyPct={mesPct}
                   mesPct={mesPct}
                   totalPct={totalPct}
                   monthLabel={currentMonthLabel}
@@ -126,7 +124,7 @@ const Index = () => {
             {/* Month Checklist */}
             <MonthChecklist monthId={monthId} />
 
-            {/* Mi diario de hoy */}
+            {/* Mi diario */}
             {hasMonthData && (
               <section className="shrink-0">
                 <JournalInput

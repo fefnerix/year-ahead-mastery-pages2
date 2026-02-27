@@ -4,9 +4,8 @@ import { useState } from "react";
 import { useLeaderboard, useRankingSummary } from "@/hooks/useLeaderboard";
 import { useAuth } from "@/hooks/useAuth";
 
-const tabs = ["Hoy", "Mes", "Total"] as const;
-const scopeMap: Record<typeof tabs[number], "day" | "month" | "total"> = {
-  Hoy: "day",
+const tabs = ["Mes", "Total"] as const;
+const scopeMap: Record<typeof tabs[number], "month" | "total"> = {
   Mes: "month",
   Total: "total",
 };
@@ -39,7 +38,7 @@ const ProgressBar = ({ value, max, label }: { value: number; max: number; label:
 };
 
 const Ranking = () => {
-  const [activeTab, setActiveTab] = useState<typeof tabs[number]>("Hoy");
+  const [activeTab, setActiveTab] = useState<typeof tabs[number]>("Mes");
   const { user } = useAuth();
   const { data: ranking = [], isLoading } = useLeaderboard(scopeMap[activeTab]);
   const { data: summary } = useRankingSummary();
@@ -66,11 +65,11 @@ const Ranking = () => {
       </header>
 
       <main className="px-5 space-y-4">
-        {/* Tu Posición card */}
+        {/* Tu Posicion card */}
         <div className="glass-card gold-border rounded-2xl p-5">
           <div className="flex items-center gap-4">
             <div className="flex flex-col items-center">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Posición</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Posicion</p>
               <p className="text-4xl font-display font-bold gold-text">
                 #{summary?.position || "—"}
               </p>
@@ -88,7 +87,7 @@ const Ranking = () => {
                   Te faltan <span className="text-primary font-bold">+{pointsToNext}</span> para pasar a <span className="font-semibold text-foreground">{nextAbove.display_name}</span>
                 </p>
               ) : (summary?.position ?? 0) === 1 ? (
-                <p className="text-xs text-primary font-semibold flex items-center gap-1"><Trophy className="w-3.5 h-3.5" /> ¡Estás #1!</p>
+                <p className="text-xs text-primary font-semibold flex items-center gap-1"><Trophy className="w-3.5 h-3.5" /> Eres #1</p>
               ) : (
                 <p className="text-xs text-muted-foreground">Completa tareas para subir</p>
               )}
@@ -96,10 +95,9 @@ const Ranking = () => {
           </div>
         </div>
 
-        {/* Mi Progreso: barras X/2, X/60, X/730 + streak */}
+        {/* Mi Progreso */}
         <div className="glass-card rounded-2xl p-5 space-y-3">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Mi Progreso</h2>
-          <ProgressBar value={summary?.today_points ?? 0} max={2} label="Puntos hoy" />
           <ProgressBar value={summary?.month_points ?? 0} max={60} label="Puntos mes" />
           <ProgressBar value={summary?.total_points ?? 0} max={730} label="Puntos total" />
 
@@ -116,7 +114,7 @@ const Ranking = () => {
                 <TrendingUp className="w-4 h-4 text-primary" />
                 <span className="text-lg font-bold text-foreground tabular-nums">{summary?.max_streak ?? 0}</span>
               </div>
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Récord</p>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Record</p>
             </div>
             <div className="glass-card rounded-xl p-3 text-center flex-1">
               <div className="flex items-center justify-center gap-1.5 mb-0.5">
@@ -154,7 +152,7 @@ const Ranking = () => {
           </div>
         ) : ranking.length === 0 ? (
           <div className="glass-card rounded-xl p-8 text-center">
-            <p className="text-muted-foreground">Aún no hay ranking.</p>
+            <p className="text-muted-foreground">Aun no hay ranking.</p>
             <p className="text-xs text-muted-foreground/60 mt-1">Completa tu primera tarea para entrar.</p>
           </div>
         ) : (
@@ -176,7 +174,7 @@ const Ranking = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className={`text-sm block truncate ${isMe ? "font-bold text-primary" : "font-medium text-foreground"}`}>
-                          {isMe ? "Tú" : entry.display_name}
+                          {isMe ? "Tu" : entry.display_name}
                         </span>
                       </div>
                       {entry.streak > 0 && (
@@ -193,16 +191,6 @@ const Ranking = () => {
             </div>
           </div>
         )}
-
-        {/* Reglas */}
-        <div className="glass-card rounded-xl p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Reglas</h3>
-          <ul className="text-xs text-secondary-foreground space-y-1">
-            <li>• 1 tarea = 1 punto</li>
-            <li>• Máximo: 2 puntos/día</li>
-            <li>• Desempate: más puntos → mayor racha → fecha de última tarea</li>
-          </ul>
-        </div>
       </main>
 
       <BottomNav />

@@ -7,7 +7,7 @@ const BottomNav = () => {
   const { data: isAdmin } = useIsAdmin();
 
   const navItems = [
-    { icon: Home, label: "Hoy", path: "/" },
+    { icon: Home, label: "Inicio", path: "/" },
     { icon: Calendar, label: "Calendario", path: "/calendario" },
     { icon: PenLine, label: "Diario", path: "/cuaderno" },
     { icon: Trophy, label: "Ranking", path: "/ranking" },
