@@ -15,6 +15,7 @@ const JournalInput = ({ date, dayId, weekId, monthId }: JournalInputProps) => {
   const [content, setContent] = useState("");
   const [saved, setSaved] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (entry?.content != null) setContent(entry.content);
@@ -59,12 +60,18 @@ const JournalInput = ({ date, dayId, weekId, monthId }: JournalInputProps) => {
         )}
       </div>
       <textarea
+        ref={textareaRef}
         value={content}
         onChange={(e) => handleChange(e.target.value)}
         onBlur={handleBlur}
+        onFocus={() => {
+          requestAnimationFrame(() => {
+            textareaRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          });
+        }}
         placeholder="¿Qué aprendiste hoy? ¿Qué te movió?"
         rows={3}
-        className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none px-4 pb-4 min-h-[80px]"
+        className="w-full bg-transparent text-[16px] md:text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none px-4 pb-4 min-h-[80px]"
       />
     </section>
   );
