@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import EntitlementGate from "@/components/EntitlementGate";
 import AdminRoute from "@/components/AdminRoute";
 import Index from "./pages/Index";
 import Ranking from "./pages/Ranking";
@@ -35,17 +36,17 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/mes/:monthId" element={<ProtectedRoute><MonthDetail /></ProtectedRoute>} />
-            <Route path="/calendario" element={<ProtectedRoute><CalendarioAno /></ProtectedRoute>} />
-            <Route path="/calendario/:year/:month" element={<ProtectedRoute><CalendarioMes /></ProtectedRoute>} />
-            <Route path="/day/:dayId" element={<ProtectedRoute><DayDetail /></ProtectedRoute>} />
-            <Route path="/cuaderno" element={<ProtectedRoute><Cuaderno /></ProtectedRoute>} />
-            <Route path="/ranking" element={<ProtectedRoute><Ranking /></ProtectedRoute>} />
-            <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
-            <Route path="/deposito" element={<ProtectedRoute><Deposito /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-            <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
+            <Route path="/" element={<ProtectedRoute><EntitlementGate><Index /></EntitlementGate></ProtectedRoute>} />
+            <Route path="/mes/:monthId" element={<ProtectedRoute><EntitlementGate><MonthDetail /></EntitlementGate></ProtectedRoute>} />
+            <Route path="/calendario" element={<ProtectedRoute><EntitlementGate><CalendarioAno /></EntitlementGate></ProtectedRoute>} />
+            <Route path="/calendario/:year/:month" element={<ProtectedRoute><EntitlementGate><CalendarioMes /></EntitlementGate></ProtectedRoute>} />
+            <Route path="/day/:dayId" element={<ProtectedRoute><EntitlementGate><DayDetail /></EntitlementGate></ProtectedRoute>} />
+            <Route path="/cuaderno" element={<ProtectedRoute><EntitlementGate><Cuaderno /></EntitlementGate></ProtectedRoute>} />
+            <Route path="/ranking" element={<ProtectedRoute><EntitlementGate><Ranking /></EntitlementGate></ProtectedRoute>} />
+            <Route path="/perfil" element={<ProtectedRoute><EntitlementGate><Perfil /></EntitlementGate></ProtectedRoute>} />
+            <Route path="/deposito" element={<ProtectedRoute><EntitlementGate><Deposito /></EntitlementGate></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><EntitlementGate><SettingsPage /></EntitlementGate></ProtectedRoute>} />
+            <Route path="/support" element={<ProtectedRoute><EntitlementGate><SupportPage /></EntitlementGate></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
             <Route path="/admin/months/:monthId/checklist" element={<AdminRoute><AdminMonthChecklist /></AdminRoute>} />
             <Route path="/admin/months/:monthId/days" element={<AdminRoute><AdminMonthDays /></AdminRoute>} />
