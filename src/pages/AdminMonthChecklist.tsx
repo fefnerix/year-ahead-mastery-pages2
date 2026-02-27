@@ -1,17 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminMonthTasks, useUpsertMonthTask, useSeedMonthTasks } from "@/hooks/useMonthTasks";
 import type { MonthTask } from "@/hooks/useMonthTasks";
+import {
+  useMonthTaskAssets,
+  useUploadMonthTaskAsset,
+  useDeleteMonthTaskAsset,
+  useCreateMonthTaskAsset,
+  useUpdateMonthTaskAsset,
+  type MonthTaskAsset,
+} from "@/hooks/useMonthTaskAssets";
 import FileUpload from "@/components/FileUpload";
 import AudioRecorder from "@/components/AudioRecorder";
-import { deleteStorageFile } from "@/lib/storage-utils";
 import { isYouTubeUrl } from "@/lib/media-utils";
 import BottomNav from "@/components/BottomNav";
 import {
   ArrowLeft, Loader2, Save, Plus, ChevronDown, ChevronUp,
   Trash2, X, Check, AlertTriangle, Eye, EyeOff, ListChecks, RefreshCw,
+  Image, Headphones, FileText, Play, Link as LinkIcon, ArrowUp, ArrowDown, ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,7 +46,6 @@ const AdminMonthChecklist = () => {
   const { data: tasks = [], isLoading } = useAdminMonthTasks(monthId);
   const seedTasks = useSeedMonthTasks();
 
-  // Auto-seed on first load if empty
   useEffect(() => {
     if (!isLoading && tasks.length === 0 && monthId && !seedTasks.isPending) {
       seedTasks.mutate(monthId);
@@ -50,7 +57,7 @@ const AdminMonthChecklist = () => {
 
   const handleSeed = () => {
     if (!monthId) return;
-    if (!window.confirm("¿Restaurar las 17 tareas por defecto? Las tareas existentes no se eliminarán.")) return;
+    if (!window.confirm("Restaurar las 17 tareas por defecto? Las tareas existentes no se eliminaran.")) return;
     seedTasks.mutate(monthId, { onSuccess: () => toast.success("Plantilla restaurada") });
   };
 
@@ -71,17 +78,10 @@ const AdminMonthChecklist = () => {
 
       <main className="px-5 space-y-3">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowCreate(!showCreate)}
-            className="text-primary text-sm font-semibold flex items-center gap-1"
-          >
+          <button onClick={() => setShowCreate(!showCreate)} className="text-primary text-sm font-semibold flex items-center gap-1">
             <Plus className="w-4 h-4" /> Nueva tarea
           </button>
-          <button
-            onClick={handleSeed}
-            disabled={seedTasks.isPending}
-            className="text-muted-foreground text-sm font-semibold flex items-center gap-1 ml-auto"
-          >
+          <button onClick={handleSeed} disabled={seedTasks.isPending} className="text-muted-foreground text-sm font-semibold flex items-center gap-1 ml-auto">
             {seedTasks.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
             Restaurar plantilla
           </button>
@@ -100,7 +100,7 @@ const AdminMonthChecklist = () => {
           <Loader2 className="w-5 h-5 text-primary animate-spin mx-auto my-8" />
         ) : tasks.length === 0 ? (
           <div className="glass-card rounded-xl p-6 text-center">
-            <p className="text-sm text-muted-foreground">Sin tareas. Se crearán automáticamente.</p>
+            <p className="text-sm text-muted-foreground">Sin tareas. Se crearan automaticamente.</p>
           </div>
         ) : (
           tasks.map((task) => (
@@ -110,9 +110,7 @@ const AdminMonthChecklist = () => {
                 className="w-full px-4 py-3 flex items-center justify-between text-left"
               >
                 <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <span className="text-xs font-mono text-muted-foreground w-6 shrink-0 text-right">
-                    {task.sort_order}
-                  </span>
+                  <span className="text-xs font-mono text-muted-foreground w-6 shrink-0 text-right">{task.sort_order}</span>
                   <span className={`text-sm font-semibold truncate ${!task.is_active ? "text-muted-foreground line-through" : "text-foreground"}`}>
                     {task.title}
                   </span>
@@ -125,12 +123,7 @@ const AdminMonthChecklist = () => {
 
               {editingId === task.id && monthId && (
                 <div className="px-4 pb-4 border-t border-border/30 pt-3">
-                  <MonthTaskEditor
-                    monthId={monthId}
-                    task={task}
-                    onSaved={() => setEditingId(null)}
-                    onCancel={() => setEditingId(null)}
-                  />
+                  <MonthTaskEditor monthId={monthId} task={task} onSaved={() => setEditingId(null)} onCancel={() => setEditingId(null)} />
                 </div>
               )}
             </div>
@@ -160,16 +153,10 @@ const MonthTaskEditor = ({ monthId, task, onSaved, onCancel, nextOrder }: Editor
   const [description, setDescription] = useState(task?.description ?? "");
   const [sortOrder, setSortOrder] = useState(task?.sort_order ?? nextOrder ?? 1);
   const [isActive, setIsActive] = useState(task?.is_active ?? true);
-  const [imageUrl, setImageUrl] = useState(task?.image_url ?? "");
-  const [audioUrl, setAudioUrl] = useState(task?.audio_url ?? "");
-  const [videoUrl, setVideoUrl] = useState(task?.video_url ?? "");
-  const [fileUrl, setFileUrl] = useState(task?.file_url ?? "");
-
-  const videoWarning = videoUrl && !isYouTubeUrl(videoUrl) ? "Solo se aceptan URLs de YouTube" : null;
 
   const handleSave = async () => {
     if (!title.trim()) {
-      toast.error("El título es obligatorio");
+      toast.error("El titulo es obligatorio");
       return;
     }
     try {
@@ -180,10 +167,6 @@ const MonthTaskEditor = ({ monthId, task, onSaved, onCancel, nextOrder }: Editor
         description: description.trim() || null,
         sort_order: sortOrder,
         is_active: isActive,
-        image_url: imageUrl || null,
-        audio_url: audioUrl || null,
-        video_url: videoUrl || null,
-        file_url: fileUrl || null,
       });
       toast.success(task ? "Tarea actualizada" : "Tarea creada");
       onSaved();
@@ -195,15 +178,13 @@ const MonthTaskEditor = ({ monthId, task, onSaved, onCancel, nextOrder }: Editor
   return (
     <div className="space-y-3">
       <div>
-        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Título</label>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título de la tarea" className={inputClass} />
+        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Titulo</label>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titulo de la tarea" className={inputClass} />
       </div>
-
       <div>
-        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Descripción</label>
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descripción (opcional)" rows={2} className={inputClass} />
+        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Descripcion</label>
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descripcion (opcional)" rows={2} className={inputClass} />
       </div>
-
       <div className="flex gap-3">
         <div className="flex-1">
           <label className="text-[10px] text-muted-foreground font-semibold uppercase">Orden</label>
@@ -212,9 +193,7 @@ const MonthTaskEditor = ({ monthId, task, onSaved, onCancel, nextOrder }: Editor
         <div className="flex items-end pb-1">
           <button
             onClick={() => setIsActive(!isActive)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
-              isActive ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${isActive ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}
           >
             {isActive ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
             {isActive ? "Activa" : "Inactiva"}
@@ -222,71 +201,8 @@ const MonthTaskEditor = ({ monthId, task, onSaved, onCancel, nextOrder }: Editor
         </div>
       </div>
 
-      {/* Image */}
-      <div>
-        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Imagen</label>
-        {imageUrl ? (
-          <div className="space-y-2">
-            <img src={imageUrl} alt="" className="w-full max-h-28 object-cover rounded-lg" />
-            <div className="flex gap-2">
-              <FileUpload bucket="task_media" accept="image/*" label="Cambiar imagen" onUploaded={setImageUrl} />
-              <button onClick={async () => { await deleteStorageFile("task_media", imageUrl); setImageUrl(""); }} className="flex items-center gap-1 text-[11px] font-semibold text-destructive hover:text-destructive/80">
-                <Trash2 className="w-3 h-3" /> Eliminar
-              </button>
-            </div>
-          </div>
-        ) : (
-          <FileUpload bucket="task_media" accept="image/*" label="Subir imagen" onUploaded={setImageUrl} />
-        )}
-      </div>
-
-      {/* Video */}
-      <div>
-        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Video (YouTube)</label>
-        <div className="flex gap-1.5">
-          <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="URL de YouTube" className={`${inputClass} flex-1`} />
-          {videoUrl && (
-            <button onClick={() => setVideoUrl("")} className="shrink-0 p-2 text-muted-foreground hover:text-destructive">
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-        {videoWarning && (
-          <div className="flex items-start gap-1.5 text-[10px] text-destructive bg-destructive/10 rounded-lg px-2.5 py-1.5 mt-1">
-            <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" /><span>{videoWarning}</span>
-          </div>
-        )}
-        {videoUrl && isYouTubeUrl(videoUrl) && (
-          <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1"><Check className="w-3 h-3 text-success" /> URL válida</p>
-        )}
-      </div>
-
-      {/* Audio */}
-      <div>
-        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Audio</label>
-        <AudioRecorder
-          bucket="task_media"
-          pathPrefix={`month-tasks/${monthId}/audio`}
-          currentUrl={audioUrl || undefined}
-          onUploaded={setAudioUrl}
-          onRemoved={async () => { await deleteStorageFile("task_media", audioUrl); setAudioUrl(""); }}
-        />
-      </div>
-
-      {/* File/PDF */}
-      <div>
-        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Archivo (PDF)</label>
-        {fileUrl ? (
-          <div className="flex items-center gap-2">
-            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline truncate flex-1">Ver archivo</a>
-            <button onClick={async () => { await deleteStorageFile("task_media", fileUrl); setFileUrl(""); }} className="flex items-center gap-1 text-[11px] font-semibold text-destructive hover:text-destructive/80">
-              <Trash2 className="w-3 h-3" /> Eliminar
-            </button>
-          </div>
-        ) : (
-          <FileUpload bucket="task_media" accept=".pdf,application/pdf" label="Subir archivo" onUploaded={setFileUrl} />
-        )}
-      </div>
+      {/* Assets section - only for existing tasks */}
+      {task?.id && <AssetManager monthTaskId={task.id} />}
 
       <div className="flex gap-2 pt-1">
         <button
@@ -301,6 +217,216 @@ const MonthTaskEditor = ({ monthId, task, onSaved, onCancel, nextOrder }: Editor
           Cancelar
         </button>
       </div>
+    </div>
+  );
+};
+
+/* ── Asset Manager ── */
+
+const ASSET_KIND_ICON: Record<string, React.ReactNode> = {
+  image: <Image className="w-3.5 h-3.5" />,
+  video: <Play className="w-3.5 h-3.5" />,
+  audio: <Headphones className="w-3.5 h-3.5" />,
+  file: <FileText className="w-3.5 h-3.5" />,
+  link: <LinkIcon className="w-3.5 h-3.5" />,
+};
+
+const ASSET_KIND_LABEL: Record<string, string> = {
+  image: "Imagen",
+  video: "Video",
+  audio: "Audio",
+  file: "Archivo",
+  link: "Enlace",
+};
+
+const AssetManager = ({ monthTaskId }: { monthTaskId: string }) => {
+  const { data: assets = [], isLoading } = useMonthTaskAssets(monthTaskId);
+  const uploadAsset = useUploadMonthTaskAsset();
+  const deleteAsset = useDeleteMonthTaskAsset();
+  const createAsset = useCreateMonthTaskAsset();
+  const updateAsset = useUpdateMonthTaskAsset();
+  const qc = useQueryClient();
+
+  const [linkUrl, setLinkUrl] = useState("");
+  const [showLinkInput, setShowLinkInput] = useState(false);
+
+  const handleFileUpload = (kind: MonthTaskAsset["kind"], accept: string) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = accept;
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        await uploadAsset.mutateAsync({ monthTaskId, file, kind, existingAssets: assets });
+        toast.success("Recurso subido");
+      } catch (err: any) {
+        toast.error(err.message || "Error al subir");
+      }
+    };
+    input.click();
+  };
+
+  const handleAddLink = async () => {
+    const url = linkUrl.trim();
+    if (!url) return;
+
+    const kind = isYouTubeUrl(url) ? "video" : "link";
+    const nextOrder = assets.length > 0 ? Math.max(...assets.map((a) => a.sort_order)) + 1 : 0;
+
+    try {
+      await createAsset.mutateAsync({
+        month_task_id: monthTaskId,
+        kind,
+        title: isYouTubeUrl(url) ? "Video de YouTube" : "Enlace",
+        description: null,
+        url,
+        file_path: null,
+        mime_type: null,
+        size_bytes: null,
+        sort_order: nextOrder,
+      });
+      setLinkUrl("");
+      setShowLinkInput(false);
+      toast.success("Enlace agregado");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleDelete = async (asset: MonthTaskAsset) => {
+    if (!window.confirm("Eliminar este recurso?")) return;
+    try {
+      await deleteAsset.mutateAsync(asset);
+      toast.success("Recurso eliminado");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleMove = async (asset: MonthTaskAsset, direction: "up" | "down") => {
+    const idx = assets.findIndex((a) => a.id === asset.id);
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= assets.length) return;
+
+    const other = assets[swapIdx];
+    try {
+      await Promise.all([
+        updateAsset.mutateAsync({ id: asset.id, sort_order: other.sort_order }),
+        updateAsset.mutateAsync({ id: other.id, sort_order: asset.sort_order }),
+      ]);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="text-[10px] text-muted-foreground font-semibold uppercase">
+        Recursos ({assets.length})
+      </label>
+
+      {/* Upload buttons */}
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          onClick={() => handleFileUpload("image", "image/*")}
+          disabled={uploadAsset.isPending}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-muted text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Image className="w-3 h-3" /> Imagen
+        </button>
+        <button
+          onClick={() => handleFileUpload("audio", "audio/*")}
+          disabled={uploadAsset.isPending}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-muted text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Headphones className="w-3 h-3" /> Audio
+        </button>
+        <button
+          onClick={() => handleFileUpload("file", ".pdf,application/pdf,.doc,.docx,.xls,.xlsx")}
+          disabled={uploadAsset.isPending}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-muted text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <FileText className="w-3 h-3" /> Archivo
+        </button>
+        <button
+          onClick={() => setShowLinkInput(!showLinkInput)}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-muted text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <LinkIcon className="w-3 h-3" /> Enlace / Video
+        </button>
+      </div>
+
+      {uploadAsset.isPending && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Subiendo...
+        </div>
+      )}
+
+      {/* Link input */}
+      {showLinkInput && (
+        <div className="flex gap-1.5">
+          <input
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            placeholder="URL (YouTube, enlace externo...)"
+            className={`${inputClass} flex-1`}
+          />
+          <button
+            onClick={handleAddLink}
+            disabled={!linkUrl.trim() || createAsset.isPending}
+            className="px-3 py-2 rounded-lg gold-gradient text-primary-foreground text-xs font-bold disabled:opacity-40"
+          >
+            {createAsset.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+          </button>
+          <button onClick={() => { setShowLinkInput(false); setLinkUrl(""); }} className="px-2 py-2 text-muted-foreground">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Asset list */}
+      {isLoading ? (
+        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground mx-auto" />
+      ) : assets.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground/60 text-center py-2">Sin recursos adjuntos</p>
+      ) : (
+        <div className="space-y-1.5">
+          {assets.map((asset, idx) => (
+            <div key={asset.id} className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-2">
+              <span className="text-muted-foreground shrink-0">{ASSET_KIND_ICON[asset.kind]}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-foreground truncate">
+                  {asset.title || ASSET_KIND_LABEL[asset.kind]}
+                </p>
+                <p className="text-[10px] text-muted-foreground">{ASSET_KIND_LABEL[asset.kind]}</p>
+              </div>
+              <div className="flex items-center gap-0.5 shrink-0">
+                <button
+                  onClick={() => handleMove(asset, "up")}
+                  disabled={idx === 0}
+                  className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-20"
+                >
+                  <ArrowUp className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() => handleMove(asset, "down")}
+                  disabled={idx === assets.length - 1}
+                  className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-20"
+                >
+                  <ArrowDown className="w-3 h-3" />
+                </button>
+                <a href={asset.url} target="_blank" rel="noopener noreferrer" className="p-1 text-primary hover:text-primary/80">
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+                <button onClick={() => handleDelete(asset)} className="p-1 text-destructive hover:text-destructive/80">
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import { useMonthTasks, useMonthTaskChecks, useToggleMonthTaskCheck } from "@/hooks/useMonthTasks";
+import { useMonthTasksAssetsBatch } from "@/hooks/useMonthTaskAssets";
 import MonthTaskItem from "@/components/MonthTaskItem";
 import { ListChecks, Loader2 } from "lucide-react";
 
@@ -10,6 +11,9 @@ const MonthChecklist = ({ monthId }: MonthChecklistProps) => {
   const { data: tasks = [], isLoading: tasksLoading } = useMonthTasks(monthId);
   const { data: checks = [], isLoading: checksLoading } = useMonthTaskChecks(monthId);
   const toggleCheck = useToggleMonthTaskCheck(monthId);
+
+  const taskIds = tasks.map((t) => t.id);
+  const { data: allAssets = [] } = useMonthTasksAssetsBatch(taskIds);
 
   const isLoading = tasksLoading || checksLoading;
 
@@ -56,6 +60,7 @@ const MonthChecklist = ({ monthId }: MonthChecklistProps) => {
 
       {tasks.map((task) => {
         const check = checkMap.get(task.id);
+        const taskAssets = allAssets.filter((a) => a.month_task_id === task.id);
         return (
           <MonthTaskItem
             key={task.id}
@@ -63,6 +68,7 @@ const MonthChecklist = ({ monthId }: MonthChecklistProps) => {
             checked={!!check}
             checkId={check?.id}
             onToggle={handleToggle}
+            assets={taskAssets}
           />
         );
       })}
