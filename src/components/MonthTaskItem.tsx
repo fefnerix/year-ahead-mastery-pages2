@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
-  Check, Image, Headphones, Play, FileText, Loader2, Undo2, X, LinkIcon, PenLine, ListChecks,
+  Check, Image, Headphones, Play, FileText, Loader2, Undo2, X, LinkIcon, PenLine, ListChecks, Lock,
 } from "lucide-react";
 import {
   Drawer, DrawerContent, DrawerClose,
@@ -13,6 +13,7 @@ import {
   useMonthTaskSubtasks,
   useMonthSubtaskChecks,
   useToggleSubtaskCheck,
+  useSyncParentCheck,
 } from "@/hooks/useMonthTaskSubtasks";
 import type { MonthTask } from "@/hooks/useMonthTasks";
 import type { MonthTaskAsset } from "@/hooks/useMonthTaskAssets";
@@ -37,11 +38,13 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
   const { data: subtasks = [] } = useMonthTaskSubtasks(open ? task.id : null);
   const { data: subtaskChecks = [] } = useMonthSubtaskChecks(open ? monthId : null);
   const toggleSubtask = useToggleSubtaskCheck(monthId);
+  const syncParent = useSyncParentCheck(monthId);
 
   const activeSubtasks = subtasks.filter((s) => s.is_active);
   const subtaskCheckMap = new Map(subtaskChecks.map((c) => [c.subtask_id, c]));
   const completedSubtasks = activeSubtasks.filter((s) => subtaskCheckMap.has(s.id));
   const allSubtasksDone = activeSubtasks.length > 0 && completedSubtasks.length === activeSubtasks.length;
+  const hasSubtasks = activeSubtasks.length > 0;
 
   // Sync external note prop when it updates
   useEffect(() => {
@@ -68,25 +71,24 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
     setOpen(false);
   }, [saveNote, onToggle, task.id]);
 
-  // Auto-complete: when all subtasks are done, auto-mark parent if not already checked
+  // Subtask toggle with parent sync
   const handleSubtaskToggle = useCallback((subtaskId: string, isChecked: boolean, subCheckId?: string) => {
     toggleSubtask.mutate(
       { subtaskId, currentlyChecked: isChecked, checkId: subCheckId },
       {
         onSuccess: () => {
-          // Check if this was the last one being completed
-          if (!isChecked) {
-            // We just checked one. Count how many are now checked (including this one)
-            const newCompletedCount = completedSubtasks.length + 1;
-            if (newCompletedCount >= activeSubtasks.length && !checked) {
-              // All done — auto-mark parent
-              onToggle(task.id, false);
-            }
-          }
+          // Calculate new completion state after this toggle
+          const newCompletedCount = isChecked
+            ? completedSubtasks.length - 1
+            : completedSubtasks.length + 1;
+          const newAllComplete = newCompletedCount >= activeSubtasks.length;
+
+          // Sync parent check
+          syncParent.mutate({ monthTaskId: task.id, allComplete: newAllComplete });
         },
       }
     );
-  }, [toggleSubtask, completedSubtasks.length, activeSubtasks.length, checked, onToggle, task.id]);
+  }, [toggleSubtask, syncParent, completedSubtasks.length, activeSubtasks.length, task.id]);
 
   // Legacy fields as fallback
   const hasLegacyMedia = !!task.image_url || !!task.audio_url || !!task.video_url || !!task.file_url;
@@ -146,20 +148,28 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
           </div>
         </button>
 
-        {/* Check circle */}
+        {/* Check circle — for tasks with subtasks, this is read-only */}
         <div
-          role="button"
+          role={hasSubtasks ? undefined : "button"}
           aria-label={checked ? "Desmarcar tarea" : "Marcar tarea"}
-          onClick={() => onToggle(task.id, checked, checkId)}
-          className={`absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all duration-200 press-scale ${
+          onClick={() => {
+            if (!hasSubtasks) onToggle(task.id, checked, checkId);
+          }}
+          className={`absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+            hasSubtasks ? "cursor-default" : "cursor-pointer press-scale"
+          } ${
             checked ? "bg-success/20 border-success/60" : "bg-white/5 border-white/15 hover:border-primary/40"
           }`}
         >
-          <Check
-            className={`w-3.5 h-3.5 transition-all duration-200 ${
-              checked ? "text-success scale-100" : "text-muted-foreground/40 scale-75"
-            }`}
-          />
+          {hasSubtasks && !checked ? (
+            <Lock className="w-3 h-3 text-muted-foreground/40" />
+          ) : (
+            <Check
+              className={`w-3.5 h-3.5 transition-all duration-200 ${
+                checked ? "text-success scale-100" : "text-muted-foreground/40 scale-75"
+              }`}
+            />
+          )}
         </div>
       </div>
 
@@ -235,9 +245,6 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
                     );
                   })}
                 </div>
-                {checked && !allSubtasksDone && activeSubtasks.length > 0 && (
-                  <p className="text-[11px] text-amber-400/80 text-center">Subtareas incompletas</p>
-                )}
               </div>
             )}
 
@@ -395,7 +402,18 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
 
           {/* Footer CTA */}
           <div className="sticky bottom-0 z-10 bg-background/95 backdrop-blur-md border-t border-border/40 p-4 flex flex-col gap-2">
-            {!checked ? (
+            {hasSubtasks ? (
+              /* Tasks with subtasks: show status, no manual toggle */
+              allSubtasksDone ? (
+                <div className="w-full py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-success/15 text-success border border-success/30">
+                  <Check className="w-4 h-4" /> Completada
+                </div>
+              ) : (
+                <div className="w-full py-3.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 bg-muted/30 text-muted-foreground border border-border/30">
+                  <Lock className="w-4 h-4" /> Completa todas las subtareas ({completedSubtasks.length}/{activeSubtasks.length})
+                </div>
+              )
+            ) : !checked ? (
               <button
                 onClick={handleMarkDone}
                 className="w-full py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 press-scale gold-gradient text-primary-foreground gold-glow"
