@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Check, Image, Headphones, Play, FileText, Loader2, Undo2, X, LinkIcon, PenLine, ListChecks, Lock,
 } from "lucide-react";
@@ -33,6 +34,7 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
   const [noteText, setNoteText] = useState(note);
   const noteChangedRef = useRef(false);
   const upsertNote = useUpsertMonthTaskNote();
+  const isMobile = useIsMobile();
 
   // Subtasks - lazy loaded when drawer opens
   const { data: subtasks = [] } = useMonthTaskSubtasks(open ? task.id : null);
@@ -175,7 +177,7 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
 
       {/* Detail drawer */}
       <Drawer open={open} onOpenChange={handleOpenChange}>
-        <DrawerContent className="flex flex-col max-h-[85vh]">
+        <DrawerContent fullScreen={isMobile} className={isMobile ? "flex flex-col" : "flex flex-col max-h-[85vh]"}>
           {/* Header */}
           <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-md border-b border-border/40 px-5 pt-5 pb-3 flex items-start gap-3">
             <span className="text-xs font-bold tabular-nums text-primary/70 mt-1 shrink-0">{orderLabel}</span>
