@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
-  Check, Image, Headphones, Play, FileText, BookOpen, Loader2, Undo2, X, LinkIcon,
+  Check, Image, Headphones, Play, FileText, Loader2, Undo2, X, LinkIcon, PenLine,
 } from "lucide-react";
 import {
   Drawer, DrawerContent, DrawerClose,
 } from "@/components/ui/drawer";
 import YouTubeProgressPlayer from "@/components/YouTubeProgressPlayer";
 import AudioPlayer from "@/components/AudioPlayer";
-import { getYouTubeId, isYouTubeUrl } from "@/lib/media-utils";
+import { getYouTubeId } from "@/lib/media-utils";
+import { useUpsertMonthTaskNote } from "@/hooks/useMonthTaskNotes";
 import type { MonthTask } from "@/hooks/useMonthTasks";
 import type { MonthTaskAsset } from "@/hooks/useMonthTaskAssets";
 
@@ -17,10 +18,40 @@ interface MonthTaskItemProps {
   checkId?: string;
   onToggle: (monthTaskId: string, currentlyChecked: boolean, checkId?: string) => void;
   assets?: MonthTaskAsset[];
+  note?: string;
+  monthId: string;
 }
 
-const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [] }: MonthTaskItemProps) => {
+const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "", monthId }: MonthTaskItemProps) => {
   const [open, setOpen] = useState(false);
+  const [noteText, setNoteText] = useState(note);
+  const noteChangedRef = useRef(false);
+  const upsertNote = useUpsertMonthTaskNote();
+
+  // Sync external note prop when it updates
+  useEffect(() => {
+    setNoteText(note);
+    noteChangedRef.current = false;
+  }, [note]);
+
+  const saveNote = useCallback(async () => {
+    if (!noteChangedRef.current) return;
+    noteChangedRef.current = false;
+    await upsertNote.mutateAsync({ monthId, monthTaskId: task.id, note: noteText });
+  }, [noteText, monthId, task.id, upsertNote]);
+
+  const handleOpenChange = useCallback(async (isOpen: boolean) => {
+    if (!isOpen && noteChangedRef.current) {
+      await saveNote();
+    }
+    setOpen(isOpen);
+  }, [saveNote]);
+
+  const handleMarkDone = useCallback(async () => {
+    if (noteChangedRef.current) await saveNote();
+    onToggle(task.id, false);
+    setOpen(false);
+  }, [saveNote, onToggle, task.id]);
 
   // Legacy fields as fallback
   const hasLegacyMedia = !!task.image_url || !!task.audio_url || !!task.video_url || !!task.file_url;
@@ -33,6 +64,8 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [] }: MonthT
   const files = assets.filter((a) => a.kind === "file");
   const links = assets.filter((a) => a.kind === "link");
 
+  const orderLabel = String(task.sort_order).padStart(2, "0");
+
   return (
     <>
       {/* List item */}
@@ -43,20 +76,38 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [] }: MonthT
       >
         <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${checked ? "bg-success/70" : "bg-primary/30"}`} />
 
-        <button onClick={() => setOpen(true)} className="w-full pl-5 pr-14 py-3.5 text-left">
-          <div className="flex items-center gap-2">
-            <p className={`text-sm font-semibold leading-snug flex-1 ${checked ? "text-foreground/60 line-through" : "text-foreground"}`}>
-              {task.title}
-            </p>
-            {hasMedia && (
-              <div className="flex items-center gap-1 shrink-0">
-                {(images.length > 0 || (!hasAssets && task.image_url)) && <Image className="w-3 h-3 text-muted-foreground" />}
-                {(audios.length > 0 || (!hasAssets && task.audio_url)) && <Headphones className="w-3 h-3 text-muted-foreground" />}
-                {(videos.length > 0 || (!hasAssets && task.video_url)) && <Play className="w-3 h-3 text-muted-foreground" />}
-                {(files.length > 0 || (!hasAssets && task.file_url)) && <FileText className="w-3 h-3 text-muted-foreground" />}
-                {links.length > 0 && <LinkIcon className="w-3 h-3 text-muted-foreground" />}
+        <button onClick={() => setOpen(true)} className="w-full pl-4 pr-14 py-3.5 text-left">
+          <div className="flex items-start gap-2.5">
+            {/* Number badge */}
+            <span className={`text-[10px] font-bold tabular-nums mt-0.5 w-5 shrink-0 text-center rounded ${
+              checked ? "text-success/60" : "text-primary/70"
+            }`}>
+              {orderLabel}
+            </span>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className={`text-sm font-semibold leading-snug flex-1 ${checked ? "text-foreground/60 line-through" : "text-foreground"}`}>
+                  {task.title}
+                </p>
+                {hasMedia && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    {(images.length > 0 || (!hasAssets && task.image_url)) && <Image className="w-3 h-3 text-muted-foreground" />}
+                    {(audios.length > 0 || (!hasAssets && task.audio_url)) && <Headphones className="w-3 h-3 text-muted-foreground" />}
+                    {(videos.length > 0 || (!hasAssets && task.video_url)) && <Play className="w-3 h-3 text-muted-foreground" />}
+                    {(files.length > 0 || (!hasAssets && task.file_url)) && <FileText className="w-3 h-3 text-muted-foreground" />}
+                    {links.length > 0 && <LinkIcon className="w-3 h-3 text-muted-foreground" />}
+                  </div>
+                )}
               </div>
-            )}
+              {/* Note preview */}
+              {note && (
+                <p className="text-[11px] text-muted-foreground/70 line-clamp-1 mt-0.5 flex items-center gap-1">
+                  <PenLine className="w-2.5 h-2.5 shrink-0" />
+                  <span className="truncate">{note}</span>
+                </p>
+              )}
+            </div>
           </div>
         </button>
 
@@ -78,10 +129,11 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [] }: MonthT
       </div>
 
       {/* Detail drawer */}
-      <Drawer open={open} onOpenChange={setOpen}>
+      <Drawer open={open} onOpenChange={handleOpenChange}>
         <DrawerContent className="flex flex-col max-h-[85vh]">
           {/* Header */}
           <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-md border-b border-border/40 px-5 pt-5 pb-3 flex items-start gap-3">
+            <span className="text-xs font-bold tabular-nums text-primary/70 mt-1 shrink-0">{orderLabel}</span>
             <div className="flex-1 min-w-0">
               <h3 className="text-base font-bold text-foreground leading-snug line-clamp-2">{task.title}</h3>
               {hasMedia && (
@@ -104,21 +156,16 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [] }: MonthT
 
             {hasAssets ? (
               <>
-                {/* Images */}
                 {images.length > 0 && (
                   <div className="space-y-2">
                     {images.map((asset) => (
                       <div key={asset.id} className="rounded-xl overflow-hidden border border-border/30">
                         <img src={asset.url} alt={asset.title || ""} className="w-full aspect-video object-cover" loading="lazy" />
-                        {asset.title && (
-                          <p className="text-[11px] text-muted-foreground px-3 py-1.5">{asset.title}</p>
-                        )}
+                        {asset.title && <p className="text-[11px] text-muted-foreground px-3 py-1.5">{asset.title}</p>}
                       </div>
                     ))}
                   </div>
                 )}
-
-                {/* Videos */}
                 {videos.length > 0 && (
                   <div className="space-y-2">
                     {videos.map((asset) => {
@@ -144,8 +191,6 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [] }: MonthT
                     })}
                   </div>
                 )}
-
-                {/* Audios */}
                 {audios.length > 0 && (
                   <div className="space-y-2">
                     {audios.map((asset) => (
@@ -153,15 +198,11 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [] }: MonthT
                         <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-4 pt-3 pb-1.5 flex items-center gap-1.5">
                           <Headphones className="w-3 h-3" /> {asset.title || "Audio"}
                         </p>
-                        <div className="px-4 pb-3">
-                          <AudioPlayer src={asset.url} />
-                        </div>
+                        <div className="px-4 pb-3"><AudioPlayer src={asset.url} /></div>
                       </div>
                     ))}
                   </div>
                 )}
-
-                {/* Files */}
                 {files.length > 0 && (
                   <div className="space-y-2">
                     {files.map((asset) => (
@@ -179,8 +220,6 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [] }: MonthT
                     ))}
                   </div>
                 )}
-
-                {/* Links */}
                 {links.length > 0 && (
                   <div className="space-y-2">
                     {links.map((asset) => (
@@ -195,7 +234,6 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [] }: MonthT
               </>
             ) : (
               <>
-                {/* Legacy fallback rendering */}
                 {task.image_url && (
                   <div className="rounded-xl overflow-hidden border border-border/30">
                     <img src={task.image_url} alt="" className="w-full aspect-video object-cover" loading="lazy" />
@@ -227,9 +265,7 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [] }: MonthT
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-4 pt-3 pb-1.5 flex items-center gap-1.5">
                       <Headphones className="w-3 h-3" /> Audio
                     </p>
-                    <div className="px-4 pb-3">
-                      <AudioPlayer src={task.audio_url} />
-                    </div>
+                    <div className="px-4 pb-3"><AudioPlayer src={task.audio_url} /></div>
                   </div>
                 )}
                 {task.file_url && (
@@ -245,19 +281,35 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [] }: MonthT
                     <span className="text-[11px] font-bold uppercase tracking-wider text-primary shrink-0">Abrir</span>
                   </a>
                 )}
-
                 {!hasLegacyMedia && (
                   <p className="text-[11px] text-muted-foreground/60 text-center py-4">Sin recursos por ahora</p>
                 )}
               </>
             )}
+
+            {/* Note section */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <PenLine className="w-3 h-3" /> Tu nota
+              </label>
+              <textarea
+                value={noteText}
+                onChange={(e) => {
+                  setNoteText(e.target.value);
+                  noteChangedRef.current = true;
+                }}
+                placeholder="Escribe una nota para ti..."
+                rows={3}
+                className="w-full bg-muted/40 border border-border/30 rounded-xl px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40 resize-none"
+              />
+            </div>
           </div>
 
           {/* Footer CTA */}
           <div className="sticky bottom-0 z-10 bg-background/95 backdrop-blur-md border-t border-border/40 p-4 flex flex-col gap-2">
             {!checked ? (
               <button
-                onClick={() => { onToggle(task.id, false); setOpen(false); }}
+                onClick={handleMarkDone}
                 className="w-full py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 press-scale gold-gradient text-primary-foreground gold-glow"
               >
                 <Check className="w-4 h-4" /> Marcar como hecha
@@ -265,7 +317,7 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [] }: MonthT
             ) : (
               <>
                 <button
-                  onClick={() => setOpen(false)}
+                  onClick={() => handleOpenChange(false)}
                   className="w-full py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 press-scale bg-success/15 text-success border border-success/30"
                 >
                   <Check className="w-4 h-4" /> Completada
