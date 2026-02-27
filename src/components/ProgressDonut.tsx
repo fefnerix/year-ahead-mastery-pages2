@@ -52,16 +52,14 @@ const Donut = ({ value, label, gradientId, size = 48, strokeWidth = 4.5 }: Donut
 };
 
 interface ProgressDonutProps {
-  hoyPct: number;
   mesPct: number;
   totalPct: number;
   monthLabel: string;
 }
 
-const ProgressDonut = ({ hoyPct, mesPct, totalPct, monthLabel }: ProgressDonutProps) => {
+const ProgressDonut = ({ mesPct, totalPct, monthLabel }: ProgressDonutProps) => {
   return (
     <div className="glass-card rounded-xl px-4 py-3 border border-primary/10 flex items-center gap-4">
-      <Donut value={hoyPct} label="Hoy" gradientId="gold-grad-hoy" />
       <Donut value={mesPct} label="Mes" gradientId="gold-grad-mes" />
       <Donut value={totalPct} label="Total" gradientId="gold-grad-total" />
       <div className="flex-1 min-w-0 text-right">

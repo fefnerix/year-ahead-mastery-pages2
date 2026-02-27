@@ -95,7 +95,7 @@ const MonthDetail = () => {
           onClick={() => navigate("/")}
           className="w-full py-4 rounded-2xl gold-gradient font-bold text-primary-foreground text-sm uppercase tracking-wider flex items-center justify-center gap-2 gold-glow shimmer press-scale"
         >
-          Ir a hoy <ArrowRight className="w-4 h-4" />
+          Ir al inicio <ArrowRight className="w-4 h-4" />
         </button>
       </main>
 
