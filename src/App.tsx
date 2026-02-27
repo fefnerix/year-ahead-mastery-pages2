@@ -14,6 +14,7 @@ import Cuaderno from "./pages/Cuaderno";
 import Deposito from "./pages/Deposito";
 import Admin from "./pages/Admin";
 import AdminMonthDays from "./pages/AdminMonthDays";
+import AdminMonthChecklist from "./pages/AdminMonthChecklist";
 import MonthDetail from "./pages/MonthDetail";
 import Auth from "./pages/Auth";
 import CalendarioAno from "./pages/CalendarioAno";
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
             <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+            <Route path="/admin/months/:monthId/checklist" element={<AdminRoute><AdminMonthChecklist /></AdminRoute>} />
             <Route path="/admin/months/:monthId/days" element={<AdminRoute><AdminMonthDays /></AdminRoute>} />
 
             {/* Legacy redirects */}

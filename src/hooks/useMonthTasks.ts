@@ -4,6 +4,7 @@ import { useAuth } from "./useAuth";
 
 export interface MonthTask {
   id: string;
+  month_id: string | null;
   sort_order: number;
   title: string;
   description: string | null;
@@ -24,18 +25,21 @@ export interface MonthTaskCheck {
 
 /* ── User-facing hooks ── */
 
-export function useMonthTasks() {
+/** Active tasks for a specific month */
+export function useMonthTasks(monthId: string | null | undefined) {
   return useQuery({
-    queryKey: ["month-tasks"],
+    queryKey: ["month-tasks", monthId],
     queryFn: async (): Promise<MonthTask[]> => {
       const { data, error } = await supabase
         .from("month_tasks")
-        .select("id, sort_order, title, description, type, image_url, audio_url, video_url, file_url, is_active")
+        .select("id, month_id, sort_order, title, description, type, image_url, audio_url, video_url, file_url, is_active")
+        .eq("month_id", monthId!)
         .eq("is_active", true)
         .order("sort_order");
       if (error) throw error;
       return (data ?? []) as MonthTask[];
     },
+    enabled: !!monthId,
   });
 }
 
@@ -96,17 +100,20 @@ export function useToggleMonthTaskCheck(monthId: string | null | undefined) {
 
 /* ── Admin hooks ── */
 
-export function useAdminMonthTasks() {
+/** All tasks (active + inactive) for a specific month */
+export function useAdminMonthTasks(monthId: string | null | undefined) {
   return useQuery({
-    queryKey: ["admin-month-tasks"],
+    queryKey: ["admin-month-tasks", monthId],
     queryFn: async (): Promise<MonthTask[]> => {
       const { data, error } = await supabase
         .from("month_tasks")
         .select("*")
+        .eq("month_id", monthId!)
         .order("sort_order");
       if (error) throw error;
       return (data ?? []) as MonthTask[];
     },
+    enabled: !!monthId,
   });
 }
 
@@ -121,6 +128,55 @@ export function useUpsertMonthTask() {
         const { error } = await supabase.from("month_tasks").insert(task as any);
         if (error) throw error;
       }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-month-tasks"] });
+      qc.invalidateQueries({ queryKey: ["month-tasks"] });
+    },
+  });
+}
+
+/** Seed default 17 tasks for a month if none exist */
+export function useSeedMonthTasks() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (monthId: string) => {
+      // Check if already has tasks
+      const { count } = await supabase
+        .from("month_tasks")
+        .select("id", { count: "exact", head: true })
+        .eq("month_id", monthId);
+      if ((count ?? 0) > 0) return;
+
+      const defaultTasks = [
+        "Leer libro del mes",
+        "Leer evangelio del mes",
+        "Orar diariamente (Padre Nuestro)",
+        "Asistir a 1 día de congregación",
+        "Ahorrar $100 dólares",
+        "Cumplir presupuesto 70-20-10",
+        "Registrar todos los gastos",
+        "Aplicar plan bola de nieve con munición extra",
+        "Entrenar pesas 2 veces por semana",
+        "Cumplir plan de alimentación del nutricionista",
+        "Consumir dulce máximo 4 veces en el mes",
+        "Resolver ejercicios prácticos del mes",
+        "Avanzar en proyecto personal",
+        "Alimentar círculos de influencia",
+        "Asistir a sesión virtual con Coach",
+        "Asistir a sesión virtual con Jhonny Romero",
+        "Completar hoja de cierre y reflexión del mes",
+      ];
+
+      const rows = defaultTasks.map((title, i) => ({
+        month_id: monthId,
+        sort_order: i + 1,
+        title,
+        is_active: true,
+      }));
+
+      const { error } = await supabase.from("month_tasks").insert(rows as any);
+      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-month-tasks"] });

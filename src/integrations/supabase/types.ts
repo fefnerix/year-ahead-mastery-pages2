@@ -366,6 +366,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean
+          month_id: string | null
           sort_order: number
           title: string
           type: string | null
@@ -379,6 +380,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          month_id?: string | null
           sort_order?: number
           title: string
           type?: string | null
@@ -392,12 +394,21 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          month_id?: string | null
           sort_order?: number
           title?: string
           type?: string | null
           video_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "month_tasks_month_id_fkey"
+            columns: ["month_id"]
+            isOneToOne: false
+            referencedRelation: "months"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       months: {
         Row: {

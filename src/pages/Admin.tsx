@@ -193,10 +193,10 @@ const Admin = () => {
                           </div>
                         </button>
                         <button
-                          onClick={() => navigate(`/admin/months/${m.id}/days`)}
+                          onClick={() => navigate(`/admin/months/${m.id}/checklist`)}
                           className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1.5 rounded-lg hover:bg-primary/20 transition-colors"
                         >
-                          <BookOpen className="w-3.5 h-3.5" /> Editar días
+                          <ListChecks className="w-3.5 h-3.5" /> Editar checklist
                         </button>
                       </div>
 

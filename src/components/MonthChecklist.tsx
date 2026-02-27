@@ -7,7 +7,7 @@ interface MonthChecklistProps {
 }
 
 const MonthChecklist = ({ monthId }: MonthChecklistProps) => {
-  const { data: tasks = [], isLoading: tasksLoading } = useMonthTasks();
+  const { data: tasks = [], isLoading: tasksLoading } = useMonthTasks(monthId);
   const { data: checks = [], isLoading: checksLoading } = useMonthTaskChecks(monthId);
   const toggleCheck = useToggleMonthTaskCheck(monthId);
 
