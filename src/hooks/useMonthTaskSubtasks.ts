@@ -55,7 +55,7 @@ export function useMonthSubtaskChecks(monthId: string | null | undefined) {
   });
 }
 
-/* ── Toggle subtask check ── */
+/* ── Toggle subtask check + sync parent ── */
 
 export function useToggleSubtaskCheck(monthId: string | null | undefined) {
   const { user } = useAuth();
@@ -90,6 +90,57 @@ export function useToggleSubtaskCheck(monthId: string | null | undefined) {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["month-subtask-checks", monthId] });
+    },
+  });
+}
+
+/**
+ * Sync parent task check based on subtask completion.
+ * Call after toggling a subtask.
+ */
+export function useSyncParentCheck(monthId: string | null | undefined) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      monthTaskId,
+      allComplete,
+    }: {
+      monthTaskId: string;
+      allComplete: boolean;
+    }) => {
+      if (!user || !monthId) return;
+
+      if (allComplete) {
+        // Upsert parent check as done
+        const { error } = await supabase
+          .from("month_task_checks")
+          .upsert(
+            {
+              user_id: user.id,
+              month_id: monthId,
+              month_task_id: monthTaskId,
+              checked: true,
+              checked_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id,month_id,month_task_id" }
+          );
+        if (error) throw error;
+      } else {
+        // Remove parent check
+        const { error } = await supabase
+          .from("month_task_checks")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("month_id", monthId)
+          .eq("month_task_id", monthTaskId);
+        if (error) throw error;
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["month-task-checks", monthId] });
+      qc.invalidateQueries({ queryKey: ["progress"] });
     },
   });
 }
