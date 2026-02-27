@@ -270,6 +270,56 @@ export type Database = {
         }
         Relationships: []
       }
+      month_task_assets: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_path: string | null
+          id: string
+          kind: string
+          mime_type: string | null
+          month_task_id: string
+          size_bytes: number | null
+          sort_order: number
+          title: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_path?: string | null
+          id?: string
+          kind: string
+          mime_type?: string | null
+          month_task_id: string
+          size_bytes?: number | null
+          sort_order?: number
+          title?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_path?: string | null
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          month_task_id?: string
+          size_bytes?: number | null
+          sort_order?: number
+          title?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "month_task_assets_month_task_id_fkey"
+            columns: ["month_task_id"]
+            isOneToOne: false
+            referencedRelation: "month_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       month_task_checks: {
         Row: {
           checked: boolean

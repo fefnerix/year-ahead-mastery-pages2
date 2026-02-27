@@ -1,30 +1,37 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import {
-  Check, Image, Headphones, Play, FileText, BookOpen, Loader2, Undo2, X,
+  Check, Image, Headphones, Play, FileText, BookOpen, Loader2, Undo2, X, LinkIcon,
 } from "lucide-react";
 import {
-  Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerClose,
+  Drawer, DrawerContent, DrawerClose,
 } from "@/components/ui/drawer";
 import YouTubeProgressPlayer from "@/components/YouTubeProgressPlayer";
 import AudioPlayer from "@/components/AudioPlayer";
-import { getYouTubeId } from "@/lib/media-utils";
+import { getYouTubeId, isYouTubeUrl } from "@/lib/media-utils";
 import type { MonthTask } from "@/hooks/useMonthTasks";
+import type { MonthTaskAsset } from "@/hooks/useMonthTaskAssets";
 
 interface MonthTaskItemProps {
   task: MonthTask;
   checked: boolean;
   checkId?: string;
   onToggle: (monthTaskId: string, currentlyChecked: boolean, checkId?: string) => void;
+  assets?: MonthTaskAsset[];
 }
 
-const MonthTaskItem = ({ task, checked, checkId, onToggle }: MonthTaskItemProps) => {
+const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [] }: MonthTaskItemProps) => {
   const [open, setOpen] = useState(false);
 
-  const hasImage = !!task.image_url;
-  const hasAudio = !!task.audio_url;
-  const hasVideo = !!task.video_url;
-  const hasFile = !!task.file_url;
-  const hasMedia = hasImage || hasAudio || hasVideo || hasFile;
+  // Legacy fields as fallback
+  const hasLegacyMedia = !!task.image_url || !!task.audio_url || !!task.video_url || !!task.file_url;
+  const hasAssets = assets.length > 0;
+  const hasMedia = hasAssets || hasLegacyMedia;
+
+  const images = assets.filter((a) => a.kind === "image");
+  const videos = assets.filter((a) => a.kind === "video");
+  const audios = assets.filter((a) => a.kind === "audio");
+  const files = assets.filter((a) => a.kind === "file");
+  const links = assets.filter((a) => a.kind === "link");
 
   return (
     <>
@@ -43,10 +50,11 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle }: MonthTaskItemProps)
             </p>
             {hasMedia && (
               <div className="flex items-center gap-1 shrink-0">
-                {hasImage && <Image className="w-3 h-3 text-muted-foreground" />}
-                {hasAudio && <Headphones className="w-3 h-3 text-muted-foreground" />}
-                {hasVideo && <Play className="w-3 h-3 text-muted-foreground" />}
-                {hasFile && <FileText className="w-3 h-3 text-muted-foreground" />}
+                {(images.length > 0 || (!hasAssets && task.image_url)) && <Image className="w-3 h-3 text-muted-foreground" />}
+                {(audios.length > 0 || (!hasAssets && task.audio_url)) && <Headphones className="w-3 h-3 text-muted-foreground" />}
+                {(videos.length > 0 || (!hasAssets && task.video_url)) && <Play className="w-3 h-3 text-muted-foreground" />}
+                {(files.length > 0 || (!hasAssets && task.file_url)) && <FileText className="w-3 h-3 text-muted-foreground" />}
+                {links.length > 0 && <LinkIcon className="w-3 h-3 text-muted-foreground" />}
               </div>
             )}
           </div>
@@ -72,12 +80,10 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle }: MonthTaskItemProps)
       {/* Detail drawer */}
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerContent className="flex flex-col max-h-[85vh]">
-          {/* ── Header (sticky) ── */}
+          {/* Header */}
           <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-md border-b border-border/40 px-5 pt-5 pb-3 flex items-start gap-3">
             <div className="flex-1 min-w-0">
-              <h3 className="text-base font-bold text-foreground leading-snug line-clamp-2">
-                {task.title}
-              </h3>
+              <h3 className="text-base font-bold text-foreground leading-snug line-clamp-2">{task.title}</h3>
               {hasMedia && (
                 <p className="text-[11px] text-muted-foreground mt-0.5">Recursos de esta tarea</p>
               )}
@@ -89,72 +95,165 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle }: MonthTaskItemProps)
             </DrawerClose>
           </div>
 
-          {/* ── Content (scrollable) ── */}
+          {/* Content */}
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 pb-28">
             {/* Description */}
             {task.description && (
               <p className="text-sm text-muted-foreground leading-relaxed">{task.description}</p>
             )}
 
-            {/* Section A — Image / Banner */}
-            {task.image_url && (
-              <div className="rounded-xl overflow-hidden border border-border/30">
-                <img src={task.image_url} alt="" className="w-full aspect-video object-cover" loading="lazy" />
-              </div>
-            )}
+            {hasAssets ? (
+              <>
+                {/* Images */}
+                {images.length > 0 && (
+                  <div className="space-y-2">
+                    {images.map((asset) => (
+                      <div key={asset.id} className="rounded-xl overflow-hidden border border-border/30">
+                        <img src={asset.url} alt={asset.title || ""} className="w-full aspect-video object-cover" loading="lazy" />
+                        {asset.title && (
+                          <p className="text-[11px] text-muted-foreground px-3 py-1.5">{asset.title}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-            {/* Section B — Video */}
-            {task.video_url && (() => {
-              const ytId = getYouTubeId(task.video_url!);
-              if (ytId) return (
-                <div className="glass-card rounded-xl overflow-hidden border border-border/30">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-4 pt-3 pb-1.5 flex items-center gap-1.5">
-                    <Play className="w-3 h-3" /> Video
-                  </p>
-                  <div className="px-3 pb-3">
-                    <div className="rounded-lg overflow-hidden max-h-[260px] aspect-video">
-                      <YouTubeProgressPlayer videoId={ytId} />
+                {/* Videos */}
+                {videos.length > 0 && (
+                  <div className="space-y-2">
+                    {videos.map((asset) => {
+                      const ytId = getYouTubeId(asset.url);
+                      if (ytId) return (
+                        <div key={asset.id} className="glass-card rounded-xl overflow-hidden border border-border/30">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-4 pt-3 pb-1.5 flex items-center gap-1.5">
+                            <Play className="w-3 h-3" /> {asset.title || "Video"}
+                          </p>
+                          <div className="px-3 pb-3">
+                            <div className="rounded-lg overflow-hidden max-h-[260px] aspect-video">
+                              <YouTubeProgressPlayer videoId={ytId} />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                      return (
+                        <a key={asset.id} href={asset.url} target="_blank" rel="noopener noreferrer"
+                          className="glass-card rounded-xl border border-border/30 flex items-center gap-3 px-4 py-3 text-sm text-primary hover:text-primary/80 transition-colors">
+                          <Play className="w-4 h-4 shrink-0" /> {asset.title || "Ver video externo"}
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Audios */}
+                {audios.length > 0 && (
+                  <div className="space-y-2">
+                    {audios.map((asset) => (
+                      <div key={asset.id} className="glass-card rounded-xl border border-border/30">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-4 pt-3 pb-1.5 flex items-center gap-1.5">
+                          <Headphones className="w-3 h-3" /> {asset.title || "Audio"}
+                        </p>
+                        <div className="px-4 pb-3">
+                          <AudioPlayer src={asset.url} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Files */}
+                {files.length > 0 && (
+                  <div className="space-y-2">
+                    {files.map((asset) => (
+                      <a key={asset.id} href={asset.url} target="_blank" rel="noopener noreferrer"
+                        className="glass-card rounded-xl border border-border/30 flex items-center gap-3 px-4 py-3.5 group transition-colors hover:border-primary/30">
+                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <FileText className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">{asset.title || "Descargar archivo"}</p>
+                          <p className="text-[11px] text-muted-foreground">PDF / Recurso</p>
+                        </div>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-primary shrink-0">Abrir</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+                {/* Links */}
+                {links.length > 0 && (
+                  <div className="space-y-2">
+                    {links.map((asset) => (
+                      <a key={asset.id} href={asset.url} target="_blank" rel="noopener noreferrer"
+                        className="glass-card rounded-xl border border-border/30 flex items-center gap-3 px-4 py-3 text-sm text-primary hover:text-primary/80 transition-colors">
+                        <LinkIcon className="w-4 h-4 shrink-0" />
+                        <span className="truncate">{asset.title || asset.url}</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Legacy fallback rendering */}
+                {task.image_url && (
+                  <div className="rounded-xl overflow-hidden border border-border/30">
+                    <img src={task.image_url} alt="" className="w-full aspect-video object-cover" loading="lazy" />
+                  </div>
+                )}
+                {task.video_url && (() => {
+                  const ytId = getYouTubeId(task.video_url!);
+                  if (ytId) return (
+                    <div className="glass-card rounded-xl overflow-hidden border border-border/30">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-4 pt-3 pb-1.5 flex items-center gap-1.5">
+                        <Play className="w-3 h-3" /> Video
+                      </p>
+                      <div className="px-3 pb-3">
+                        <div className="rounded-lg overflow-hidden max-h-[260px] aspect-video">
+                          <YouTubeProgressPlayer videoId={ytId} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                  return (
+                    <a href={task.video_url!} target="_blank" rel="noopener noreferrer"
+                      className="glass-card rounded-xl border border-border/30 flex items-center gap-3 px-4 py-3 text-sm text-primary hover:text-primary/80 transition-colors">
+                      <Play className="w-4 h-4 shrink-0" /> Ver video externo
+                    </a>
+                  );
+                })()}
+                {task.audio_url && (
+                  <div className="glass-card rounded-xl border border-border/30">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-4 pt-3 pb-1.5 flex items-center gap-1.5">
+                      <Headphones className="w-3 h-3" /> Audio
+                    </p>
+                    <div className="px-4 pb-3">
+                      <AudioPlayer src={task.audio_url} />
                     </div>
                   </div>
-                </div>
-              );
-              return (
-                <a href={task.video_url!} target="_blank" rel="noopener noreferrer"
-                  className="glass-card rounded-xl border border-border/30 flex items-center gap-3 px-4 py-3 text-sm text-primary hover:text-primary/80 transition-colors">
-                  <Play className="w-4 h-4 shrink-0" /> Ver video externo
-                </a>
-              );
-            })()}
+                )}
+                {task.file_url && (
+                  <a href={task.file_url} target="_blank" rel="noopener noreferrer"
+                    className="glass-card rounded-xl border border-border/30 flex items-center gap-3 px-4 py-3.5 group transition-colors hover:border-primary/30">
+                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">Descargar archivo</p>
+                      <p className="text-[11px] text-muted-foreground">PDF / Recurso</p>
+                    </div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-primary shrink-0">Abrir</span>
+                  </a>
+                )}
 
-            {/* Section C — Audio */}
-            {task.audio_url && (
-              <div className="glass-card rounded-xl border border-border/30">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-4 pt-3 pb-1.5 flex items-center gap-1.5">
-                  <Headphones className="w-3 h-3" /> Audio
-                </p>
-                <div className="px-4 pb-3">
-                  <AudioPlayer src={task.audio_url} />
-                </div>
-              </div>
-            )}
-
-            {/* Section D — File / PDF */}
-            {task.file_url && (
-              <a href={task.file_url} target="_blank" rel="noopener noreferrer"
-                className="glass-card rounded-xl border border-border/30 flex items-center gap-3 px-4 py-3.5 group transition-colors hover:border-primary/30">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <FileText className="w-4 h-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground">Descargar archivo</p>
-                  <p className="text-[11px] text-muted-foreground">PDF / Recurso</p>
-                </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-primary shrink-0">Abrir</span>
-              </a>
+                {!hasLegacyMedia && (
+                  <p className="text-[11px] text-muted-foreground/60 text-center py-4">Sin recursos por ahora</p>
+                )}
+              </>
             )}
           </div>
 
-          {/* ── Footer (sticky CTA) ── */}
+          {/* Footer CTA */}
           <div className="sticky bottom-0 z-10 bg-background/95 backdrop-blur-md border-t border-border/40 p-4 flex flex-col gap-2">
             {!checked ? (
               <button
