@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useAllNotes } from "@/hooks/useTaskNotes";
+import { useAllMonthTaskNotes } from "@/hooks/useAllMonthTaskNotes";
 import { useAllJournalEntries } from "@/hooks/useJournal";
 import BottomNav from "@/components/BottomNav";
 import { ArrowLeft, BookOpen, PenLine, Search, ChevronDown, CalendarDays } from "lucide-react";
@@ -10,12 +10,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-const categoryColors: Record<string, string> = {
-  cuerpo: "bg-emerald-500/15 text-emerald-400",
-  mente: "bg-blue-500/15 text-blue-400",
-  alma: "bg-purple-500/15 text-purple-400",
-  finanzas: "bg-primary/15 text-primary",
-};
 
 type ViewMode = "notas" | "diario";
 
@@ -75,7 +69,7 @@ const NotesSkeleton = () => (
 
 const Cuaderno = () => {
   const navigate = useNavigate();
-  const { data: notes = [], isLoading: notesLoading } = useAllNotes();
+  const { data: notes = [], isLoading: notesLoading } = useAllMonthTaskNotes();
   const { data: journalEntries = [], isLoading: journalLoading } = useAllJournalEntries();
   const [search, setSearch] = useState("");
   const [dayFilter, setDayFilter] = useState<DayFilter>("all");
@@ -102,14 +96,14 @@ const Cuaderno = () => {
     let result = notes;
     if (activeDayKey) {
       result = result.filter((n) => {
-        const key = n.days?.date ? toDayKey(n.days.date) : toDayKey(n.created_at);
+        const key = toDayKey(n.updated_at);
         return key === activeDayKey;
       });
     }
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(
-        (n) => n.content.toLowerCase().includes(q) || n.tasks?.title.toLowerCase().includes(q)
+        (n) => n.note.toLowerCase().includes(q) || n.task_title.toLowerCase().includes(q)
       );
     }
     return result;
@@ -135,12 +129,12 @@ const Cuaderno = () => {
   const groupedNotes = useMemo(() => {
     const dateMap = new Map<string, NoteItem[]>();
     filteredNotes.forEach((note) => {
-      const key = note.days?.date ? toDayKey(note.days.date) : toDayKey(note.created_at);
+      const key = toDayKey(note.updated_at);
       if (!dateMap.has(key)) dateMap.set(key, []);
       dateMap.get(key)!.push(note);
     });
     return Array.from(dateMap.entries())
-      .sort(([a], [b]) => b.localeCompare(a)) // newest first
+      .sort(([a], [b]) => b.localeCompare(a))
       .map(([dateKey, items]) => ({ dateKey, label: formatDateLabel(dateKey), notes: items }));
   }, [filteredNotes]);
 
@@ -289,19 +283,17 @@ const Cuaderno = () => {
                 {group.notes.map((note) => (
                   <div key={note.id} className="glass-card rounded-xl p-4 border border-primary/5">
                     <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                          categoryColors[note.tasks?.category] ?? "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {note.tasks?.category}
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/15 text-primary">
+                        Tarea {String(note.task_sort_order + 1).padStart(2, "0")}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {formatDateLabel(note.days?.date ?? toDayKey(note.created_at))}
+                        {formatDateLabel(toDayKey(note.updated_at))}
                       </span>
                     </div>
-                    <p className="text-sm font-semibold text-foreground mb-1">{note.tasks?.title}</p>
-                    <p className="text-sm text-secondary-foreground whitespace-pre-wrap leading-relaxed">{note.content}</p>
+                    <p className="text-sm font-semibold text-foreground mb-1">
+                      {String(note.task_sort_order + 1).padStart(2, "0")}. {note.task_title}
+                    </p>
+                    <p className="text-sm text-secondary-foreground whitespace-pre-wrap leading-relaxed line-clamp-3">{note.note}</p>
                   </div>
                 ))}
               </div>

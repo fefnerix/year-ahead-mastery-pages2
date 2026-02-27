@@ -58,6 +58,7 @@ export function useUpsertMonthTaskNote() {
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["month-task-notes", vars.monthId] });
+      qc.invalidateQueries({ queryKey: ["diary-month-task-notes"] });
     },
   });
 }
