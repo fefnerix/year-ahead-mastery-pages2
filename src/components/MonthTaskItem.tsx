@@ -33,6 +33,7 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
   const [open, setOpen] = useState(false);
   const [noteText, setNoteText] = useState(note);
   const noteChangedRef = useRef(false);
+  const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const upsertNote = useUpsertMonthTaskNote();
   const isMobile = useIsMobile();
 
@@ -390,20 +391,26 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
                 <PenLine className="w-3 h-3" /> Tu nota
               </label>
               <textarea
+                ref={noteTextareaRef}
                 value={noteText}
                 onChange={(e) => {
                   setNoteText(e.target.value);
                   noteChangedRef.current = true;
                 }}
+                onFocus={() => {
+                  requestAnimationFrame(() => {
+                    noteTextareaRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                  });
+                }}
                 placeholder="Escribe una nota para ti..."
                 rows={3}
-                className="w-full bg-muted/40 border border-border/30 rounded-xl px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40 resize-none"
+                className="w-full bg-muted/40 border border-border/30 rounded-xl px-3.5 py-2.5 text-[16px] md:text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40 resize-none"
               />
             </div>
           </div>
 
           {/* Footer CTA */}
-          <div className="sticky bottom-0 z-10 bg-background/95 backdrop-blur-md border-t border-border/40 p-4 flex flex-col gap-2">
+          <div className="sticky bottom-0 z-10 bg-background/95 backdrop-blur-md border-t border-border/40 p-4 pb-[calc(env(safe-area-inset-bottom)+16px)] flex flex-col gap-2">
             {hasSubtasks ? (
               /* Tasks with subtasks: show status, no manual toggle */
               allSubtasksDone ? (

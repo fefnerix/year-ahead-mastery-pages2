@@ -26,6 +26,7 @@ const DailyItemCard = ({ task, type, onToggle, dayId }: DailyItemCardProps) => {
   const [noteText, setNoteText] = useState("");
   const [noteSaved, setNoteSaved] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: notes = [] } = useTaskNotes(dayId);
   const saveNote = useSaveNote();
@@ -180,12 +181,18 @@ const DailyItemCard = ({ task, type, onToggle, dayId }: DailyItemCardProps) => {
                   )}
                 </div>
                 <textarea
+                  ref={noteTextareaRef}
                   value={noteText}
                   onChange={(e) => handleNoteChange(e.target.value)}
                   onBlur={handleNoteBlur}
+                  onFocus={() => {
+                    requestAnimationFrame(() => {
+                      noteTextareaRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    });
+                  }}
                   placeholder="Escribe tu reflexión…"
                   rows={2}
-                  className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none px-3 pb-3 min-h-[50px]"
+                  className="w-full bg-transparent text-[16px] md:text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none px-3 pb-3 min-h-[50px]"
                 />
               </div>
             )}
