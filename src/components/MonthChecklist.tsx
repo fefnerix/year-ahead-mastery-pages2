@@ -1,7 +1,8 @@
 import { useMonthTasks, useMonthTaskChecks, useToggleMonthTaskCheck } from "@/hooks/useMonthTasks";
 import { useMonthTasksAssetsBatch } from "@/hooks/useMonthTaskAssets";
+import { useMonthTaskNotes } from "@/hooks/useMonthTaskNotes";
 import MonthTaskItem from "@/components/MonthTaskItem";
-import { ListChecks, Loader2 } from "lucide-react";
+import { ListChecks } from "lucide-react";
 
 interface MonthChecklistProps {
   monthId: string | null | undefined;
@@ -14,10 +15,12 @@ const MonthChecklist = ({ monthId }: MonthChecklistProps) => {
 
   const taskIds = tasks.map((t) => t.id);
   const { data: allAssets = [] } = useMonthTasksAssetsBatch(taskIds);
+  const { data: notes = [] } = useMonthTaskNotes(monthId);
 
   const isLoading = tasksLoading || checksLoading;
 
   const checkMap = new Map(checks.map((c) => [c.month_task_id, c]));
+  const noteMap = new Map(notes.map((n) => [n.month_task_id, n.note]));
   const checkedCount = checks.length;
   const totalCount = tasks.length;
 
@@ -61,6 +64,7 @@ const MonthChecklist = ({ monthId }: MonthChecklistProps) => {
       {tasks.map((task) => {
         const check = checkMap.get(task.id);
         const taskAssets = allAssets.filter((a) => a.month_task_id === task.id);
+        const noteText = noteMap.get(task.id) || "";
         return (
           <MonthTaskItem
             key={task.id}
@@ -69,6 +73,8 @@ const MonthChecklist = ({ monthId }: MonthChecklistProps) => {
             checkId={check?.id}
             onToggle={handleToggle}
             assets={taskAssets}
+            note={noteText}
+            monthId={monthId!}
           />
         );
       })}
