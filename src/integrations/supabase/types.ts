@@ -407,6 +407,86 @@ export type Database = {
           },
         ]
       }
+      month_task_subtask_checks: {
+        Row: {
+          checked: boolean
+          checked_at: string
+          id: string
+          month_id: string
+          subtask_id: string
+          user_id: string
+        }
+        Insert: {
+          checked?: boolean
+          checked_at?: string
+          id?: string
+          month_id: string
+          subtask_id: string
+          user_id: string
+        }
+        Update: {
+          checked?: boolean
+          checked_at?: string
+          id?: string
+          month_id?: string
+          subtask_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "month_task_subtask_checks_month_id_fkey"
+            columns: ["month_id"]
+            isOneToOne: false
+            referencedRelation: "months"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "month_task_subtask_checks_subtask_id_fkey"
+            columns: ["subtask_id"]
+            isOneToOne: false
+            referencedRelation: "month_task_subtasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      month_task_subtasks: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          month_task_id: string
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          month_task_id: string
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          month_task_id?: string
+          sort_order?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "month_task_subtasks_month_task_id_fkey"
+            columns: ["month_task_id"]
+            isOneToOne: false
+            referencedRelation: "month_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       month_tasks: {
         Row: {
           audio_url: string | null
