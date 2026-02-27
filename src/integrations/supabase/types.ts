@@ -44,6 +44,157 @@ export type Database = {
         }
         Relationships: []
       }
+      access_actions: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          meta: Json | null
+          product_id: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          meta?: Json | null
+          product_id: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          meta?: Json | null
+          product_id?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_actions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "access_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      access_entitlements: {
+        Row: {
+          ends_at: string | null
+          external_customer_id: string | null
+          external_subscription_id: string | null
+          id: string
+          product_id: string
+          source: string
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ends_at?: string | null
+          external_customer_id?: string | null
+          external_subscription_id?: string | null
+          id?: string
+          product_id: string
+          source?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ends_at?: string | null
+          external_customer_id?: string | null
+          external_subscription_id?: string | null
+          id?: string
+          product_id?: string
+          source?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_entitlements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "access_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      access_events: {
+        Row: {
+          error: string | null
+          event_type: string
+          id: string
+          payload: Json
+          processed_at: string | null
+          provider: string
+          provider_event_id: string
+          received_at: string
+          status: string
+        }
+        Insert: {
+          error?: string | null
+          event_type: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          provider: string
+          provider_event_id: string
+          received_at?: string
+          status?: string
+        }
+        Update: {
+          error?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          provider?: string
+          provider_event_id?: string
+          received_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      access_products: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       announcement_reads: {
         Row: {
           announcement_id: string
@@ -671,6 +822,33 @@ export type Database = {
           name?: string
           start_date?: string
           year?: number
+        }
+        Relationships: []
+      }
+      provider_identities: {
+        Row: {
+          created_at: string
+          email: string | null
+          external_customer_id: string
+          id: string
+          provider: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          external_customer_id: string
+          id?: string
+          provider: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          external_customer_id?: string
+          id?: string
+          provider?: string
+          user_id?: string
         }
         Relationships: []
       }
