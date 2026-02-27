@@ -18,7 +18,7 @@ const formattedToday = new Intl.DateTimeFormat("es-ES", {
 }).format(new Date());
 
 const Index = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { data: progress, isLoading: progressLoading } = useProgress();
   const { data: isAdmin } = useIsAdmin();
 
@@ -61,7 +61,7 @@ const Index = () => {
       </header>
 
       <main className="flex-1 px-5 flex flex-col gap-4 pt-2 pb-2 overflow-y-auto">
-        {!hasMonthData && !progressLoading ? (
+        {!hasMonthData && !progressLoading && !authLoading ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-muted-foreground" />
