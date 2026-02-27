@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
-  Check, Image, Headphones, Play, FileText, Loader2, Undo2, X, LinkIcon, PenLine,
+  Check, Image, Headphones, Play, FileText, Loader2, Undo2, X, LinkIcon, PenLine, ListChecks,
 } from "lucide-react";
 import {
   Drawer, DrawerContent, DrawerClose,
@@ -9,6 +9,11 @@ import YouTubeProgressPlayer from "@/components/YouTubeProgressPlayer";
 import AudioPlayer from "@/components/AudioPlayer";
 import { getYouTubeId } from "@/lib/media-utils";
 import { useUpsertMonthTaskNote } from "@/hooks/useMonthTaskNotes";
+import {
+  useMonthTaskSubtasks,
+  useMonthSubtaskChecks,
+  useToggleSubtaskCheck,
+} from "@/hooks/useMonthTaskSubtasks";
 import type { MonthTask } from "@/hooks/useMonthTasks";
 import type { MonthTaskAsset } from "@/hooks/useMonthTaskAssets";
 
@@ -27,6 +32,16 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
   const [noteText, setNoteText] = useState(note);
   const noteChangedRef = useRef(false);
   const upsertNote = useUpsertMonthTaskNote();
+
+  // Subtasks - lazy loaded when drawer opens
+  const { data: subtasks = [] } = useMonthTaskSubtasks(open ? task.id : null);
+  const { data: subtaskChecks = [] } = useMonthSubtaskChecks(open ? monthId : null);
+  const toggleSubtask = useToggleSubtaskCheck(monthId);
+
+  const activeSubtasks = subtasks.filter((s) => s.is_active);
+  const subtaskCheckMap = new Map(subtaskChecks.map((c) => [c.subtask_id, c]));
+  const completedSubtasks = activeSubtasks.filter((s) => subtaskCheckMap.has(s.id));
+  const allSubtasksDone = activeSubtasks.length > 0 && completedSubtasks.length === activeSubtasks.length;
 
   // Sync external note prop when it updates
   useEffect(() => {
@@ -52,6 +67,26 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
     onToggle(task.id, false);
     setOpen(false);
   }, [saveNote, onToggle, task.id]);
+
+  // Auto-complete: when all subtasks are done, auto-mark parent if not already checked
+  const handleSubtaskToggle = useCallback((subtaskId: string, isChecked: boolean, subCheckId?: string) => {
+    toggleSubtask.mutate(
+      { subtaskId, currentlyChecked: isChecked, checkId: subCheckId },
+      {
+        onSuccess: () => {
+          // Check if this was the last one being completed
+          if (!isChecked) {
+            // We just checked one. Count how many are now checked (including this one)
+            const newCompletedCount = completedSubtasks.length + 1;
+            if (newCompletedCount >= activeSubtasks.length && !checked) {
+              // All done — auto-mark parent
+              onToggle(task.id, false);
+            }
+          }
+        },
+      }
+    );
+  }, [toggleSubtask, completedSubtasks.length, activeSubtasks.length, checked, onToggle, task.id]);
 
   // Legacy fields as fallback
   const hasLegacyMedia = !!task.image_url || !!task.audio_url || !!task.video_url || !!task.file_url;
@@ -136,8 +171,12 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
             <span className="text-xs font-bold tabular-nums text-primary/70 mt-1 shrink-0">{orderLabel}</span>
             <div className="flex-1 min-w-0">
               <h3 className="text-base font-bold text-foreground leading-snug line-clamp-2">{task.title}</h3>
-              {hasMedia && (
-                <p className="text-[11px] text-muted-foreground mt-0.5">Recursos de esta tarea</p>
+              {(hasMedia || activeSubtasks.length > 0) && (
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {activeSubtasks.length > 0
+                    ? `${completedSubtasks.length}/${activeSubtasks.length} subtareas`
+                    : "Recursos de esta tarea"}
+                </p>
               )}
             </div>
             <DrawerClose asChild>
@@ -154,6 +193,55 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
               <p className="text-sm text-muted-foreground leading-relaxed">{task.description}</p>
             )}
 
+            {/* Subtasks */}
+            {activeSubtasks.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <ListChecks className="w-3 h-3" /> Subtareas
+                  </label>
+                  <span className="text-[11px] font-bold tabular-nums text-muted-foreground">
+                    {completedSubtasks.length}/{activeSubtasks.length}
+                  </span>
+                </div>
+                {/* Progress bar */}
+                <div className="h-1.5 rounded-full bg-muted/60 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-300"
+                    style={{ width: `${activeSubtasks.length > 0 ? (completedSubtasks.length / activeSubtasks.length) * 100 : 0}%` }}
+                  />
+                </div>
+                <div className="space-y-1">
+                  {activeSubtasks.map((sub) => {
+                    const subCheck = subtaskCheckMap.get(sub.id);
+                    const isChecked = !!subCheck;
+                    return (
+                      <button
+                        key={sub.id}
+                        onClick={() => handleSubtaskToggle(sub.id, isChecked, subCheck?.id)}
+                        className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all duration-150 ${
+                          isChecked ? "bg-success/5 border border-success/20" : "bg-muted/30 border border-border/20 hover:border-primary/20"
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
+                          isChecked ? "bg-success/20 border-success/60" : "border-white/20"
+                        }`}>
+                          {isChecked && <Check className="w-3 h-3 text-success" />}
+                        </div>
+                        <span className={`text-sm flex-1 ${isChecked ? "text-foreground/60 line-through" : "text-foreground"}`}>
+                          {sub.title}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {checked && !allSubtasksDone && activeSubtasks.length > 0 && (
+                  <p className="text-[11px] text-amber-400/80 text-center">Subtareas incompletas</p>
+                )}
+              </div>
+            )}
+
+            {/* Assets */}
             {hasAssets ? (
               <>
                 {images.length > 0 && (
@@ -281,7 +369,7 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
                     <span className="text-[11px] font-bold uppercase tracking-wider text-primary shrink-0">Abrir</span>
                   </a>
                 )}
-                {!hasLegacyMedia && (
+                {!hasLegacyMedia && activeSubtasks.length === 0 && (
                   <p className="text-[11px] text-muted-foreground/60 text-center py-4">Sin recursos por ahora</p>
                 )}
               </>

@@ -5,6 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdminMonthTasks, useUpsertMonthTask, useSeedMonthTasks } from "@/hooks/useMonthTasks";
 import type { MonthTask } from "@/hooks/useMonthTasks";
 import {
+  useMonthTaskSubtasks,
+  useCreateSubtask,
+  useUpdateSubtask,
+  useDeleteSubtask,
+  type MonthTaskSubtask,
+} from "@/hooks/useMonthTaskSubtasks";
+import {
   useMonthTaskAssets,
   useUploadMonthTaskAsset,
   useDeleteMonthTaskAsset,
@@ -203,6 +210,9 @@ const MonthTaskEditor = ({ monthId, task, onSaved, onCancel, nextOrder }: Editor
 
       {/* Assets section - only for existing tasks */}
       {task?.id && <AssetManager monthTaskId={task.id} />}
+
+      {/* Subtasks section - only for existing tasks */}
+      {task?.id && <SubtaskManager monthTaskId={task.id} />}
 
       <div className="flex gap-2 pt-1">
         <button
@@ -427,6 +437,108 @@ const AssetManager = ({ monthTaskId }: { monthTaskId: string }) => {
           ))}
         </div>
       )}
+    </div>
+  );
+};
+
+/* ── Subtask Manager ── */
+
+const SubtaskManager = ({ monthTaskId }: { monthTaskId: string }) => {
+  const { data: subtasks = [], isLoading } = useMonthTaskSubtasks(monthTaskId);
+  const createSub = useCreateSubtask();
+  const updateSub = useUpdateSubtask();
+  const deleteSub = useDeleteSubtask();
+
+  const [newTitle, setNewTitle] = useState("");
+
+  const handleAdd = async () => {
+    const t = newTitle.trim();
+    if (!t) return;
+    const nextOrder = subtasks.length > 0 ? Math.max(...subtasks.map((s) => s.sort_order)) + 1 : 1;
+    try {
+      await createSub.mutateAsync({ month_task_id: monthTaskId, title: t, sort_order: nextOrder });
+      setNewTitle("");
+      toast.success("Subtarea creada");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleToggleActive = async (sub: MonthTaskSubtask) => {
+    await updateSub.mutateAsync({ id: sub.id, monthTaskId, is_active: !sub.is_active });
+  };
+
+  const handleMove = async (sub: MonthTaskSubtask, direction: "up" | "down") => {
+    const idx = subtasks.findIndex((s) => s.id === sub.id);
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= subtasks.length) return;
+    const other = subtasks[swapIdx];
+    await Promise.all([
+      updateSub.mutateAsync({ id: sub.id, monthTaskId, sort_order: other.sort_order }),
+      updateSub.mutateAsync({ id: other.id, monthTaskId, sort_order: sub.sort_order }),
+    ]);
+  };
+
+  const handleDelete = async (sub: MonthTaskSubtask) => {
+    if (!window.confirm("Eliminar esta subtarea?")) return;
+    await deleteSub.mutateAsync({ id: sub.id, monthTaskId });
+    toast.success("Subtarea eliminada");
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="text-[10px] text-muted-foreground font-semibold uppercase">
+        Subtareas ({subtasks.filter((s) => s.is_active).length})
+      </label>
+
+      {isLoading ? (
+        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground mx-auto" />
+      ) : subtasks.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground/60 text-center py-2">Sin subtareas</p>
+      ) : (
+        <div className="space-y-1">
+          {subtasks.map((sub, idx) => (
+            <div key={sub.id} className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-2">
+              <span className="text-[10px] font-mono text-muted-foreground w-4 shrink-0 text-right">{sub.sort_order}</span>
+              <span className={`text-xs flex-1 min-w-0 truncate ${!sub.is_active ? "text-muted-foreground line-through" : "text-foreground font-medium"}`}>
+                {sub.title}
+              </span>
+              <div className="flex items-center gap-0.5 shrink-0">
+                <button onClick={() => handleToggleActive(sub)} className={`p-1 ${sub.is_active ? "text-success" : "text-muted-foreground"}`}>
+                  {sub.is_active ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                </button>
+                <button onClick={() => handleMove(sub, "up")} disabled={idx === 0} className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-20">
+                  <ArrowUp className="w-3 h-3" />
+                </button>
+                <button onClick={() => handleMove(sub, "down")} disabled={idx === subtasks.length - 1} className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-20">
+                  <ArrowDown className="w-3 h-3" />
+                </button>
+                <button onClick={() => handleDelete(sub)} className="p-1 text-destructive hover:text-destructive/80">
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add new subtask */}
+      <div className="flex gap-1.5">
+        <input
+          value={newTitle}
+          onChange={(e) => setNewTitle(e.target.value)}
+          placeholder="Nueva subtarea..."
+          className={`${inputClass} flex-1`}
+          onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+        />
+        <button
+          onClick={handleAdd}
+          disabled={!newTitle.trim() || createSub.isPending}
+          className="px-3 py-2 rounded-lg gold-gradient text-primary-foreground text-xs font-bold disabled:opacity-40"
+        >
+          {createSub.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+        </button>
+      </div>
     </div>
   );
 };
