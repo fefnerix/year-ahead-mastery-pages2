@@ -12,7 +12,6 @@ import {
 } from "@/hooks/useAdmin";
 import { useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement } from "@/hooks/useAnnouncements";
 import { Loader2, Plus, ChevronRight, Trash2, Megaphone, BookOpen, Save, AlertTriangle, X, Check, ListChecks } from "lucide-react";
-import AdminMonthTasks from "@/components/AdminMonthTasks";
 import { toast } from "sonner";
 import Logo from "@/components/Logo";
 import { isYouTubeUrl, getMediaWarning } from "@/lib/media-utils";
@@ -21,7 +20,7 @@ const Admin = () => {
   const navigate = useNavigate();
   const [selectedProgram, setSelectedProgram] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"content" | "month-tasks" | "announcements">("content");
+  const [activeTab, setActiveTab] = useState<"content" | "announcements">("content");
 
   // Forms
   const [showProgramForm, setShowProgramForm] = useState(false);
@@ -97,12 +96,6 @@ const Admin = () => {
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "content" ? "gold-gradient text-primary-foreground" : "bg-muted text-muted-foreground"}`}
           >
             Contenido
-          </button>
-          <button
-            onClick={() => setActiveTab("month-tasks")}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "month-tasks" ? "gold-gradient text-primary-foreground" : "bg-muted text-muted-foreground"}`}
-          >
-            <span className="flex items-center gap-1"><ListChecks className="w-3.5 h-3.5" /> Tareas</span>
           </button>
           <button
             onClick={() => setActiveTab("announcements")}
@@ -211,9 +204,8 @@ const Admin = () => {
           </>
         )}
 
-        {activeTab === "month-tasks" && (
-          <AdminMonthTasks />
-        )}
+
+
 
         {activeTab === "announcements" && (
           <section>
