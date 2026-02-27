@@ -25,7 +25,7 @@ const Index = () => {
   const monthId = progress?.month_id ?? null;
 
   // Month tasks progress for donut
-  const { data: monthTasks = [] } = useMonthTasks();
+  const { data: monthTasks = [] } = useMonthTasks(monthId);
   const { data: monthChecks = [] } = useMonthTaskChecks(monthId);
 
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "";
