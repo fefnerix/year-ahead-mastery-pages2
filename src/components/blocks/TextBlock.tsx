@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 interface TextBlockProps {
   config: Record<string, any>;
@@ -21,12 +22,10 @@ const TextBlock = ({ config, title }: TextBlockProps) => {
         <p className="text-sm font-semibold text-foreground mb-2">{title}</p>
       )}
       <div
-        className={`text-sm text-secondary-foreground whitespace-pre-wrap leading-relaxed ${
-          !expanded && isLong ? `line-clamp-[${collapsed_preview_lines}] overflow-hidden` : ""
-        }`}
+        className={`${!expanded && isLong ? "overflow-hidden" : ""}`}
         style={!expanded && isLong ? { maxHeight: `${collapsed_preview_lines * 1.5}em`, overflow: "hidden" } : undefined}
       >
-        {content_richtext}
+        <MarkdownRenderer content={content_richtext} />
       </div>
       {isLong && (
         <button
