@@ -98,8 +98,8 @@ const Ranking = () => {
         {/* Mi Progreso */}
         <div className="glass-card rounded-2xl p-5 space-y-3">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Mi Progreso</h2>
-          <ProgressBar value={summary?.month_points ?? 0} max={60} label="Puntos mes" />
-          <ProgressBar value={summary?.total_points ?? 0} max={730} label="Puntos total" />
+          <ProgressBar value={summary?.month_points ?? 0} max={summary?.month_total ?? 0} label="Puntos mes" />
+          <ProgressBar value={summary?.total_points ?? 0} max={summary?.total_total ?? 0} label="Puntos total" />
 
           <div className="flex gap-3 pt-1">
             <div className="glass-card rounded-xl p-3 text-center flex-1">
@@ -120,7 +120,7 @@ const Ranking = () => {
               <div className="flex items-center justify-center gap-1.5 mb-0.5">
                 <Award className="w-4 h-4 text-primary" />
                 <span className="text-lg font-bold text-foreground tabular-nums">
-                  {Math.round(((summary?.total_points ?? 0) / 730) * 10000) / 100}%
+                  {summary?.total_pct ?? 0}%
                 </span>
               </div>
               <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Ciclo</p>
