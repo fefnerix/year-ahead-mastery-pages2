@@ -421,6 +421,56 @@ export type Database = {
         }
         Relationships: []
       }
+      month_resources: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_path: string | null
+          id: string
+          kind: string
+          mime_type: string | null
+          month_id: string
+          size_bytes: number | null
+          sort_order: number
+          title: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_path?: string | null
+          id?: string
+          kind: string
+          mime_type?: string | null
+          month_id: string
+          size_bytes?: number | null
+          sort_order?: number
+          title?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_path?: string | null
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          month_id?: string
+          size_bytes?: number | null
+          sort_order?: number
+          title?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "month_resources_month_id_fkey"
+            columns: ["month_id"]
+            isOneToOne: false
+            referencedRelation: "months"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       month_task_assets: {
         Row: {
           created_at: string
