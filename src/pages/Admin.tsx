@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import Logo from "@/components/Logo";
 import { isYouTubeUrl, getMediaWarning } from "@/lib/media-utils";
 import MarkdownEditor from "@/components/MarkdownEditor";
+import MonthResourceManager from "@/components/MonthResourceManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -486,6 +487,9 @@ const MonthMacroEditor = ({ month }: { month: MonthData }) => {
         placeholder="Explicación del macro del mes… (usa Markdown para formato)"
         rows={5}
       />
+
+      {/* 6. Month Resources */}
+      <MonthResourceManager monthId={month.id} />
 
       <button
         onClick={() => saveMacro.mutate()}
