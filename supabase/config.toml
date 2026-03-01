@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.admin-set-access]
 verify_jwt = false
+
+[functions.admin-student-detail]
+verify_jwt = false

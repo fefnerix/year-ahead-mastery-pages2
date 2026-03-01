@@ -115,7 +115,7 @@ const Admin = () => {
             onClick={() => setActiveTab("accesos")}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "accesos" ? "gold-gradient text-primary-foreground" : "bg-muted text-muted-foreground"}`}
           >
-            <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> Accesos</span>
+            <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> Alumnos</span>
           </button>
         </div>
       </header>
