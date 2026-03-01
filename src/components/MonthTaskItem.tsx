@@ -380,9 +380,6 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
                     <span className="text-[11px] font-bold uppercase tracking-wider text-primary shrink-0">Abrir</span>
                   </a>
                 )}
-                {!hasLegacyMedia && activeSubtasks.length === 0 && (
-                  <p className="text-[11px] text-muted-foreground/60 text-center py-4">Sin recursos por ahora</p>
-                )}
               </>
             )}
 
