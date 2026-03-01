@@ -12,6 +12,7 @@ import {
 import YouTubeProgressPlayer from "@/components/YouTubeProgressPlayer";
 import AudioPlayer from "@/components/AudioPlayer";
 import { getYouTubeId } from "@/lib/media-utils";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { useTaskNotes, useSaveNote } from "@/hooks/useTaskNotes";
 
 interface DailyItemCardProps {
@@ -162,7 +163,7 @@ const DailyItemCard = ({ task, type, onToggle, dayId }: DailyItemCardProps) => {
             {task.media_audio_url && <AudioPlayer src={task.media_audio_url} />}
 
             {task.description && (
-              <p className="text-sm text-muted-foreground leading-relaxed">{task.description}</p>
+              <MarkdownRenderer content={task.description} />
             )}
 
             {/* Note section — only visible when completed */}

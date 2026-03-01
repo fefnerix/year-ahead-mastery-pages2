@@ -1,5 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import type { Components } from "react-markdown";
 
 interface MarkdownRendererProps {
@@ -12,13 +13,13 @@ const components: Components = {
     <p className="mb-3 leading-relaxed text-foreground/90">{children}</p>
   ),
   h1: ({ children }) => (
-    <h1 className="text-xl font-bold text-foreground mt-5 mb-2">{children}</h1>
+    <h1 className="text-lg font-bold text-foreground mt-4 mb-2">{children}</h1>
   ),
   h2: ({ children }) => (
-    <h2 className="text-lg font-semibold text-foreground mt-4 mb-2">{children}</h2>
+    <h2 className="text-base font-semibold text-foreground mt-3 mb-1.5">{children}</h2>
   ),
   h3: ({ children }) => (
-    <h3 className="text-base font-semibold text-foreground mt-3 mb-1.5">{children}</h3>
+    <h3 className="text-sm font-semibold text-foreground mt-3 mb-1.5">{children}</h3>
   ),
   ul: ({ children }) => (
     <ul className="ml-5 mb-3 list-disc space-y-1 text-foreground/90">{children}</ul>
@@ -62,8 +63,8 @@ const MarkdownRenderer = ({ content, className = "" }: MarkdownRendererProps) =>
   if (!content) return null;
 
   return (
-    <div className={`text-sm ${className}`}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+    <div className={`text-sm break-words ${className}`}>
+      <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={components}>
         {content}
       </ReactMarkdown>
     </div>
