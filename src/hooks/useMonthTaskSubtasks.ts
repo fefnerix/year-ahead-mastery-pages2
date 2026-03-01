@@ -141,6 +141,8 @@ export function useSyncParentCheck(monthId: string | null | undefined) {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["month-task-checks", monthId] });
       qc.invalidateQueries({ queryKey: ["progress"] });
+      qc.invalidateQueries({ queryKey: ["ranking-summary"] });
+      qc.invalidateQueries({ queryKey: ["leaderboard"] });
     },
   });
 }
