@@ -2,3 +2,9 @@ project_id = "dlrywovryoguqcllbhqv"
 
 [functions.hotmart-webhook]
 verify_jwt = false
+
+[functions.admin-list-users]
+verify_jwt = false
+
+[functions.admin-set-access]
+verify_jwt = false
