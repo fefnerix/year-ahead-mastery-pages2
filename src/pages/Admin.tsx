@@ -8,7 +8,7 @@ import AudioRecorder from "@/components/AudioRecorder";
 import { deleteStorageFile } from "@/lib/storage-utils";
 import {
   usePrograms, useMonths,
-  useCreateProgram, useCreateMonth,
+  useCreateProgram, useCreateMonth, useDeleteMonth,
 } from "@/hooks/useAdmin";
 import { useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement } from "@/hooks/useAnnouncements";
 import { Loader2, Plus, ChevronRight, Trash2, Megaphone, BookOpen, Save, AlertTriangle, X, Check, ListChecks, ShieldCheck } from "lucide-react";
@@ -34,8 +34,13 @@ const Admin = () => {
 
   const createProgram = useCreateProgram();
   const createMonth = useCreateMonth();
+  const deleteMonth = useDeleteMonth();
   const createAnnouncement = useCreateAnnouncement();
   const deleteAnnouncement = useDeleteAnnouncement();
+
+  // Delete month confirmation
+  const [monthToDelete, setMonthToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   // Program form state
   const [pName, setPName] = useState("");
@@ -192,12 +197,20 @@ const Admin = () => {
                             {m.theme && <span className="text-xs text-muted-foreground ml-2">{m.theme}</span>}
                           </div>
                         </button>
-                        <button
-                          onClick={() => navigate(`/admin/months/${m.id}/checklist`)}
-                          className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1.5 rounded-lg hover:bg-primary/20 transition-colors"
-                        >
-                          <ListChecks className="w-3.5 h-3.5" /> Editar checklist
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => navigate(`/admin/months/${m.id}/checklist`)}
+                            className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1.5 rounded-lg hover:bg-primary/20 transition-colors"
+                          >
+                            <ListChecks className="w-3.5 h-3.5" /> Checklist
+                          </button>
+                          <button
+                            onClick={() => { setMonthToDelete({ id: m.id, name: `${m.name} ${(m as any).year ?? ''}` }); setDeleteConfirmText(""); }}
+                            className="p-1.5 text-muted-foreground hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
 
                       {selectedMonth === m.id && (
@@ -276,6 +289,56 @@ const Admin = () => {
 
         {activeTab === "accesos" && <AdminAccesos />}
       </main>
+
+      {/* Delete Month Modal */}
+      {monthToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-5">
+          <div className="glass-card rounded-2xl p-6 w-full max-w-sm space-y-4">
+            <div className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              <h3 className="text-lg font-display font-bold">Eliminar mes</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Esto borrará <strong className="text-foreground">{monthToDelete.name}</strong> y todas sus tareas, subtareas, archivos y registros de usuarios. <strong className="text-destructive">Esta acción no se puede deshacer.</strong>
+            </p>
+            <div>
+              <label className="text-xs text-muted-foreground font-semibold uppercase">Escribe ELIMINAR para confirmar</label>
+              <input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="ELIMINAR"
+                className={inputClass}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setMonthToDelete(null)}
+                className="flex-1 py-2 rounded-lg bg-muted text-sm font-semibold text-muted-foreground hover:bg-muted/80 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await deleteMonth.mutateAsync(monthToDelete.id);
+                    toast.success("Mes eliminado correctamente");
+                    setMonthToDelete(null);
+                    setSelectedMonth(null);
+                  } catch (e: any) {
+                    toast.error(e.message);
+                  }
+                }}
+                disabled={deleteConfirmText !== "ELIMINAR" || deleteMonth.isPending}
+                className="flex-1 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm font-bold disabled:opacity-40 flex items-center justify-center gap-2 transition-colors"
+              >
+                {deleteMonth.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>

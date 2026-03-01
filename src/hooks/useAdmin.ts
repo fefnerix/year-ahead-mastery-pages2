@@ -69,6 +69,38 @@ export function useCreateMonth() {
   });
 }
 
+export function useDeleteMonth() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (monthId: string) => {
+      // Optional: clean up storage files from month_task_assets
+      const { data: assets } = await supabase
+        .from("month_task_assets")
+        .select("file_path, url")
+        .in(
+          "month_task_id",
+          (await supabase.from("month_tasks").select("id").eq("month_id", monthId)).data?.map((t) => t.id) ?? []
+        );
+
+      // Try to delete storage files (best-effort)
+      if (assets && assets.length > 0) {
+        const paths = assets
+          .map((a) => a.file_path)
+          .filter(Boolean) as string[];
+        if (paths.length > 0) {
+          await supabase.storage.from("task_media").remove(paths);
+        }
+      }
+
+      const { error } = await supabase.from("months").delete().eq("id", monthId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-months"] });
+    },
+  });
+}
+
 export async function uploadFile(bucket: string, file: File, path?: string) {
   const filePath = path || `${Date.now()}-${file.name}`;
   const { data, error } = await supabase.storage.from(bucket).upload(filePath, file, { upsert: true });
