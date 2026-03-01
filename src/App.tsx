@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import EntitlementGate from "@/components/EntitlementGate";
@@ -14,8 +14,12 @@ import DayDetail from "./pages/DayDetail";
 import Cuaderno from "./pages/Cuaderno";
 import Deposito from "./pages/Deposito";
 import Admin from "./pages/Admin";
-import AdminMonthDays from "./pages/AdminMonthDays";
 import AdminMonthChecklist from "./pages/AdminMonthChecklist";
+
+const AdminMonthDaysRedirect = () => {
+  const { monthId } = useParams();
+  return <Navigate to={`/admin/months/${monthId}/checklist`} replace />;
+};
 import MonthDetail from "./pages/MonthDetail";
 import Auth from "./pages/Auth";
 import CalendarioAno from "./pages/CalendarioAno";
@@ -49,7 +53,7 @@ const App = () => (
             <Route path="/support" element={<ProtectedRoute><EntitlementGate><SupportPage /></EntitlementGate></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
             <Route path="/admin/months/:monthId/checklist" element={<AdminRoute><AdminMonthChecklist /></AdminRoute>} />
-            <Route path="/admin/months/:monthId/days" element={<AdminRoute><AdminMonthDays /></AdminRoute>} />
+            <Route path="/admin/months/:monthId/days" element={<AdminRoute><AdminMonthDaysRedirect /></AdminRoute>} />
 
             {/* Legacy redirects */}
             <Route path="/admin/retos/:weekId/builder" element={<Navigate to="/admin" replace />} />
