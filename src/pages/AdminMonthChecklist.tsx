@@ -21,6 +21,7 @@ import {
 } from "@/hooks/useMonthTaskAssets";
 import FileUpload from "@/components/FileUpload";
 import AudioRecorder from "@/components/AudioRecorder";
+import MarkdownEditor from "@/components/MarkdownEditor";
 import { isYouTubeUrl } from "@/lib/media-utils";
 import BottomNav from "@/components/BottomNav";
 import {
@@ -189,8 +190,13 @@ const MonthTaskEditor = ({ monthId, task, onSaved, onCancel, nextOrder }: Editor
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titulo de la tarea" className={inputClass} />
       </div>
       <div>
-        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Descripcion</label>
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descripcion (opcional)" rows={2} className={inputClass} />
+        <MarkdownEditor
+          label="Descripcion"
+          value={description}
+          onChange={setDescription}
+          placeholder="Descripcion (opcional) — usa Markdown para formato"
+          rows={3}
+        />
       </div>
       <div className="flex gap-3">
         <div className="flex-1">

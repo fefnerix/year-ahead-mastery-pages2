@@ -5,6 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import AudioPlayer from "@/components/AudioPlayer";
 import YouTubeProgressPlayer from "@/components/YouTubeProgressPlayer";
 import ExpandableTextCard from "@/components/ExpandableTextCard";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { getYouTubeId } from "@/lib/media-utils";
 
@@ -87,8 +88,14 @@ const MonthDetail = () => {
           <AudioPlayer src={month.audio_url} title={month.theme || month.name} />
         )}
 
-        {/* 4. Text — ExpandableTextCard */}
-        <ExpandableTextCard text={month.macro_text} />
+        {/* 4. Text — Markdown or plain */}
+        {month.macro_text ? (
+          <div className="premium-card rounded-[20px] p-5">
+            <MarkdownRenderer content={month.macro_text} />
+          </div>
+        ) : (
+          <ExpandableTextCard text={null} />
+        )}
 
         {/* CTA */}
         <button

@@ -16,6 +16,7 @@ import AdminAccesos from "@/components/AdminAccesos";
 import { toast } from "sonner";
 import Logo from "@/components/Logo";
 import { isYouTubeUrl, getMediaWarning } from "@/lib/media-utils";
+import MarkdownEditor from "@/components/MarkdownEditor";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -478,10 +479,13 @@ const MonthMacroEditor = ({ month }: { month: MonthData }) => {
       </div>
 
       {/* 5. Macro Text */}
-      <div>
-        <label className="text-[10px] text-muted-foreground font-semibold uppercase">Texto del Macro</label>
-        <textarea value={macroText} onChange={(e) => setMacroText(e.target.value)} placeholder="Explicación del macro del mes..." rows={3} className={inputClass} />
-      </div>
+      <MarkdownEditor
+        label="Texto del Macro"
+        value={macroText}
+        onChange={setMacroText}
+        placeholder="Explicación del macro del mes… (usa Markdown para formato)"
+        rows={5}
+      />
 
       <button
         onClick={() => saveMacro.mutate()}

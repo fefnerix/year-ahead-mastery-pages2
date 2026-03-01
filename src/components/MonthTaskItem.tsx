@@ -9,6 +9,7 @@ import {
 import YouTubeProgressPlayer from "@/components/YouTubeProgressPlayer";
 import AudioPlayer from "@/components/AudioPlayer";
 import { getYouTubeId } from "@/lib/media-utils";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { useUpsertMonthTaskNote } from "@/hooks/useMonthTaskNotes";
 import {
   useMonthTaskSubtasks,
@@ -203,7 +204,7 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 pb-28">
             {/* Description */}
             {task.description && (
-              <p className="text-sm text-muted-foreground leading-relaxed">{task.description}</p>
+              <MarkdownRenderer content={task.description} />
             )}
 
             {/* Subtasks */}
