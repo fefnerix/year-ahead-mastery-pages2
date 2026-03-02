@@ -12,6 +12,7 @@ import { useIsAdmin } from "@/hooks/useAdmin";
 import { getTodayBRT } from "@/lib/dates";
 import { useProfileStatus } from "@/hooks/useProfileStatus";
 import { Navigate } from "react-router-dom";
+import { useRankingSummary } from "@/hooks/useLeaderboard";
 
 const formattedToday = new Intl.DateTimeFormat("es-ES", {
   weekday: "short",
@@ -42,10 +43,12 @@ const Index = () => {
   const initials = displayName.slice(0, 2).toUpperCase();
   const hasMonthData = monthId != null;
 
+  const { data: summary } = useRankingSummary();
+
   const totalActive = monthTasks.length;
   const checkedCount = monthChecks.length;
   const mesPct = totalActive > 0 ? Math.min(100, Math.round((checkedCount / totalActive) * 100)) : 0;
-  const totalPct = Math.min(100, Math.max(0, Math.round(progress?.year_pct ?? 0)));
+  const totalPct = Math.min(100, Math.max(0, summary?.total_pct ?? 0));
 
   const monthTheme = progress?.month_theme || "";
   const now = new Date();
