@@ -18,7 +18,14 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["brand/logo-365.png", "robots.txt"],
+      includeAssets: [
+        "brand/logo-365.png",
+        "brand/favicon-32.png",
+        "brand/favicon-16.png",
+        "brand/apple-touch-icon.png",
+        "brand/og-image.png",
+        "robots.txt",
+      ],
       manifest: {
         name: "PROGRESS",
         short_name: "PROGRESS",
@@ -29,7 +36,13 @@ export default defineConfig(({ mode }) => ({
         start_url: "/",
         icons: [
           {
-            src: "/brand/logo-365.png",
+            src: "/brand/icon-192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any maskable",
+          },
+          {
+            src: "/brand/icon-512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "any maskable",

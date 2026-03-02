@@ -1,21 +1,29 @@
 import logo365 from "@/assets/logo-365.png";
 
 interface BrandLogoProps {
-  size?: number;
-  variant?: "icon" | "full";
+  variant?: "header" | "login" | "card" | "full";
   className?: string;
 }
 
-const BrandLogo = ({ size = 32, variant = "icon", className = "" }: BrandLogoProps) => {
+const sizeMap = {
+  header: 22,
+  card: 18,
+  login: 48,
+  full: 48,
+} as const;
+
+const BrandLogo = ({ variant = "header", className = "" }: BrandLogoProps) => {
+  const size = sizeMap[variant];
+
   if (variant === "full") {
     return (
-      <div className={`flex flex-col items-center gap-1 ${className}`}>
+      <div className={`flex flex-col items-center gap-2 ${className}`}>
         <img
           src={logo365}
           alt="PROGRESS 365"
           width={size}
           height={size}
-          className="object-contain"
+          className="block shrink-0 object-contain"
           style={{ width: size, height: size }}
         />
         <div className="text-center">
@@ -35,10 +43,12 @@ const BrandLogo = ({ size = 32, variant = "icon", className = "" }: BrandLogoPro
         alt="PROGRESS 365"
         width={size}
         height={size}
-        className="object-contain"
+        className="block shrink-0 object-contain"
         style={{ width: size, height: size }}
       />
-      <span className="text-sm font-bold text-foreground tracking-wider">PROGRESS</span>
+      {variant === "header" && (
+        <span className="text-sm font-bold text-foreground tracking-wider">PROGRESS</span>
+      )}
     </div>
   );
 };

@@ -8,8 +8,7 @@ interface LogoProps {
 const Logo = ({ variant = "compact", className = "" }: LogoProps) => {
   return (
     <BrandLogo
-      variant={variant === "full" ? "full" : "icon"}
-      size={variant === "full" ? 192 : 56}
+      variant={variant === "full" ? "full" : "header"}
       className={className}
     />
   );
