@@ -25,7 +25,7 @@ const AppLogo = ({ variant = "header", className = "", showText = false }: AppLo
           src={logo365}
           alt="PROGRESS 365"
           className="block shrink-0 object-contain"
-          style={{ height: variant === "login" ? 80 : h, width: "auto" }}
+          style={{ height: h, width: "auto" }}
         />
         {variant === "login" && (
           <div className="text-center">
