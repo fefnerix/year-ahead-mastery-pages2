@@ -1,12 +1,10 @@
 import { useState, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePrograms } from "@/hooks/useAdmin";
 import {
   useManualAccess,
   useImportCsv,
-  useProductMappingUpsert,
-  useDeleteProductMapping,
 } from "@/hooks/useAdminIntegrations";
 import {
   Loader2,
@@ -68,26 +66,108 @@ const AdminIntegraciones = () => {
 /* WEBHOOKS SECTION                                                  */
 /* ================================================================ */
 
-const WebhookSection = () => {
-  const { data: programs = [] } = usePrograms();
-  const { data: mappings = [], isLoading } = useQuery({
+const EXTERNAL_TYPES: Record<string, { label: string; value: string }[]> = {
+  hotmart: [
+    { label: "Product ID", value: "product_id" },
+    { label: "Offer Code", value: "offer_code" },
+  ],
+  stripe: [
+    { label: "Price ID (recomendado)", value: "price_id" },
+    { label: "Payment Link", value: "payment_link" },
+  ],
+};
+
+function useProductMappings() {
+  return useQuery({
     queryKey: ["product-mappings"],
     queryFn: async () => {
-      const { data } = await supabase.from("product_mappings").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("product_mappings")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
       return data || [];
     },
   });
+}
 
-  const upsertMapping = useProductMappingUpsert();
-  const deleteMapping = useDeleteProductMapping();
+function useUpsertMappingsBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      rows: {
+        provider: string;
+        external_product_id: string;
+        external_type: string;
+        program_id: string;
+        is_active: boolean;
+        metadata: Record<string, any>;
+      }[]
+    ) => {
+      let saved = 0;
+      let dupes = 0;
+      for (const row of rows) {
+        const { error } = await supabase.from("product_mappings").upsert(
+          {
+            provider: row.provider,
+            external_product_id: row.external_product_id,
+            external_type: row.external_type,
+            program_id: row.program_id,
+            is_active: row.is_active,
+            metadata: row.metadata,
+          },
+          { onConflict: "provider,external_product_id" }
+        );
+        if (error) {
+          if (error.code === "23505") { dupes++; continue; }
+          throw error;
+        }
+        saved++;
+      }
+      return { saved, dupes };
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["product-mappings"] }),
+  });
+}
+
+function useDeleteMapping() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("product_mappings").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["product-mappings"] }),
+  });
+}
+
+function useToggleMappingActive() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await supabase.from("product_mappings").update({ is_active }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["product-mappings"] }),
+  });
+}
+
+const WebhookSection = () => {
+  const { data: programs = [] } = usePrograms();
+  const { data: mappings = [], isLoading } = useProductMappings();
+  const upsertBatch = useUpsertMappingsBatch();
+  const deleteMapping = useDeleteMapping();
+  const toggleActive = useToggleMappingActive();
 
   const [showForm, setShowForm] = useState(false);
   const [formProvider, setFormProvider] = useState("hotmart");
-  const [formExternalId, setFormExternalId] = useState("");
+  const [formExternalType, setFormExternalType] = useState("product_id");
+  const [formIds, setFormIds] = useState("");
   const [formProgramId, setFormProgramId] = useState("");
+  const [formNote, setFormNote] = useState("");
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dlrywovryoguqcllbhqv";
   const hotmartUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hotmart-webhook`;
   const stripeUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/webhook-stripe`;
 
@@ -98,18 +178,40 @@ const WebhookSection = () => {
     setTimeout(() => setCopiedUrl(null), 2000);
   };
 
-  const handleAddMapping = async () => {
-    if (!formExternalId || !formProgramId) return;
+  const handleProviderChange = (p: string) => {
+    setFormProvider(p);
+    setFormExternalType(EXTERNAL_TYPES[p][0].value);
+  };
+
+  const handleSaveBatch = async () => {
+    if (!formProgramId) { toast.error("Selecciona un programa"); return; }
+    const ids = formIds.split(/\n/).map((s) => s.trim()).filter(Boolean);
+    if (ids.length === 0) { toast.error("Ingresa al menos un ID"); return; }
+
     try {
-      await upsertMapping.mutateAsync({
+      const rows = ids.map((id) => ({
         provider: formProvider,
-        external_product_id: formExternalId,
+        external_product_id: id,
+        external_type: formExternalType,
         program_id: formProgramId,
-      });
-      toast.success("Mapeo guardado");
+        is_active: true,
+        metadata: formNote ? { note: formNote } : {},
+      }));
+      const res = await upsertBatch.mutateAsync(rows);
+      toast.success(`${res.saved} mapeos guardados${res.dupes > 0 ? ` / ${res.dupes} duplicados` : ""}`);
       setShowForm(false);
-      setFormExternalId("");
-      setFormProgramId("");
+      setFormIds("");
+      setFormNote("");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteMapping.mutateAsync(id);
+      toast.success("Mapeo eliminado");
+      setConfirmDeleteId(null);
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -130,8 +232,7 @@ const WebhookSection = () => {
           </div>
         </div>
         <p className="text-[10px] text-muted-foreground">
-          Configura el header <code className="bg-muted px-1 rounded">x-hotmart-hottok</code> con tu secret en Hotmart.
-          El secret está configurado en las variables del proyecto (HOTMART_WEBHOOK_SECRET).
+          Header <code className="bg-muted px-1 rounded">x-hotmart-hottok</code> · Secret: HOTMART_WEBHOOK_SECRET
         </p>
       </div>
 
@@ -148,8 +249,7 @@ const WebhookSection = () => {
           </div>
         </div>
         <p className="text-[10px] text-muted-foreground">
-          Usa el <code className="bg-muted px-1 rounded">Price ID</code> de Stripe como external_product_id en los mapeos.
-          Configura la firma del webhook (STRIPE_WEBHOOK_SECRET) como variable del proyecto.
+          Usa <code className="bg-muted px-1 rounded">price_id</code> como ID externo · Secret: STRIPE_WEBHOOK_SECRET
         </p>
       </div>
 
@@ -165,16 +265,15 @@ const WebhookSection = () => {
         {showForm && (
           <div className="space-y-2 bg-muted/30 rounded-lg p-3">
             <div className="flex gap-2">
-              <select value={formProvider} onChange={(e) => setFormProvider(e.target.value)} className={`${inputClass} w-28`}>
+              <select value={formProvider} onChange={(e) => handleProviderChange(e.target.value)} className={`${inputClass} w-28`}>
                 <option value="hotmart">Hotmart</option>
                 <option value="stripe">Stripe</option>
               </select>
-              <input
-                placeholder="Product/Price ID externo"
-                value={formExternalId}
-                onChange={(e) => setFormExternalId(e.target.value)}
-                className={`${inputClass} flex-1`}
-              />
+              <select value={formExternalType} onChange={(e) => setFormExternalType(e.target.value)} className={`${inputClass} w-40`}>
+                {EXTERNAL_TYPES[formProvider]?.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
             </div>
             <select value={formProgramId} onChange={(e) => setFormProgramId(e.target.value)} className={inputClass}>
               <option value="">Seleccionar programa...</option>
@@ -182,12 +281,25 @@ const WebhookSection = () => {
                 <option key={p.id} value={p.id}>{p.name} ({p.year})</option>
               ))}
             </select>
+            <textarea
+              placeholder={"IDs externos (uno por línea)\nEj: " + (formProvider === "stripe" ? "price_1T2YhCBCvu8gin2dcJnNPjTR" : "1234567")}
+              value={formIds}
+              onChange={(e) => setFormIds(e.target.value)}
+              rows={4}
+              className={inputClass}
+            />
+            <input
+              placeholder="Nota (opcional)"
+              value={formNote}
+              onChange={(e) => setFormNote(e.target.value)}
+              className={inputClass}
+            />
             <button
-              onClick={handleAddMapping}
-              disabled={upsertMapping.isPending || !formExternalId || !formProgramId}
+              onClick={handleSaveBatch}
+              disabled={upsertBatch.isPending || !formIds.trim() || !formProgramId}
               className="w-full py-2 rounded-lg gold-gradient font-bold text-primary-foreground text-sm disabled:opacity-40"
             >
-              {upsertMapping.isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Guardar mapeo"}
+              {upsertBatch.isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Guardar mapeos"}
             </button>
           </div>
         )}
@@ -199,28 +311,38 @@ const WebhookSection = () => {
         ) : (
           <div className="space-y-1.5">
             {mappings.map((m: any) => (
-              <div key={m.id} className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
-                <div className="min-w-0">
+              <div key={m.id} className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2 gap-2">
+                <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-semibold text-foreground truncate">
-                    <span className="uppercase text-primary">{m.provider}</span> → {m.external_product_id}
+                    <span className={`uppercase text-[9px] px-1.5 py-0.5 rounded font-bold mr-1.5 ${m.provider === "stripe" ? "bg-primary/20 text-primary" : "bg-accent/60 text-accent-foreground"}`}>
+                      {m.provider}
+                    </span>
+                    <span className="text-muted-foreground text-[9px] mr-1">{m.external_type || "id"}:</span>
+                    {m.external_product_id}
                   </p>
-                  <p className="text-[9px] text-muted-foreground">
-                    Programa: {programs.find((p) => p.id === m.program_id)?.name || m.program_id.substring(0, 8)}
+                  <p className="text-[9px] text-muted-foreground mt-0.5">
+                    → {programs.find((p) => p.id === m.program_id)?.name || m.program_id?.substring(0, 8)}
+                    {m.metadata?.note && <span className="ml-2 italic">"{m.metadata.note}"</span>}
                   </p>
                 </div>
-                <button
-                  onClick={async () => {
-                    try {
-                      await deleteMapping.mutateAsync(m.id);
-                      toast.success("Mapeo eliminado");
-                    } catch (e: any) {
-                      toast.error(e.message);
-                    }
-                  }}
-                  className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => toggleActive.mutate({ id: m.id, is_active: !m.is_active })}
+                    className={`text-[9px] px-2 py-1 rounded-md font-semibold transition-colors ${m.is_active ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}`}
+                  >
+                    {m.is_active ? "Activo" : "Inactivo"}
+                  </button>
+                  {confirmDeleteId === m.id ? (
+                    <div className="flex gap-1">
+                      <button onClick={() => handleDelete(m.id)} className="text-[9px] px-2 py-1 rounded-md bg-destructive text-destructive-foreground font-semibold">Sí</button>
+                      <button onClick={() => setConfirmDeleteId(null)} className="text-[9px] px-2 py-1 rounded-md bg-muted text-muted-foreground font-semibold">No</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmDeleteId(m.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
