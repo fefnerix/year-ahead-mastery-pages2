@@ -85,6 +85,59 @@ export type Database = {
           },
         ]
       }
+      access_control: {
+        Row: {
+          created_at: string
+          external_customer_id: string | null
+          external_provider: string | null
+          external_subscription_id: string | null
+          external_transaction_id: string | null
+          id: string
+          program_id: string
+          reason: string | null
+          source: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          external_customer_id?: string | null
+          external_provider?: string | null
+          external_subscription_id?: string | null
+          external_transaction_id?: string | null
+          id?: string
+          program_id: string
+          reason?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          external_customer_id?: string | null
+          external_provider?: string | null
+          external_subscription_id?: string | null
+          external_transaction_id?: string | null
+          id?: string
+          program_id?: string
+          reason?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_control_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       access_entitlements: {
         Row: {
           ends_at: string | null
@@ -254,6 +307,36 @@ export type Database = {
           scope?: string
           scope_id?: string | null
           title?: string
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          provider: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          provider?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          provider?: string | null
+          target_user_id?: string | null
         }
         Relationships: []
       }
@@ -791,6 +874,41 @@ export type Database = {
           },
         ]
       }
+      product_mappings: {
+        Row: {
+          action: string
+          created_at: string
+          external_product_id: string
+          id: string
+          program_id: string
+          provider: string
+        }
+        Insert: {
+          action?: string
+          created_at?: string
+          external_product_id: string
+          id?: string
+          program_id: string
+          provider: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          external_product_id?: string
+          id?: string
+          program_id?: string
+          provider?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_mappings_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profile_settings: {
         Row: {
           created_at: string
@@ -1081,6 +1199,39 @@ export type Database = {
           max_streak?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      webhook_events: {
+        Row: {
+          error: string | null
+          event_id: string
+          id: string
+          payload: Json | null
+          processed_at: string | null
+          provider: string
+          received_at: string
+          status: string
+        }
+        Insert: {
+          error?: string | null
+          event_id: string
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          provider: string
+          received_at?: string
+          status?: string
+        }
+        Update: {
+          error?: string | null
+          event_id?: string
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          provider?: string
+          received_at?: string
+          status?: string
         }
         Relationships: []
       }

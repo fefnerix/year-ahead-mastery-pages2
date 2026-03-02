@@ -11,3 +11,15 @@ verify_jwt = false
 
 [functions.admin-student-detail]
 verify_jwt = false
+
+[functions.admin-manual-access]
+verify_jwt = false
+
+[functions.admin-import-csv]
+verify_jwt = false
+
+[functions.admin-product-mapping]
+verify_jwt = false
+
+[functions.webhook-stripe]
+verify_jwt = false
