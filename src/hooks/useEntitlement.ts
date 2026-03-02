@@ -32,6 +32,6 @@ export function useEntitlement(productCode = "progress_2026") {
       };
     },
     enabled: !!user,
-    staleTime: 60_000,
+    staleTime: 1000 * 60 * 5, // 5 min — access rarely changes mid-session
   });
 }

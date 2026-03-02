@@ -1,8 +1,9 @@
+import React from "react";
 import { Home, CalendarDays, Calendar, Trophy, User, Shield, PenLine } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import { useIsAdmin } from "@/hooks/useAdmin";
 
-const BottomNav = () => {
+const BottomNav = React.memo(() => {
   const location = useLocation();
   const { data: isAdmin } = useIsAdmin();
 
@@ -49,6 +50,8 @@ const BottomNav = () => {
       </div>
     </nav>
   );
-};
+});
+
+BottomNav.displayName = "BottomNav";
 
 export default BottomNav;
