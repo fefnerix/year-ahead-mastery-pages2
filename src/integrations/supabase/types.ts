@@ -914,6 +914,7 @@ export type Database = {
           created_at: string
           daily_reminder: boolean
           id: string
+          must_change_password: boolean
           reminder_time: string
           show_in_ranking: boolean
           updated_at: string
@@ -923,6 +924,7 @@ export type Database = {
           created_at?: string
           daily_reminder?: boolean
           id?: string
+          must_change_password?: boolean
           reminder_time?: string
           show_in_ranking?: boolean
           updated_at?: string
@@ -932,6 +934,7 @@ export type Database = {
           created_at?: string
           daily_reminder?: boolean
           id?: string
+          must_change_password?: boolean
           reminder_time?: string
           show_in_ranking?: boolean
           updated_at?: string
