@@ -1,8 +1,10 @@
 import BottomNav from "@/components/BottomNav";
-import { Crown, Medal, Trophy, Loader2, Flame, TrendingUp, Target, Award } from "lucide-react";
-import { useState } from "react";
+import { Crown, Medal, Trophy, Loader2, Flame, TrendingUp, Target, Award, Dumbbell, Brain, Heart, DollarSign, ListChecks } from "lucide-react";
+import { useState, useMemo } from "react";
 import { useLeaderboard, useRankingSummary } from "@/hooks/useLeaderboard";
 import { useAuth } from "@/hooks/useAuth";
+import { useProgress } from "@/hooks/useTodayData";
+import { useMonthTasks, useMonthTaskChecks } from "@/hooks/useMonthTasks";
 
 const tabs = ["Mes", "Total"] as const;
 const scopeMap: Record<typeof tabs[number], "month" | "total"> = {
@@ -15,6 +17,15 @@ const positionIcons: Record<number, React.ReactNode> = {
   2: <Medal className="w-5 h-5 text-secondary-foreground" />,
   3: <Trophy className="w-5 h-5 text-streak" />,
 };
+
+const CATEGORY_CONFIG = {
+  cuerpo: { label: "Cuerpo", icon: Dumbbell, color: "bg-emerald-500" },
+  mente: { label: "Mente", icon: Brain, color: "bg-blue-500" },
+  alma: { label: "Alma", icon: Heart, color: "bg-purple-500" },
+  finanzas: { label: "Finanzas", icon: DollarSign, color: "bg-amber-500" },
+} as const;
+
+type CategoryKey = keyof typeof CATEGORY_CONFIG;
 
 const ProgressBar = ({ value, max, label }: { value: number; max: number; label: string }) => {
   const pct = max > 0 ? Math.min(100, Math.round(((value / max) * 100) * 100) / 100) : 0;
@@ -42,6 +53,38 @@ const Ranking = () => {
   const { user } = useAuth();
   const { data: ranking = [], isLoading } = useLeaderboard(scopeMap[activeTab]);
   const { data: summary } = useRankingSummary();
+  const { data: progress } = useProgress();
+
+  // Category stats from month tasks
+  const monthId = progress?.month_id;
+  const { data: monthTasks = [] } = useMonthTasks(monthId);
+  const { data: monthChecks = [] } = useMonthTaskChecks(monthId);
+
+  const checkSet = useMemo(() => new Set(monthChecks.map((c) => c.month_task_id)), [monthChecks]);
+
+  const categoryStats = useMemo(() => {
+    const stats: Record<CategoryKey, { total: number; done: number }> = {
+      cuerpo: { total: 0, done: 0 },
+      mente: { total: 0, done: 0 },
+      alma: { total: 0, done: 0 },
+      finanzas: { total: 0, done: 0 },
+    };
+    monthTasks.forEach((t) => {
+      const cat = t.category as CategoryKey | null;
+      if (cat && stats[cat]) {
+        stats[cat].total++;
+        if (checkSet.has(t.id)) stats[cat].done++;
+      }
+    });
+    return stats;
+  }, [monthTasks, checkSet]);
+
+  const activeCategories = useMemo(
+    () => (Object.keys(categoryStats) as CategoryKey[]).filter((k) => categoryStats[k].total > 0),
+    [categoryStats],
+  );
+
+
 
   const currentUserEntry = ranking.find((e) => e.user_id === user?.id);
   const nextAbove = currentUserEntry
@@ -133,7 +176,44 @@ const Ranking = () => {
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* Category Progress */}
+        {activeCategories.length > 0 && (
+          <div className="glass-card rounded-2xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <ListChecks className="w-3.5 h-3.5" /> Checklist del Mes
+              </h2>
+              <span className="text-xs font-bold text-muted-foreground tabular-nums">
+                {monthChecks.length}/{monthTasks.length}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {activeCategories.map((cat) => {
+                const cfg = CATEGORY_CONFIG[cat];
+                const { total, done } = categoryStats[cat];
+                const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                const Icon = cfg.icon;
+                return (
+                  <div key={cat} className="glass-card rounded-xl p-2.5 border border-border/20">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Icon className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{cfg.label}</span>
+                      <span className="text-[10px] font-bold tabular-nums text-muted-foreground ml-auto">{pct}%</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-muted/60 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${cfg.color} transition-all duration-300`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/60 mt-1 tabular-nums">{done}/{total}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="flex bg-muted rounded-xl p-1">
           {tabs.map((tab) => (
             <button
