@@ -92,6 +92,12 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Get roles
+    const { data: roles } = await serviceClient
+      .from("user_roles")
+      .select("user_id, role");
+    const roleMap = new Map((roles || []).map((r: any) => [r.user_id, r.role]));
+
     // Get streaks
     const { data: streaks } = await serviceClient
       .from("user_streaks")
@@ -165,6 +171,7 @@ Deno.serve(async (req) => {
         last_completed_date: streak?.last_completed_date || null,
         month_completed: monthCompleted,
         month_total: monthTaskCount,
+        role: roleMap.get(u.id) || "user",
       };
     });
 
@@ -180,6 +187,11 @@ Deno.serve(async (req) => {
 
     if (statusFilter) {
       result = result.filter((r: any) => r.access_status === statusFilter);
+    }
+
+    const roleFilter = url.searchParams.get("role") || "";
+    if (roleFilter) {
+      result = result.filter((r: any) => r.role === roleFilter);
     }
 
     // Sort: active first, then by email

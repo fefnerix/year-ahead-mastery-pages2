@@ -21,5 +21,8 @@ verify_jwt = false
 [functions.admin-product-mapping]
 verify_jwt = false
 
+[functions.admin-set-role]
+verify_jwt = false
+
 [functions.webhook-stripe]
 verify_jwt = false
