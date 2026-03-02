@@ -9,7 +9,7 @@ const Logo = ({ variant = "compact", className = "" }: LogoProps) => {
   return (
     <BrandLogo
       variant={variant === "full" ? "full" : "icon"}
-      size={variant === "full" ? 64 : 56}
+      size={variant === "full" ? 192 : 56}
       className={className}
     />
   );
