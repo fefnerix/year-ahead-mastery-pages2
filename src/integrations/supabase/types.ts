@@ -951,6 +951,51 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_status: {
+        Row: {
+          ahorro_actual: string | null
+          cierre_2025: string | null
+          created_at: string
+          deuda_total: string | null
+          gastos_actuales: string | null
+          id: string
+          ingresos_actuales: string | null
+          inversion_en_uno: string | null
+          libros_leidos: string | null
+          pagos_minimos: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ahorro_actual?: string | null
+          cierre_2025?: string | null
+          created_at?: string
+          deuda_total?: string | null
+          gastos_actuales?: string | null
+          id?: string
+          ingresos_actuales?: string | null
+          inversion_en_uno?: string | null
+          libros_leidos?: string | null
+          pagos_minimos?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ahorro_actual?: string | null
+          cierre_2025?: string | null
+          created_at?: string
+          deuda_total?: string | null
+          gastos_actuales?: string | null
+          id?: string
+          ingresos_actuales?: string | null
+          inversion_en_uno?: string | null
+          libros_leidos?: string | null
+          pagos_minimos?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

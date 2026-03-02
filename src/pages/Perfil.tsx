@@ -1,5 +1,6 @@
 import BottomNav from "@/components/BottomNav";
 import DepositCard from "@/components/DepositCard";
+import ProfileStatusCard from "@/components/ProfileStatusCard";
 import { ChevronRight, Settings, HelpCircle, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,6 +35,9 @@ const Perfil = () => {
       <main className="px-5 space-y-5">
         {/* Abundancia */}
         <DepositCard />
+
+        {/* Estado actual */}
+        <ProfileStatusCard />
 
         {/* Recent deposits */}
         {recentDeposits.length > 0 && (
