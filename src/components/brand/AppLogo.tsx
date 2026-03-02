@@ -24,6 +24,10 @@ const AppLogo = ({ variant = "header", className = "", showText = false }: AppLo
         <img
           src={logo365}
           alt="PROGRESS 365"
+          width={h}
+          height={h}
+          fetchPriority="high"
+          decoding="async"
           className="block shrink-0 object-contain"
           style={{ height: h, width: "auto" }}
         />
@@ -44,6 +48,10 @@ const AppLogo = ({ variant = "header", className = "", showText = false }: AppLo
       <img
         src={logo365}
         alt="PROGRESS 365"
+        width={h}
+        height={h}
+        fetchPriority="high"
+        decoding="async"
         className="block shrink-0 object-contain"
         style={{ height: h, width: "auto" }}
       />
