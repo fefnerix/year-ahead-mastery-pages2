@@ -879,7 +879,10 @@ export type Database = {
           action: string
           created_at: string
           external_product_id: string
+          external_type: string
           id: string
+          is_active: boolean
+          metadata: Json
           program_id: string
           provider: string
         }
@@ -887,7 +890,10 @@ export type Database = {
           action?: string
           created_at?: string
           external_product_id: string
+          external_type?: string
           id?: string
+          is_active?: boolean
+          metadata?: Json
           program_id: string
           provider: string
         }
@@ -895,7 +901,10 @@ export type Database = {
           action?: string
           created_at?: string
           external_product_id?: string
+          external_type?: string
           id?: string
+          is_active?: boolean
+          metadata?: Json
           program_id?: string
           provider?: string
         }
