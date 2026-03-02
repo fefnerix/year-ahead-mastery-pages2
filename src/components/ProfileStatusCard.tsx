@@ -4,14 +4,14 @@ import { Pencil, Check, X, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
 const FIELDS = [
-  { key: "cierre_2025", label: "Cierre 2025" },
-  { key: "ingresos_actuales", label: "Ingresos actuales" },
-  { key: "gastos_actuales", label: "Gastos actuales" },
-  { key: "ahorro_actual", label: "Ahorro actual" },
-  { key: "deuda_total", label: "Deuda total actual" },
-  { key: "pagos_minimos", label: "Pagos mínimos totales" },
-  { key: "inversion_en_uno", label: "Inversión en uno mismo" },
-  { key: "libros_leidos", label: "Libros leídos al año" },
+  { key: "cierre_2025", label: "Cierre 2025", placeholder: "Ej: $1,000" },
+  { key: "ingresos_actuales", label: "Ingresos actuales", placeholder: "Ej: $1,000" },
+  { key: "gastos_actuales", label: "Gastos actuales", placeholder: "Ej: $1,000" },
+  { key: "ahorro_actual", label: "Ahorro actual", placeholder: "Ej: $1,000" },
+  { key: "deuda_total", label: "Deuda total actual", placeholder: "Ej: $1,000" },
+  { key: "pagos_minimos", label: "Pagos mínimos totales", placeholder: "Ej: $1,000" },
+  { key: "inversion_en_uno", label: "Inversión en uno mismo", placeholder: "Ej: $1,000" },
+  { key: "libros_leidos", label: "Libros leídos al año", placeholder: "Ej: 12" },
 ] as const;
 
 type FieldKey = (typeof FIELDS)[number]["key"];
@@ -125,7 +125,7 @@ const ProfileStatusCard = () => {
                   setForm((prev) => ({ ...prev, [f.key]: e.target.value }))
                 }
                 className="w-full bg-muted/30 border border-border/30 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
-                placeholder={`Ej: $1,000`}
+                placeholder={f.placeholder}
               />
             </div>
           ))}
