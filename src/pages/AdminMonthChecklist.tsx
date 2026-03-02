@@ -119,6 +119,14 @@ const AdminMonthChecklist = () => {
               >
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <span className="text-xs font-mono text-muted-foreground w-6 shrink-0 text-right">{task.sort_order}</span>
+                  {task.category && (
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
+                      task.category === "cuerpo" ? "bg-emerald-500/15 text-emerald-400" :
+                      task.category === "mente" ? "bg-blue-500/15 text-blue-400" :
+                      task.category === "alma" ? "bg-purple-500/15 text-purple-400" :
+                      "bg-amber-500/15 text-amber-400"
+                    }`}>{task.category.slice(0, 3)}</span>
+                  )}
                   <span className={`text-sm font-semibold truncate ${!task.is_active ? "text-muted-foreground line-through" : "text-foreground"}`}>
                     {task.title}
                   </span>
@@ -161,6 +169,7 @@ const MonthTaskEditor = ({ monthId, task, onSaved, onCancel, nextOrder }: Editor
   const [description, setDescription] = useState(task?.description ?? "");
   const [sortOrder, setSortOrder] = useState(task?.sort_order ?? nextOrder ?? 1);
   const [isActive, setIsActive] = useState(task?.is_active ?? true);
+  const [category, setCategory] = useState<string>(task?.category ?? "");
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -175,6 +184,7 @@ const MonthTaskEditor = ({ monthId, task, onSaved, onCancel, nextOrder }: Editor
         description: description.trim() || null,
         sort_order: sortOrder,
         is_active: isActive,
+        category: (category || null) as any,
       });
       toast.success(task ? "Tarea actualizada" : "Tarea creada");
       onSaved();
@@ -199,9 +209,19 @@ const MonthTaskEditor = ({ monthId, task, onSaved, onCancel, nextOrder }: Editor
         />
       </div>
       <div className="flex gap-3">
-        <div className="flex-1">
+        <div className="w-20">
           <label className="text-[10px] text-muted-foreground font-semibold uppercase">Orden</label>
           <input type="number" value={sortOrder} onChange={(e) => setSortOrder(Number(e.target.value))} className={inputClass} />
+        </div>
+        <div className="flex-1">
+          <label className="text-[10px] text-muted-foreground font-semibold uppercase">Categoría</label>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className={inputClass}>
+            <option value="">Sin categoría</option>
+            <option value="cuerpo">🏋️ Cuerpo</option>
+            <option value="mente">🧠 Mente</option>
+            <option value="alma">💜 Alma</option>
+            <option value="finanzas">💰 Finanzas</option>
+          </select>
         </div>
         <div className="flex items-end pb-1">
           <button

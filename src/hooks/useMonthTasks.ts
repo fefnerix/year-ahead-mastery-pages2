@@ -9,6 +9,7 @@ export interface MonthTask {
   title: string;
   description: string | null;
   type: string | null;
+  category: "cuerpo" | "mente" | "alma" | "finanzas" | null;
   image_url: string | null;
   audio_url: string | null;
   video_url: string | null;
@@ -32,7 +33,7 @@ export function useMonthTasks(monthId: string | null | undefined) {
     queryFn: async (): Promise<MonthTask[]> => {
       const { data, error } = await supabase
         .from("month_tasks")
-        .select("id, month_id, sort_order, title, description, type, image_url, audio_url, video_url, file_url, is_active")
+        .select("id, month_id, sort_order, title, description, type, category, image_url, audio_url, video_url, file_url, is_active")
         .eq("month_id", monthId!)
         .eq("is_active", true)
         .order("sort_order");
