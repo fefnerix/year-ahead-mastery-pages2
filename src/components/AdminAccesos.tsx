@@ -1,25 +1,15 @@
 import { useState } from "react";
-import { useAdminUsers, useStudentDetail, useSetAccess, type AdminUser } from "@/hooks/useAccessAdminV2";
+import { useAdminUsers, useStudentDetail, useSetAccess, useSetRole, type AdminUser } from "@/hooks/useAccessAdminV2";
+import { useAuth } from "@/hooks/useAuth";
 import {
-  Loader2,
-  Search,
-  ShieldCheck,
-  ShieldOff,
-  ShieldAlert,
-  Users,
-  ChevronDown,
-  ChevronUp,
-  Flame,
-  Trophy,
-  CheckCircle2,
-  Circle,
-  Calendar,
-  FileText,
-  BookOpen,
-  Clock,
-  Filter,
+  Loader2, Search, ShieldCheck, ShieldOff, ShieldAlert, Users,
+  ChevronDown, ChevronUp, Flame, Trophy, CheckCircle2, Circle,
+  Calendar, FileText, BookOpen, Clock, Filter, Crown, UserIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof ShieldCheck }> = {
   active: { label: "Activo", color: "text-success", icon: ShieldCheck },
@@ -31,19 +21,26 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
 };
 
 const AdminAccesos = () => {
+  const { user: currentUser } = useAuth();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout>>();
   const [statusFilter, setStatusFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
   const [page, setPage] = useState(1);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+
+  // Role change confirmation
+  const [roleConfirm, setRoleConfirm] = useState<{ userId: string; name: string; newRole: string } | null>(null);
 
   const { data, isLoading, error } = useAdminUsers(
     debouncedSearch || undefined,
     statusFilter || undefined,
+    roleFilter || undefined,
     page
   );
   const setAccess = useSetAccess();
+  const setRole = useSetRole();
 
   const users = data?.users || [];
   const total = data?.total || 0;
@@ -66,6 +63,18 @@ const AdminAccesos = () => {
     }
   };
 
+  const handleRoleChange = async () => {
+    if (!roleConfirm) return;
+    try {
+      await setRole.mutateAsync({ userId: roleConfirm.userId, role: roleConfirm.newRole });
+      toast.success("Rol actualizado");
+      setRoleConfirm(null);
+    } catch (e: any) {
+      toast.error(e.message);
+      setRoleConfirm(null);
+    }
+  };
+
   const inputClass =
     "w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary";
 
@@ -80,7 +89,7 @@ const AdminAccesos = () => {
         </span>
       </div>
 
-      {/* Search + Filter */}
+      {/* Search + Filters */}
       <div className="space-y-2">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -91,6 +100,8 @@ const AdminAccesos = () => {
             className={`${inputClass} pl-9`}
           />
         </div>
+
+        {/* Status filter */}
         <div className="flex gap-1.5 flex-wrap items-center">
           <Filter className="w-3.5 h-3.5 text-muted-foreground" />
           {["", "active", "pending", "past_due", "revoked", "blocked"].map((s) => (
@@ -104,6 +115,28 @@ const AdminAccesos = () => {
               }`}
             >
               {s === "" ? "Todos" : statusConfig[s]?.label || s}
+            </button>
+          ))}
+        </div>
+
+        {/* Role filter */}
+        <div className="flex gap-1.5 flex-wrap items-center">
+          <Crown className="w-3.5 h-3.5 text-muted-foreground" />
+          {[
+            { val: "", label: "Todos" },
+            { val: "admin", label: "Admins" },
+            { val: "user", label: "Alumnos" },
+          ].map(({ val, label }) => (
+            <button
+              key={val}
+              onClick={() => { setRoleFilter(val); setPage(1); }}
+              className={`text-[10px] font-semibold px-2 py-1 rounded-md transition-colors ${
+                roleFilter === val
+                  ? "gold-gradient text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              {label}
             </button>
           ))}
         </div>
@@ -123,7 +156,7 @@ const AdminAccesos = () => {
       ) : users.length === 0 ? (
         <div className="glass-card rounded-xl p-6 text-center">
           <p className="text-sm text-muted-foreground">
-            {debouncedSearch || statusFilter ? "No se encontraron alumnos con esos filtros." : "No hay alumnos registrados."}
+            {debouncedSearch || statusFilter || roleFilter ? "No se encontraron alumnos con esos filtros." : "No hay alumnos registrados."}
           </p>
         </div>
       ) : (
@@ -133,17 +166,18 @@ const AdminAccesos = () => {
               <StudentRow
                 key={u.user_id}
                 user={u}
+                currentUserId={currentUser?.id || ""}
                 isExpanded={expandedUserId === u.user_id}
                 onToggle={() =>
                   setExpandedUserId(expandedUserId === u.user_id ? null : u.user_id)
                 }
                 onStatusChange={handleStatusChange}
+                onRoleChange={(userId, name, newRole) => setRoleConfirm({ userId, name, newRole })}
                 isPending={setAccess.isPending}
               />
             ))}
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
@@ -153,9 +187,7 @@ const AdminAccesos = () => {
               >
                 Anterior
               </button>
-              <span className="text-xs text-muted-foreground">
-                {page} / {totalPages}
-              </span>
+              <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
@@ -167,6 +199,41 @@ const AdminAccesos = () => {
           )}
         </>
       )}
+
+      {/* Role change confirmation dialog */}
+      <Dialog open={!!roleConfirm} onOpenChange={(open) => !open && setRoleConfirm(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {roleConfirm?.newRole === "admin" ? "Hacer admin" : "Quitar admin"}
+            </DialogTitle>
+            <DialogDescription>
+              {roleConfirm?.newRole === "admin"
+                ? `¿Confirmas que quieres convertir a ${roleConfirm?.name} en ADMIN?`
+                : `¿Confirmas que quieres quitar el rol ADMIN de ${roleConfirm?.name}?`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <button
+              onClick={() => setRoleConfirm(null)}
+              className="flex-1 py-2 rounded-lg bg-muted text-sm font-semibold text-muted-foreground"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleRoleChange}
+              disabled={setRole.isPending}
+              className={`flex-1 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 ${
+                roleConfirm?.newRole === "admin"
+                  ? "gold-gradient text-primary-foreground"
+                  : "bg-destructive text-destructive-foreground"
+              }`}
+            >
+              {setRole.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
@@ -175,39 +242,49 @@ const AdminAccesos = () => {
 
 interface StudentRowProps {
   user: AdminUser;
+  currentUserId: string;
   isExpanded: boolean;
   onToggle: () => void;
   onStatusChange: (userId: string, status: string) => void;
+  onRoleChange: (userId: string, name: string, newRole: string) => void;
   isPending: boolean;
 }
 
-const StudentRow = ({ user: u, isExpanded, onToggle, onStatusChange, isPending }: StudentRowProps) => {
+const StudentRow = ({ user: u, currentUserId, isExpanded, onToggle, onStatusChange, onRoleChange, isPending }: StudentRowProps) => {
   const cfg = statusConfig[u.access_status] || statusConfig.pending;
   const Icon = cfg.icon;
+  const isAdminUser = u.role === "admin";
+  const isSelf = u.user_id === currentUserId;
 
   const lastLogin = u.last_sign_in_at
     ? new Date(u.last_sign_in_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
     : "Nunca";
 
+  const displayName = u.display_name || u.email.split("@")[0];
+
   return (
     <div className="glass-card rounded-xl overflow-hidden">
-      {/* Summary row */}
-      <button
-        onClick={onToggle}
-        className="w-full p-3 flex items-center gap-3 text-left"
-      >
+      <button onClick={onToggle} className="w-full p-3 flex items-center gap-3 text-left">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold text-foreground truncate">
-              {u.display_name || u.email.split("@")[0]}
-            </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
+            {/* Role badge */}
+            {isAdminUser ? (
+              <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/20 text-primary shrink-0">
+                <Crown className="w-2.5 h-2.5" /> ADMIN
+              </span>
+            ) : (
+              <span className="flex items-center gap-0.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                <UserIcon className="w-2.5 h-2.5" /> ALUMNO
+              </span>
+            )}
+            {/* Status badge */}
             <span className={`flex items-center gap-0.5 text-[10px] font-semibold ${cfg.color} shrink-0`}>
               <Icon className="w-3 h-3" />
               {cfg.label}
             </span>
           </div>
           <p className="text-[10px] text-muted-foreground truncate">{u.email}</p>
-          {/* Metrics row */}
           <div className="flex gap-3 mt-1.5">
             <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
               <Flame className="w-3 h-3 text-primary" />
@@ -230,8 +307,17 @@ const StudentRow = ({ user: u, isExpanded, onToggle, onStatusChange, isPending }
         )}
       </button>
 
-      {/* Expanded detail */}
-      {isExpanded && <StudentDetail userId={u.user_id} onStatusChange={onStatusChange} isPending={isPending} />}
+      {isExpanded && (
+        <StudentDetail
+          userId={u.user_id}
+          role={u.role}
+          displayName={displayName}
+          isSelf={isSelf}
+          onStatusChange={onStatusChange}
+          onRoleChange={onRoleChange}
+          isPending={isPending}
+        />
+      )}
     </div>
   );
 };
@@ -240,11 +326,19 @@ const StudentRow = ({ user: u, isExpanded, onToggle, onStatusChange, isPending }
 
 const StudentDetail = ({
   userId,
+  role,
+  displayName,
+  isSelf,
   onStatusChange,
+  onRoleChange,
   isPending,
 }: {
   userId: string;
+  role: string;
+  displayName: string;
+  isSelf: boolean;
   onStatusChange: (userId: string, status: string) => void;
+  onRoleChange: (userId: string, name: string, newRole: string) => void;
   isPending: boolean;
 }) => {
   const { data: detail, isLoading } = useStudentDetail(userId);
@@ -263,43 +357,59 @@ const StudentDetail = ({
 
   return (
     <div className="border-t border-border p-3 space-y-4">
+      {/* Role Action */}
+      <div>
+        <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1.5">Rol del sistema</p>
+        <div className="flex items-center gap-2">
+          {role === "admin" ? (
+            <button
+              onClick={() => onRoleChange(userId, displayName, "user")}
+              disabled={isPending || isSelf}
+              title={isSelf ? "No puedes quitar tu propio rol de admin" : undefined}
+              className="text-[10px] font-semibold px-2.5 py-1.5 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Quitar admin
+            </button>
+          ) : (
+            <button
+              onClick={() => onRoleChange(userId, displayName, "admin")}
+              disabled={isPending}
+              className="text-[10px] font-semibold px-2.5 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+            >
+              Hacer admin
+            </button>
+          )}
+          {isSelf && role === "admin" && (
+            <span className="text-[9px] text-muted-foreground italic">No puedes quitar tu propio rol</span>
+          )}
+        </div>
+      </div>
+
       {/* Quick Actions */}
       <div>
-        <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1.5">Acciones rápidas</p>
+        <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1.5">Acciones de acceso</p>
         <div className="flex gap-1.5 flex-wrap">
           {currentStatus !== "active" && (
-            <button
-              onClick={() => onStatusChange(userId, "active")}
-              disabled={isPending}
-              className="text-[10px] font-semibold px-2.5 py-1.5 rounded-md bg-success/10 text-success hover:bg-success/20 transition-colors"
-            >
+            <button onClick={() => onStatusChange(userId, "active")} disabled={isPending}
+              className="text-[10px] font-semibold px-2.5 py-1.5 rounded-md bg-success/10 text-success hover:bg-success/20 transition-colors">
               Activar
             </button>
           )}
           {currentStatus !== "pending" && (
-            <button
-              onClick={() => onStatusChange(userId, "pending")}
-              disabled={isPending}
-              className="text-[10px] font-semibold px-2.5 py-1.5 rounded-md bg-warning/10 text-warning hover:bg-warning/20 transition-colors"
-            >
+            <button onClick={() => onStatusChange(userId, "pending")} disabled={isPending}
+              className="text-[10px] font-semibold px-2.5 py-1.5 rounded-md bg-warning/10 text-warning hover:bg-warning/20 transition-colors">
               Pendiente
             </button>
           )}
           {currentStatus !== "past_due" && (
-            <button
-              onClick={() => onStatusChange(userId, "past_due")}
-              disabled={isPending}
-              className="text-[10px] font-semibold px-2.5 py-1.5 rounded-md bg-warning/10 text-warning hover:bg-warning/20 transition-colors"
-            >
+            <button onClick={() => onStatusChange(userId, "past_due")} disabled={isPending}
+              className="text-[10px] font-semibold px-2.5 py-1.5 rounded-md bg-warning/10 text-warning hover:bg-warning/20 transition-colors">
               Suspender
             </button>
           )}
           {currentStatus !== "revoked" && (
-            <button
-              onClick={() => onStatusChange(userId, "revoked")}
-              disabled={isPending}
-              className="text-[10px] font-semibold px-2.5 py-1.5 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
-            >
+            <button onClick={() => onStatusChange(userId, "revoked")} disabled={isPending}
+              className="text-[10px] font-semibold px-2.5 py-1.5 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors">
               Revocar
             </button>
           )}
@@ -354,35 +464,23 @@ const StudentDetail = ({
           </p>
           <div className="flex items-center gap-2 mb-2">
             <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
-              <div
-                className="h-full gold-gradient rounded-full transition-all"
-                style={{
-                  width: `${detail.month_progress.total > 0 ? (detail.month_progress.completed / detail.month_progress.total) * 100 : 0}%`,
-                }}
-              />
+              <div className="h-full gold-gradient rounded-full transition-all"
+                style={{ width: `${detail.month_progress.total > 0 ? (detail.month_progress.completed / detail.month_progress.total) * 100 : 0}%` }} />
             </div>
             <span className="text-xs font-semibold text-foreground shrink-0">
               {detail.month_progress.completed}/{detail.month_progress.total}
             </span>
           </div>
-
-          {/* Task list */}
           <div className="space-y-0.5 max-h-48 overflow-y-auto">
             {detail.month_progress.tasks.map((t: any) => (
               <div key={t.id} className="flex items-center gap-2 py-0.5">
-                {t.completed ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />
-                ) : (
-                  <Circle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                )}
+                {t.completed ? <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" /> : <Circle className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
                 <span className={`text-[11px] ${t.completed ? "text-muted-foreground line-through" : "text-foreground"}`}>
                   {t.sort_order + 1}. {t.title}
                 </span>
               </div>
             ))}
           </div>
-
-          {/* Subtask summary */}
           {detail.subtask_progress.total > 0 && (
             <p className="text-[10px] text-muted-foreground mt-1.5">
               Subtareas: {detail.subtask_progress.completed}/{detail.subtask_progress.total} completadas
@@ -391,7 +489,7 @@ const StudentDetail = ({
         </div>
       )}
 
-      {/* Programs (entitlements) */}
+      {/* Entitlements */}
       {detail.entitlements?.length > 0 && (
         <div>
           <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1.5">Programas vinculados</p>
@@ -418,16 +516,14 @@ const StudentDetail = ({
             {detail.task_notes.map((n: any) => (
               <div key={n.id} className="text-[11px] bg-muted/50 rounded-lg px-2.5 py-1.5">
                 <p className="text-foreground line-clamp-2">{n.note}</p>
-                <p className="text-[9px] text-muted-foreground mt-0.5">
-                  {new Date(n.created_at).toLocaleDateString("es-ES")}
-                </p>
+                <p className="text-[9px] text-muted-foreground mt-0.5">{new Date(n.created_at).toLocaleDateString("es-ES")}</p>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Journal entries */}
+      {/* Journals */}
       {detail.journals?.length > 0 && (
         <div>
           <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1.5 flex items-center gap-1">
@@ -444,20 +540,15 @@ const StudentDetail = ({
         </div>
       )}
 
-      {/* Recent audit actions */}
+      {/* Audit */}
       {detail.recent_actions?.length > 0 && (
         <div>
-          <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1.5 flex items-center gap-1">
-            <Calendar className="w-3 h-3" /> Historial de acciones
-          </p>
-          <div className="space-y-1 max-h-28 overflow-y-auto">
+          <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1.5">Historial de acciones</p>
+          <div className="space-y-1 max-h-32 overflow-y-auto">
             {detail.recent_actions.map((a: any, i: number) => (
-              <div key={i} className="text-[10px] flex items-center gap-2">
-                <span className="text-muted-foreground shrink-0">
-                  {new Date(a.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
-                </span>
-                <span className="text-foreground font-medium">{a.action}</span>
-                {a.reason && <span className="text-muted-foreground truncate">— {a.reason}</span>}
+              <div key={i} className="text-[11px] flex justify-between">
+                <span className="text-foreground">{a.action}</span>
+                <span className="text-muted-foreground">{new Date(a.created_at).toLocaleDateString("es-ES")}</span>
               </div>
             ))}
           </div>

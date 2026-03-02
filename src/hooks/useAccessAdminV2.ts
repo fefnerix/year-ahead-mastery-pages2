@@ -16,6 +16,7 @@ export interface AdminUser {
   last_completed_date: string | null;
   month_completed: number;
   month_total: number;
+  role: string;
 }
 
 interface ListUsersResponse {
@@ -44,13 +45,14 @@ async function fetchWithAuth(path: string, options?: RequestInit) {
   return res.json();
 }
 
-export function useAdminUsers(search?: string, status?: string, page = 1) {
+export function useAdminUsers(search?: string, status?: string, role?: string, page = 1) {
   return useQuery<ListUsersResponse>({
-    queryKey: ["admin-users", search, status, page],
+    queryKey: ["admin-users", search, status, role, page],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (search) params.set("q", search);
       if (status) params.set("status", status);
+      if (role) params.set("role", role);
       params.set("page", String(page));
       params.set("per_page", "50");
       params.set("program_id", "progress_2026");
@@ -84,6 +86,21 @@ export function useSetAccess() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
       qc.invalidateQueries({ queryKey: ["admin-student-detail"] });
+    },
+  });
+}
+
+export function useSetRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      return fetchWithAuth("admin-set-role", {
+        method: "POST",
+        body: JSON.stringify({ user_id: userId, role }),
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
     },
   });
 }
