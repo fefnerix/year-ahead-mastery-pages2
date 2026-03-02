@@ -9,7 +9,7 @@ interface BrandLogoProps {
 const BrandLogo = ({ size = 32, variant = "icon", className = "" }: BrandLogoProps) => {
   if (variant === "full") {
     return (
-      <div className={`flex flex-col items-center gap-3 ${className}`}>
+      <div className={`flex flex-col items-center gap-1 ${className}`}>
         <img
           src={logo365}
           alt="PROGRESS 365"
