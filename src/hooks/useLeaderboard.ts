@@ -56,6 +56,7 @@ export function useLeaderboard(scope: "month" | "total") {
       return (data as unknown as LeaderboardEntry[]) ?? [];
     },
     enabled: !!programId,
+    staleTime: 1000 * 60, // 1 min
   });
 }
 
@@ -75,5 +76,6 @@ export function useRankingSummary() {
       return data as unknown as RankingSummary;
     },
     enabled: !!user && !!programId,
+    staleTime: 1000 * 60, // 1 min
   });
 }

@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from "react";
 import { useMonthTasks, useMonthTaskChecks, useToggleMonthTaskCheck } from "@/hooks/useMonthTasks";
 import { useMonthTasksAssetsBatch } from "@/hooks/useMonthTaskAssets";
 import { useMonthTaskNotes } from "@/hooks/useMonthTaskNotes";
@@ -13,20 +14,20 @@ const MonthChecklist = ({ monthId }: MonthChecklistProps) => {
   const { data: checks = [], isLoading: checksLoading } = useMonthTaskChecks(monthId);
   const toggleCheck = useToggleMonthTaskCheck(monthId);
 
-  const taskIds = tasks.map((t) => t.id);
+  const taskIds = useMemo(() => tasks.map((t) => t.id), [tasks]);
   const { data: allAssets = [] } = useMonthTasksAssetsBatch(taskIds);
   const { data: notes = [] } = useMonthTaskNotes(monthId);
 
   const isLoading = tasksLoading || checksLoading;
 
-  const checkMap = new Map(checks.map((c) => [c.month_task_id, c]));
-  const noteMap = new Map(notes.map((n) => [n.month_task_id, n.note]));
+  const checkMap = useMemo(() => new Map(checks.map((c) => [c.month_task_id, c])), [checks]);
+  const noteMap = useMemo(() => new Map(notes.map((n) => [n.month_task_id, n.note])), [notes]);
   const checkedCount = checks.length;
   const totalCount = tasks.length;
 
-  const handleToggle = (monthTaskId: string, currentlyChecked: boolean, checkId?: string) => {
+  const handleToggle = useCallback((monthTaskId: string, currentlyChecked: boolean, checkId?: string) => {
     toggleCheck.mutate({ monthTaskId, currentlyChecked, checkId });
-  };
+  }, [toggleCheck]);
 
   if (isLoading) {
     return (

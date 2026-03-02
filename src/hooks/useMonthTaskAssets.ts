@@ -41,13 +41,14 @@ export function useMonthTasksAssetsBatch(taskIds: string[]) {
       if (taskIds.length === 0) return [];
       const { data, error } = await supabase
         .from("month_task_assets")
-        .select("*")
+        .select("id, month_task_id, kind, title, url, sort_order")
         .in("month_task_id", taskIds)
         .order("sort_order");
       if (error) throw error;
       return (data ?? []) as MonthTaskAsset[];
     },
     enabled: taskIds.length > 0,
+    staleTime: 1000 * 60 * 5, // 5 min — assets rarely change
   });
 }
 

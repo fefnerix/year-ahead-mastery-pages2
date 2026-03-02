@@ -41,6 +41,7 @@ export function useProgress() {
       return data as unknown as ProgressData;
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 2, // 2 min
   });
 }
 

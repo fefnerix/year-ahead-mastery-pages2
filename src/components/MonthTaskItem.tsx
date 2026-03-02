@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Check, Image, Headphones, Play, FileText, Loader2, Undo2, X, LinkIcon, PenLine, ListChecks, Lock,
@@ -450,4 +450,4 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
   );
 };
 
-export default MonthTaskItem;
+export default React.memo(MonthTaskItem);
