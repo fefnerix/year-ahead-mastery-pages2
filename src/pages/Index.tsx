@@ -26,7 +26,9 @@ const Index = () => {
   const { data: profileStatus, isLoading: profileLoading } = useProfileStatus();
 
   // Redirect first-time users to profile to fill "Mi estado actual"
-  if (!profileLoading && !authLoading && user && profileStatus === null) {
+  const hasSeenOnboarding = localStorage.getItem("profile_onboarded");
+  if (!profileLoading && !authLoading && user && profileStatus === null && !hasSeenOnboarding) {
+    localStorage.setItem("profile_onboarded", "1");
     return <Navigate to="/perfil" replace />;
   }
 
