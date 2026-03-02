@@ -4,7 +4,6 @@ import { Pencil, Check, X, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
 const FIELDS = [
-  { key: "cierre_2025", label: "Cierre 2025", placeholder: "Ej: $1,000" },
   { key: "ingresos_actuales", label: "Ingresos actuales", placeholder: "Ej: $1,000" },
   { key: "gastos_actuales", label: "Gastos actuales", placeholder: "Ej: $1,000" },
   { key: "ahorro_actual", label: "Ahorro actual", placeholder: "Ej: $1,000" },
@@ -21,7 +20,6 @@ const ProfileStatusCard = () => {
   const upsert = useUpsertProfileStatus();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Record<FieldKey, string>>({
-    cierre_2025: "",
     ingresos_actuales: "",
     gastos_actuales: "",
     ahorro_actual: "",
@@ -34,7 +32,6 @@ const ProfileStatusCard = () => {
   useEffect(() => {
     if (status) {
       setForm({
-        cierre_2025: status.cierre_2025 || "",
         ingresos_actuales: status.ingresos_actuales || "",
         gastos_actuales: status.gastos_actuales || "",
         ahorro_actual: status.ahorro_actual || "",
@@ -86,7 +83,6 @@ const ProfileStatusCard = () => {
                 setEditing(false);
                 if (status) {
                   setForm({
-                    cierre_2025: status.cierre_2025 || "",
                     ingresos_actuales: status.ingresos_actuales || "",
                     gastos_actuales: status.gastos_actuales || "",
                     ahorro_actual: status.ahorro_actual || "",
