@@ -18,20 +18,21 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "robots.txt"],
+      includeAssets: ["brand/logo-365.png", "robots.txt"],
       manifest: {
-        name: "Plan Renacer 365",
-        short_name: "Renacer 365",
-        description: "Master en Desarrollo Personal — Tu transformación diaria",
+        name: "PROGRESS",
+        short_name: "PROGRESS",
+        description: "Tu transformación diaria — Progress",
         theme_color: "#0B0E1A",
         background_color: "#0B0E1A",
         display: "standalone",
         start_url: "/",
         icons: [
           {
-            src: "/favicon.ico",
-            sizes: "64x64",
-            type: "image/x-icon",
+            src: "/brand/logo-365.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable",
           },
         ],
       },
