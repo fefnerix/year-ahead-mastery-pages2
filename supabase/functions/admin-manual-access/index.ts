@@ -56,9 +56,13 @@ Deno.serve(async (req) => {
 
     if (found) {
       userId = found.id;
+      // Reset password to default if user was created with a random one
+      if (body.reset_password) {
+        await serviceClient.auth.admin.updateUserById(userId, { password: "renacer123" });
+      }
     } else {
-      // Create user with random password
-      const tempPwd = crypto.randomUUID();
+      // Create user with default password
+      const tempPwd = "renacer123";
       const { data: newUser, error: createErr } = await serviceClient.auth.admin.createUser({
         email: normalEmail,
         password: tempPwd,
