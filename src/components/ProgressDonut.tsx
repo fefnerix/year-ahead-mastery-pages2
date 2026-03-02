@@ -57,7 +57,9 @@ interface ProgressDonutProps {
   monthLabel: string;
 }
 
-const ProgressDonut = ({ mesPct, totalPct, monthLabel }: ProgressDonutProps) => {
+import React from "react";
+
+const ProgressDonut = React.memo(({ mesPct, totalPct, monthLabel }: ProgressDonutProps) => {
   return (
     <div className="glass-card rounded-xl px-4 py-3 border border-primary/10 flex items-center gap-4">
       <Donut value={mesPct} label="Mes" gradientId="gold-grad-mes" />
@@ -67,6 +69,8 @@ const ProgressDonut = ({ mesPct, totalPct, monthLabel }: ProgressDonutProps) => 
       </div>
     </div>
   );
-};
+});
+
+ProgressDonut.displayName = "ProgressDonut";
 
 export default ProgressDonut;
