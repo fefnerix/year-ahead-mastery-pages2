@@ -2,16 +2,15 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import Logo from "@/components/Logo";
 
-type AuthMode = "login" | "register" | "reset";
+type AuthMode = "login" | "reset";
 
 const Auth = () => {
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -26,20 +25,6 @@ const Auth = () => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         navigate("/");
-      } else if (mode === "register") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { display_name: displayName },
-            emailRedirectTo: window.location.origin,
-          },
-        });
-        if (error) throw error;
-        toast({
-          title: "Cuenta creada",
-          description: "Revisa tu correo para confirmar tu cuenta.",
-        });
       } else if (mode === "reset") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/auth`,
@@ -69,26 +54,11 @@ const Auth = () => {
           <Logo variant="full" />
           <p className="text-sm text-muted-foreground mt-4">
             {mode === "login" && "Inicia sesión para continuar tu transformación"}
-            {mode === "register" && "Crea tu cuenta y comienza hoy"}
             {mode === "reset" && "Recupera el acceso a tu cuenta"}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {mode === "register" && (
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Tu nombre"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                required
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-              />
-            </div>
-          )}
-
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
@@ -133,7 +103,6 @@ const Auth = () => {
             ) : (
               <>
                 {mode === "login" && "Iniciar Sesión"}
-                {mode === "register" && "Crear Cuenta"}
                 {mode === "reset" && "Enviar Enlace"}
                 <ArrowRight className="w-4 h-4" />
               </>
@@ -144,34 +113,12 @@ const Auth = () => {
         {/* Mode switchers */}
         <div className="mt-6 text-center space-y-2">
           {mode === "login" && (
-            <>
-              <button
-                onClick={() => setMode("reset")}
-                className="text-xs text-muted-foreground hover:text-primary transition-colors"
-              >
-                ¿Olvidaste tu contraseña?
-              </button>
-              <p className="text-sm text-muted-foreground">
-                ¿No tienes cuenta?{" "}
-                <button
-                  onClick={() => setMode("register")}
-                  className="text-primary font-semibold hover:underline"
-                >
-                  Regístrate
-                </button>
-              </p>
-            </>
-          )}
-          {mode === "register" && (
-            <p className="text-sm text-muted-foreground">
-              ¿Ya tienes cuenta?{" "}
-              <button
-                onClick={() => setMode("login")}
-                className="text-primary font-semibold hover:underline"
-              >
-                Inicia sesión
-              </button>
-            </p>
+            <button
+              onClick={() => setMode("reset")}
+              className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
           )}
           {mode === "reset" && (
             <button
