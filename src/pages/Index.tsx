@@ -10,6 +10,8 @@ import { useProgress } from "@/hooks/useTodayData";
 import { useMonthTasks, useMonthTaskChecks } from "@/hooks/useMonthTasks";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { getTodayBRT } from "@/lib/dates";
+import { useProfileStatus } from "@/hooks/useProfileStatus";
+import { Navigate } from "react-router-dom";
 
 const formattedToday = new Intl.DateTimeFormat("es-ES", {
   weekday: "short",
@@ -21,6 +23,12 @@ const Index = () => {
   const { user, loading: authLoading } = useAuth();
   const { data: progress, isLoading: progressLoading } = useProgress();
   const { data: isAdmin } = useIsAdmin();
+  const { data: profileStatus, isLoading: profileLoading } = useProfileStatus();
+
+  // Redirect first-time users to profile to fill "Mi estado actual"
+  if (!profileLoading && !authLoading && user && profileStatus === null) {
+    return <Navigate to="/perfil" replace />;
+  }
 
   const monthId = progress?.month_id ?? null;
 
