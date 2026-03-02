@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Check, Image, Headphones, Play, FileText, Loader2, Undo2, X, LinkIcon, PenLine, ListChecks, Lock,
+  Dumbbell, Brain, Heart, DollarSign,
 } from "lucide-react";
 import {
   Drawer, DrawerContent, DrawerClose,
@@ -107,6 +108,13 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
 
   const orderLabel = String(task.sort_order).padStart(2, "0");
 
+  const categoryMeta = task.category ? {
+    cuerpo: { label: "Cuerpo", icon: Dumbbell, bg: "bg-emerald-500/10", border: "border-emerald-500/30", text: "text-emerald-400" },
+    mente: { label: "Mente", icon: Brain, bg: "bg-blue-500/10", border: "border-blue-500/30", text: "text-blue-400" },
+    alma: { label: "Alma", icon: Heart, bg: "bg-purple-500/10", border: "border-purple-500/30", text: "text-purple-400" },
+    finanzas: { label: "Finanzas", icon: DollarSign, bg: "bg-amber-500/10", border: "border-amber-500/30", text: "text-amber-400" },
+  }[task.category] : null;
+
   return (
     <>
       {/* List item */}
@@ -185,13 +193,24 @@ const MonthTaskItem = ({ task, checked, checkId, onToggle, assets = [], note = "
             <span className="text-xs font-bold tabular-nums text-primary/70 mt-1 shrink-0">{orderLabel}</span>
             <div className="flex-1 min-w-0">
               <h3 className="text-base font-bold text-foreground leading-snug line-clamp-2">{task.title}</h3>
-              {(hasMedia || activeSubtasks.length > 0) && (
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {activeSubtasks.length > 0
-                    ? `${completedSubtasks.length}/${activeSubtasks.length} subtareas`
-                    : "Recursos de esta tarea"}
-                </p>
-              )}
+              <div className="flex items-center gap-2 mt-1">
+                {categoryMeta && (() => {
+                  const CatIcon = categoryMeta.icon;
+                  return (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${categoryMeta.bg} ${categoryMeta.border} ${categoryMeta.text}`}>
+                      <CatIcon className="w-3 h-3" />
+                      {categoryMeta.label}
+                    </span>
+                  );
+                })()}
+                {(hasMedia || activeSubtasks.length > 0) && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {activeSubtasks.length > 0
+                      ? `${completedSubtasks.length}/${activeSubtasks.length} subtareas`
+                      : "Recursos"}
+                  </p>
+                )}
+              </div>
             </div>
             <DrawerClose asChild>
               <button className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-muted/40 hover:bg-muted/60 transition-colors" aria-label="Cerrar">
