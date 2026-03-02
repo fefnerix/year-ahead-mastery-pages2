@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
         if (userId) {
           report.existing_users++;
         } else {
-          const tempPwd = crypto.randomUUID();
+          const tempPwd = "renacer123";
           const { data: newUser, error: createErr } = await serviceClient.auth.admin.createUser({
             email,
             password: tempPwd,
