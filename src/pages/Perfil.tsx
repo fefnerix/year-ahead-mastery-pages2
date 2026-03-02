@@ -36,9 +36,6 @@ const Perfil = () => {
         {/* Abundancia */}
         <DepositCard />
 
-        {/* Estado actual */}
-        <ProfileStatusCard />
-
         {/* Recent deposits */}
         {recentDeposits.length > 0 && (
           <div className="glass-card rounded-xl p-4 space-y-3">
@@ -62,6 +59,9 @@ const Perfil = () => {
             ))}
           </div>
         )}
+
+        {/* Estado actual */}
+        <ProfileStatusCard />
 
         {/* Settings */}
         <div className="glass-card rounded-xl overflow-hidden">
