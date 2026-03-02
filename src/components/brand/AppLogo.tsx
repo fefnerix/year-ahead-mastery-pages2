@@ -9,7 +9,7 @@ interface AppLogoProps {
 }
 
 const heightMap: Record<LogoVariant, number> = {
-  login: 360,
+  login: 500,
   header: 108,
   section: 168,
   admin: 108,
