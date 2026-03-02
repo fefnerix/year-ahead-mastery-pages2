@@ -99,31 +99,24 @@ const Admin = () => {
         <p className="text-sm text-muted-foreground mt-1">Gestión de programas, meses y comunicados</p>
 
         {/* Tabs */}
-        <div className="flex gap-2 mt-4">
-          <button
-            onClick={() => setActiveTab("content")}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "content" ? "gold-gradient text-primary-foreground" : "bg-muted text-muted-foreground"}`}
-          >
-            Contenido
-          </button>
-           <button
-            onClick={() => setActiveTab("announcements")}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "announcements" ? "gold-gradient text-primary-foreground" : "bg-muted text-muted-foreground"}`}
-          >
-            Comunicados
-          </button>
-          <button
-            onClick={() => setActiveTab("accesos")}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "accesos" ? "gold-gradient text-primary-foreground" : "bg-muted text-muted-foreground"}`}
-          >
-            <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> Alumnos</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("integraciones")}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "integraciones" ? "gold-gradient text-primary-foreground" : "bg-muted text-muted-foreground"}`}
-          >
-            <span className="flex items-center gap-1">Integraciones</span>
-          </button>
+        <div className="flex gap-1.5 mt-4 flex-wrap">
+          {([
+            { key: "content", label: "Contenido", icon: null },
+            { key: "announcements", label: "Comunicados", icon: null },
+            { key: "accesos", label: "Alumnos", icon: ShieldCheck },
+            { key: "integraciones", label: "Integraciones", icon: null },
+          ] as const).map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key as any)}
+              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${activeTab === key ? "gold-gradient text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+            >
+              <span className="flex items-center gap-1">
+                {Icon && <Icon className="w-3.5 h-3.5" />}
+                {label}
+              </span>
+            </button>
+          ))}
         </div>
       </header>
 
