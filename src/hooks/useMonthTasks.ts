@@ -40,6 +40,7 @@ export function useMonthTasks(monthId: string | null | undefined) {
       return (data ?? []) as MonthTask[];
     },
     enabled: !!monthId,
+    staleTime: 1000 * 60 * 5, // 5 min — tasks rarely change
   });
 }
 
@@ -57,6 +58,7 @@ export function useMonthTaskChecks(monthId: string | null | undefined) {
       return (data ?? []) as MonthTaskCheck[];
     },
     enabled: !!monthId && !!user,
+    staleTime: 1000 * 30, // 30s — changes on toggle but optimistic update covers it
   });
 }
 
