@@ -19,11 +19,9 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: [
-        "brand/logo-365.png",
         "brand/favicon-32.png",
         "brand/favicon-16.png",
         "brand/apple-touch-icon.png",
-        "brand/og-image.png",
         "robots.txt",
       ],
       manifest: {
@@ -51,6 +49,7 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,jpg,jpeg,svg,woff2}"],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/~oauth/],
       },

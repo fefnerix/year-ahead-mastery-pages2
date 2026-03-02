@@ -1,4 +1,5 @@
-import BrandLogo from "./BrandLogo";
+// Legacy wrapper — use AppLogo directly in new code
+import AppLogo from "./brand/AppLogo";
 
 interface LogoProps {
   variant?: "full" | "compact";
@@ -7,8 +8,8 @@ interface LogoProps {
 
 const Logo = ({ variant = "compact", className = "" }: LogoProps) => {
   return (
-    <BrandLogo
-      variant={variant === "full" ? "full" : "header"}
+    <AppLogo
+      variant={variant === "full" ? "login" : "header"}
       className={className}
     />
   );
