@@ -58,6 +58,11 @@ const Ranking = () => {
     ? nextAbove.points - currentUserEntry.points + 1
     : null;
 
+  // Points shown in "Tu Posición" card depend on active tab scope
+  const scopePoints = activeTab === "Mes"
+    ? (summary?.month_points ?? 0)
+    : (summary?.total_points ?? 0);
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="px-5 pt-12 pb-4">
@@ -78,8 +83,8 @@ const Ranking = () => {
               <div className="flex items-center gap-2">
                 <Target className="w-3.5 h-3.5 text-primary" />
                 <span className="text-sm text-foreground">
-                  <span className="font-bold">{summary?.total_points ?? 0}</span>
-                  <span className="text-muted-foreground ml-1">puntos</span>
+                  <span className="font-bold">{scopePoints}</span>
+                  <span className="text-muted-foreground ml-1">puntos ({activeTab.toLowerCase()})</span>
                 </span>
               </div>
               {pointsToNext && nextAbove ? (
