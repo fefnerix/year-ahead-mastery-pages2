@@ -9,6 +9,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import EntitlementGate from "@/components/EntitlementGate";
 import AdminRoute from "@/components/AdminRoute";
 import Index from "./pages/Index";
+import UpdatePrompt from "@/components/UpdatePrompt";
 
 // Lazy-loaded routes (code-splitting)
 const Ranking = lazy(() => import("./pages/Ranking"));
@@ -55,6 +56,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <UpdatePrompt />
       <BrowserRouter>
         <AuthProvider>
           <Suspense fallback={<RouteFallback />}>
