@@ -1,5 +1,5 @@
 import BottomNav from "@/components/BottomNav";
-import { ArrowLeft, Bell, Eye, Info, User, Loader2 } from "lucide-react";
+import { ArrowLeft, Bell, Eye, Info, User, Loader2, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProfileSettings, useUpdateProfileSettings } from "@/hooks/useProfileSettings";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,10 +19,18 @@ const SettingsPage = () => {
   const [displayName, setDisplayName] = useState(currentName);
   const [saving, setSaving] = useState(false);
 
+  // Password change state
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [changingPwd, setChangingPwd] = useState(false);
+
   useEffect(() => { setDisplayName(currentName); }, [currentName]);
 
   const nameValid = displayName.trim().length >= 2 && displayName.trim().length <= 32;
   const nameChanged = displayName.trim() !== currentName;
+
+  const pwdValid = newPwd.length >= 6 && newPwd === confirmPwd && currentPwd.length > 0;
 
   const saveProfile = async () => {
     if (!nameValid || !user) return;
@@ -38,6 +46,42 @@ const SettingsPage = () => {
       toast.error("Error al guardar");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const changePassword = async () => {
+    if (!pwdValid || !user) return;
+    setChangingPwd(true);
+    try {
+      // Verify current password by re-signing in
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email: user.email!,
+        password: currentPwd,
+      });
+      if (signInErr) {
+        toast.error("Contraseña actual incorrecta");
+        setChangingPwd(false);
+        return;
+      }
+      // Update password
+      const { error: updateErr } = await supabase.auth.updateUser({ password: newPwd });
+      if (updateErr) {
+        toast.error("Error al cambiar contraseña");
+        setChangingPwd(false);
+        return;
+      }
+      // Clear must_change_password flag
+      if (settings?.must_change_password) {
+        updateSettings.mutate({ must_change_password: false });
+      }
+      setCurrentPwd("");
+      setNewPwd("");
+      setConfirmPwd("");
+      toast.success("Contraseña actualizada correctamente");
+    } catch {
+      toast.error("Error inesperado");
+    } finally {
+      setChangingPwd(false);
     }
   };
 
@@ -101,6 +145,75 @@ const SettingsPage = () => {
               {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando…</> : "Guardar cambios"}
             </button>
           )}
+        </div>
+
+        {/* Cambiar contraseña */}
+        <div className="glass-card rounded-xl p-4 space-y-4">
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-primary" />
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contraseña</h2>
+            {settings?.must_change_password && (
+              <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">
+                Cambio requerido
+              </span>
+            )}
+          </div>
+
+          {settings?.must_change_password && (
+            <p className="text-xs text-destructive/80">
+              Tu cuenta fue creada con una contraseña temporal. Por favor cámbiala ahora.
+            </p>
+          )}
+
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 block">
+              Contraseña actual
+            </label>
+            <input
+              type="password"
+              value={currentPwd}
+              onChange={(e) => setCurrentPwd(e.target.value)}
+              placeholder="••••••••"
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 block">
+              Nueva contraseña
+            </label>
+            <input
+              type="password"
+              value={newPwd}
+              onChange={(e) => setNewPwd(e.target.value)}
+              placeholder="Mínimo 6 caracteres"
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5 block">
+              Confirmar nueva contraseña
+            </label>
+            <input
+              type="password"
+              value={confirmPwd}
+              onChange={(e) => setConfirmPwd(e.target.value)}
+              placeholder="Repite la nueva contraseña"
+              className={inputClass}
+            />
+            {confirmPwd && newPwd !== confirmPwd && (
+              <p className="text-[10px] text-destructive mt-1">Las contraseñas no coinciden</p>
+            )}
+          </div>
+
+          <button
+            onClick={changePassword}
+            disabled={!pwdValid || changingPwd}
+            className="w-full py-3 rounded-xl gold-gradient font-bold text-primary-foreground text-sm uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-40"
+          >
+            {changingPwd ? <><Loader2 className="w-4 h-4 animate-spin" /> Cambiando…</> : "Cambiar contraseña"}
+          </button>
         </div>
 
         {/* Notificaciones */}

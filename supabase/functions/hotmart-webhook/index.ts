@@ -110,10 +110,10 @@ Deno.serve(async (req) => {
     if (foundUser) {
       userId = foundUser.id;
     } else {
-      const tempPwd = crypto.randomUUID();
+      const defaultPwd = "renacer123";
       const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
         email: buyerEmail,
-        password: tempPwd,
+        password: defaultPwd,
         email_confirm: true,
         user_metadata: { source: "hotmart", buyer_id: buyerId },
       });
@@ -126,6 +126,12 @@ Deno.serve(async (req) => {
         });
       }
       userId = newUser.user.id;
+
+      // Mark user as needing password change
+      await supabase.from("profile_settings").upsert(
+        { user_id: userId, must_change_password: true },
+        { onConflict: "user_id" }
+      ).catch(() => {});
     }
 
     // Upsert provider identity

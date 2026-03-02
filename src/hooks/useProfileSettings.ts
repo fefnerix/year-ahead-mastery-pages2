@@ -8,6 +8,7 @@ interface ProfileSettings {
   daily_reminder: boolean;
   reminder_time: string;
   show_in_ranking: boolean;
+  must_change_password: boolean;
 }
 
 export function useProfileSettings() {
@@ -41,7 +42,7 @@ export function useUpdateProfileSettings() {
   const { user } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (updates: Partial<Pick<ProfileSettings, "daily_reminder" | "reminder_time" | "show_in_ranking">>) => {
+    mutationFn: async (updates: Partial<Pick<ProfileSettings, "daily_reminder" | "reminder_time" | "show_in_ranking" | "must_change_password">>) => {
       const { error } = await supabase
         .from("profile_settings" as any)
         .update(updates)
