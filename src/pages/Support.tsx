@@ -51,8 +51,7 @@ const SupportPage = () => {
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Horario de atención</h2>
           </div>
           <div className="space-y-1">
-            <p className="text-sm text-foreground">Lunes a viernes: 9:00 – 18:00 (hora de Brasilia)</p>
-            <p className="text-sm text-foreground">Sábados: 9:00 – 13:00</p>
+           <p className="text-sm text-foreground">Lunes a viernes: 8:00 — 17:00 (hora de Colombia)</p>
             <p className="text-xs text-muted-foreground mt-2">Fuera de horario, deja tu mensaje y te responderemos lo antes posible.</p>
           </div>
         </div>
