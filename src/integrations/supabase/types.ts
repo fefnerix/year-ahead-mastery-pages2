@@ -774,6 +774,7 @@ export type Database = {
       month_tasks: {
         Row: {
           audio_url: string | null
+          category: Database["public"]["Enums"]["task_category"] | null
           created_at: string
           description: string | null
           file_url: string | null
@@ -788,6 +789,7 @@ export type Database = {
         }
         Insert: {
           audio_url?: string | null
+          category?: Database["public"]["Enums"]["task_category"] | null
           created_at?: string
           description?: string | null
           file_url?: string | null
@@ -802,6 +804,7 @@ export type Database = {
         }
         Update: {
           audio_url?: string | null
+          category?: Database["public"]["Enums"]["task_category"] | null
           created_at?: string
           description?: string | null
           file_url?: string | null
