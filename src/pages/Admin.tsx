@@ -13,6 +13,7 @@ import {
 import { useAnnouncements, useCreateAnnouncement, useDeleteAnnouncement } from "@/hooks/useAnnouncements";
 import { Loader2, Plus, ChevronRight, Trash2, Megaphone, BookOpen, Save, AlertTriangle, X, Check, ListChecks, ShieldCheck } from "lucide-react";
 import AdminAccesos from "@/components/AdminAccesos";
+import AdminIntegraciones from "@/components/AdminIntegraciones";
 import { toast } from "sonner";
 import Logo from "@/components/Logo";
 import { isYouTubeUrl, getMediaWarning } from "@/lib/media-utils";
@@ -23,7 +24,7 @@ const Admin = () => {
   const navigate = useNavigate();
   const [selectedProgram, setSelectedProgram] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"content" | "announcements" | "accesos">("content");
+  const [activeTab, setActiveTab] = useState<"content" | "announcements" | "accesos" | "integraciones">("content");
 
   // Forms
   const [showProgramForm, setShowProgramForm] = useState(false);
@@ -116,6 +117,12 @@ const Admin = () => {
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "accesos" ? "gold-gradient text-primary-foreground" : "bg-muted text-muted-foreground"}`}
           >
             <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> Alumnos</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("integraciones")}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "integraciones" ? "gold-gradient text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+          >
+            <span className="flex items-center gap-1">Integraciones</span>
           </button>
         </div>
       </header>
@@ -290,6 +297,7 @@ const Admin = () => {
         )}
 
         {activeTab === "accesos" && <AdminAccesos />}
+        {activeTab === "integraciones" && <AdminIntegraciones />}
       </main>
 
       {/* Delete Month Modal */}
