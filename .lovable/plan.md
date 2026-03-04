@@ -1,22 +1,25 @@
 
 
-## Trocar a Logo Principal em Todos os Posicionamentos
+## Plano: Verificar e criar acessos para lista de alunos
 
-### Resumo
-Substituir a logo atual (`logo-365.png`) pela nova imagem dourada do "P" (`principal.png`) em todos os locais onde ela aparece no app.
+### Análise
+- O programa é `progress_2026` com ID `a0000000-0000-0000-0000-000000000001`
+- A lista contém ~350 linhas com muitos emails duplicados
+- Já existe a Edge Function `admin-import-csv` que faz exatamente isso: verifica se o usuário existe, cria se necessário (senha padrão `renacer123`), e faz upsert no `access_control` com status `active`
 
-### Arquivos Afetados
+### Plano de execução
+1. **Deduplicar a lista** — remover emails repetidos e linhas vazias
+2. **Chamar a Edge Function `admin-import-csv`** com os dados limpos via `curl_edge_functions`, enviando:
+   - `program_id`: `a0000000-0000-0000-0000-000000000001`
+   - `default_status`: `active`
+   - `rows`: array de `{ email, full_name }`
+3. **Verificar o resultado** — a função retorna um relatório com `created_users`, `existing_users`, `upserts` e `errors`
 
-1. **`src/assets/logo-365.png`** -- Substituir pelo arquivo `principal.png` enviado (copiar `user-uploads://principal.png` para `src/assets/logo-365.png`). Como todos os componentes importam este mesmo arquivo, a troca automaticamente reflete em todos os lugares:
-   - Tela de login (`Auth.tsx`)
-   - Header do app (`Index.tsx`, `CalendarioAno.tsx`, `Admin.tsx`)
-   - Gate de acesso (`EntitlementGate.tsx`)
-   - Qualquer outro local que use `Logo`, `AppLogo` ou `BrandLogo`
+### Detalhes técnicos
+- A função já faz upsert em `access_control` (conflito em `user_id,program_id`) e `access_entitlements` para backwards compat
+- Usuários novos são criados com senha `renacer123` e email confirmado
+- Todas as ações são registradas em `audit_logs`
+- A lista tem ~215 emails únicos após deduplicação
 
-2. **Nenhuma alteracao de codigo necessaria** -- O componente `AppLogo` ja importa `@/assets/logo-365.png`, entao basta substituir o arquivo de imagem.
-
-### Detalhes Tecnicos
-- Copiar `user-uploads://principal.png` para `src/assets/logo-365.png` (sobrescreve o arquivo existente)
-- O Vite reprocessa automaticamente o asset com novo hash, forcando atualizacao do cache
-- As dimensoes de exibicao ja sao controladas pelo componente `AppLogo` (40px header, 160px login, 168px secoes), entao a nova imagem sera redimensionada proporcionalmente
+Nenhuma alteração de código é necessária — apenas execução da função existente.
 
